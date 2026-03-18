@@ -41,7 +41,6 @@ export class Sidebar {
     header.textContent = 'Components';
     panel.appendChild(header);
 
-    // Generate palette from gate definitions
     for (const [type, def] of Object.entries(GATE_DEFS)) {
       if (!def.placeable) continue;
       panel.appendChild(this.createItem(type as GateType, def.label, def.description));
@@ -60,20 +59,12 @@ export class Sidebar {
     });
 
     const labelEl = document.createElement('div');
-    Object.assign(labelEl.style, {
-      color: ITEM_TEXT,
-      fontSize: '12px',
-      fontWeight: '600',
-    });
+    Object.assign(labelEl.style, { color: ITEM_TEXT, fontSize: '12px', fontWeight: '600' });
     labelEl.textContent = label;
     el.appendChild(labelEl);
 
     const desc = document.createElement('div');
-    Object.assign(desc.style, {
-      color: ITEM_DESC,
-      fontSize: '10px',
-      marginTop: '1px',
-    });
+    Object.assign(desc.style, { color: ITEM_DESC, fontSize: '10px', marginTop: '1px' });
     desc.textContent = description;
     el.appendChild(desc);
 
@@ -86,9 +77,7 @@ export class Sidebar {
       e.dataTransfer.effectAllowed = 'copy';
       el.style.opacity = '0.6';
     });
-    el.addEventListener('dragend', () => {
-      el.style.opacity = '1';
-    });
+    el.addEventListener('dragend', () => { el.style.opacity = '1'; });
 
     return el;
   }

@@ -370,12 +370,20 @@ export class Renderer {
         ctx.strokeRect(-w / 2, -h / 2, w, h);
       }
 
-      // Label
-      ctx.fillStyle = COLORS.gateText;
-      ctx.font = 'bold 11px monospace';
+      // Label — show value for input/constant gates
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(def.label, 0, 0);
+      if (gate.type === 'input' || gate.type === 'constant') {
+        const outPin = gate.outputPins[0] ? circuit.pins.get(gate.outputPins[0]) : undefined;
+        const val = outPin?.value;
+        ctx.fillStyle = val !== null && val !== undefined ? signalColor(val) : COLORS.gateText;
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText(val !== null && val !== undefined ? String(val) : '?', 0, 0);
+      } else {
+        ctx.fillStyle = COLORS.gateText;
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText(def.label, 0, 0);
+      }
 
       ctx.restore();
 

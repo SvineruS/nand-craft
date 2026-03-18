@@ -85,6 +85,7 @@ const testPanel = new TestPanel({
   onStep: stepTestCase,
   onRunAll: runAllCases,
 });
+testPanel.onPropChange = () => simulateFirstCase();
 
 function loadLevel(index: number): void {
   currentLevelIndex = index;
@@ -131,7 +132,9 @@ app.appendChild(mainRow);
 app.appendChild(levelDialog.element);
 
 function updateUI(): void {
-  toolbar.update(editor.getState());
+  const state = editor.getState();
+  toolbar.update(state);
+  testPanel.updateProps(state);
   requestAnimationFrame(updateUI);
 }
 requestAnimationFrame(updateUI);

@@ -319,9 +319,27 @@ export class InputHandler {
       return;
     }
 
-    // 2) Gate hit → select and start drag
+    // 2) Gate hit
     const gateHit = hitTestGate(world.x, world.y, state);
     if (gateHit) {
+      // Double-click input/constant gate → toggle value
+      if (isDblClick) {
+        const gate = state.circuit.gates.get(gateHit);
+        if (gate && (gate.type === 'input' || gate.type === 'constant')) {
+          const outPinId = gate.outputPins[0];
+          if (outPinId) {
+            const pin = state.circuit.pins.get(outPinId);
+            if (pin) {
+              const mask = ((1 << pin.bitWidth) >>> 0) - 1;
+              pin.value = pin.value === null ? 1 : ((pin.value + 1) & mask) >>> 0;
+              if (pin.value > mask) pin.value = 0;
+              this.setState((s) => { s.dirty = true; });
+              return;
+            }
+          }
+        }
+      }
+
       const alreadySelected = state.selection.some(
         (s) => s.type === 'gate' && s.id === gateHit,
       );

@@ -92,7 +92,7 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: 'M 0.3,0.4 L 0.3,2.6 L 2.5,1.5 Z',
   },
   constant: {
-    label: '0/1', description: 'Constant value', width: 2, height: 2, placeable: true,
+    label: 'C', description: 'Constant value', width: 2, height: 2, placeable: true,
     pins: [
       { kind: 'output', x: 2, y: 1 },
     ],

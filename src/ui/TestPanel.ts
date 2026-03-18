@@ -1,4 +1,6 @@
-import type { TestResult, Level } from '../types.ts';
+import type { GateId, TestResult, Level } from '../types.ts';
+import type { EditorState } from '../editor/EditorState.ts';
+import { GATE_DEFS } from '../editor/geometry.ts';
 
 const PANEL_BG = '#1e1e2e';
 const HEADER_BG = '#2d2d4d';
@@ -12,12 +14,20 @@ const CURRENT_BG = 'rgba(96,165,250,0.12)';
 const CURRENT_BORDER = '#60a5fa';
 const BUTTON_BG = '#363650';
 const BUTTON_HOVER = '#44446a';
+const PROP_BG = '#252540';
+const INPUT_BG = '#1a1a30';
+const INPUT_BORDER = '#4a4a7a';
+const BIT_OPTIONS = [1, 8, 16, 32];
 
 export class TestPanel {
   readonly element: HTMLElement;
   private readonly summaryEl: HTMLElement;
   private readonly warningEl: HTMLElement;
   private readonly tableWrap: HTMLElement;
+  private readonly propsSection: HTMLElement;
+  private readonly propsContent: HTMLElement;
+  private currentPropGateId: GateId | null = null;
+  onPropChange: (() => void) | null = null;
 
   constructor(options: {
     onReset: () => void;
@@ -116,6 +126,36 @@ export class TestPanel {
       padding: '6px',
     });
     panel.appendChild(this.tableWrap);
+
+    // Properties section (at bottom, shown for IO/constant gates)
+    this.propsSection = document.createElement('div');
+    Object.assign(this.propsSection.style, {
+      display: 'none',
+      borderTop: `1px solid ${BORDER_COLOR}`,
+      padding: '8px 6px',
+      flexShrink: '0',
+    });
+
+    const propsHeader = document.createElement('div');
+    Object.assign(propsHeader.style, {
+      color: TEXT_DIM,
+      fontSize: '11px',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      marginBottom: '6px',
+    });
+    propsHeader.textContent = 'Properties';
+    this.propsSection.appendChild(propsHeader);
+
+    this.propsContent = document.createElement('div');
+    Object.assign(this.propsContent.style, {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '5px',
+    });
+    this.propsSection.appendChild(this.propsContent);
+    panel.appendChild(this.propsSection);
   }
 
   setWarning(text: string | null): void {
@@ -309,5 +349,150 @@ export class TestPanel {
     btn.addEventListener('mouseenter', () => { btn.style.background = BUTTON_HOVER; });
     btn.addEventListener('mouseleave', () => { btn.style.background = BUTTON_BG; });
     return btn;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Properties panel for IO / Constant gates
+  // ---------------------------------------------------------------------------
+
+  updateProps(state: EditorState): void {
+    const gateItem = state.selection.find(s => s.type === 'gate');
+    const gateId = gateItem?.type === 'gate' ? gateItem.id : null;
+
+    if (!gateId) {
+      this.propsSection.style.display = 'none';
+      this.currentPropGateId = null;
+      return;
+    }
+
+    const gate = state.circuit.gates.get(gateId);
+    if (!gate || (gate.type !== 'input' && gate.type !== 'output' && gate.type !== 'constant')) {
+      this.propsSection.style.display = 'none';
+      this.currentPropGateId = null;
+      return;
+    }
+
+    this.propsSection.style.display = 'block';
+    if (this.currentPropGateId === gateId) return;
+    this.currentPropGateId = gateId;
+    this.propsContent.innerHTML = '';
+
+    const def = GATE_DEFS[gate.type];
+    this.propsContent.appendChild(this.propLabel('Type', def.label));
+
+    // Value (for input/constant)
+    if (gate.type === 'input' || gate.type === 'constant') {
+      const outPin = gate.outputPins[0] ? state.circuit.pins.get(gate.outputPins[0]) : undefined;
+      if (outPin) {
+        const mask = ((1 << outPin.bitWidth) >>> 0) - 1;
+        this.propsContent.appendChild(this.propNumber('Value', outPin.value ?? 0, 0, mask, (v) => {
+          outPin.value = v;
+          this.onPropChange?.();
+        }));
+      }
+    }
+
+    // Bit width dropdown
+    const allPinIds = [...gate.inputPins, ...gate.outputPins];
+    const firstPin = allPinIds.length > 0 ? state.circuit.pins.get(allPinIds[0]) : undefined;
+    if (firstPin) {
+      this.propsContent.appendChild(this.propSelect('Bits', BIT_OPTIONS, firstPin.bitWidth, (v) => {
+        for (const pid of allPinIds) {
+          const pin = state.circuit.pins.get(pid);
+          if (pin) pin.bitWidth = v;
+        }
+        this.currentPropGateId = null; // force rebuild to update value max
+        this.onPropChange?.();
+      }));
+    }
+  }
+
+  private propLabel(label: string, value: string): HTMLElement {
+    const row = document.createElement('div');
+    Object.assign(row.style, {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '3px 6px', background: PROP_BG, borderRadius: '3px', fontSize: '11px',
+    });
+    const l = document.createElement('span');
+    l.textContent = label;
+    l.style.color = TEXT_DIM;
+    row.appendChild(l);
+    const v = document.createElement('span');
+    v.textContent = value;
+    v.style.color = TEXT_COLOR;
+    v.style.fontWeight = '600';
+    row.appendChild(v);
+    return row;
+  }
+
+  private propNumber(label: string, value: number, min: number, max: number, onSet: (v: number) => void): HTMLElement {
+    const row = document.createElement('div');
+    Object.assign(row.style, {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '3px 6px', background: PROP_BG, borderRadius: '3px', fontSize: '11px',
+    });
+    const l = document.createElement('span');
+    l.textContent = label;
+    l.style.color = TEXT_DIM;
+    row.appendChild(l);
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.value = String(value);
+    input.min = String(min);
+    input.max = String(max);
+    Object.assign(input.style, {
+      width: '48px', background: INPUT_BG, color: TEXT_COLOR,
+      border: `1px solid ${INPUT_BORDER}`, borderRadius: '3px',
+      padding: '2px 4px', fontSize: '11px',
+      fontFamily: 'ui-monospace, Consolas, monospace', textAlign: 'right', outline: 'none',
+    });
+    input.addEventListener('change', () => {
+      let v = parseInt(input.value, 10);
+      if (isNaN(v)) v = min;
+      v = Math.max(min, Math.min(max, v));
+      input.value = String(v);
+      onSet(v);
+    });
+    input.addEventListener('input', () => {
+      let v = parseInt(input.value, 10);
+      if (isNaN(v)) return;
+      v = Math.max(min, Math.min(max, v));
+      onSet(v);
+    });
+    row.appendChild(input);
+    return row;
+  }
+
+  private propSelect(label: string, options: number[], current: number, onSet: (v: number) => void): HTMLElement {
+    const row = document.createElement('div');
+    Object.assign(row.style, {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '3px 6px', background: PROP_BG, borderRadius: '3px', fontSize: '11px',
+    });
+    const l = document.createElement('span');
+    l.textContent = label;
+    l.style.color = TEXT_DIM;
+    row.appendChild(l);
+
+    const select = document.createElement('select');
+    Object.assign(select.style, {
+      width: '52px', background: INPUT_BG, color: TEXT_COLOR,
+      border: `1px solid ${INPUT_BORDER}`, borderRadius: '3px',
+      padding: '2px 4px', fontSize: '11px',
+      fontFamily: 'ui-monospace, Consolas, monospace', outline: 'none',
+    });
+    for (const opt of options) {
+      const o = document.createElement('option');
+      o.value = String(opt);
+      o.textContent = String(opt);
+      if (opt === current) o.selected = true;
+      select.appendChild(o);
+    }
+    select.addEventListener('change', () => {
+      onSet(parseInt(select.value, 10));
+    });
+    row.appendChild(select);
+    return row;
   }
 }
