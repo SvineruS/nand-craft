@@ -1,4 +1,4 @@
-import type { GateId, TestResult, Level } from '../types.ts';
+import type { GateId, WireSegmentId, TestResult, Level } from '../types.ts';
 import type { EditorState } from '../editor/EditorState.ts';
 import { GATE_DEFS } from '../editor/geometry.ts';
 
@@ -26,7 +26,7 @@ export class TestPanel {
   private readonly tableWrap: HTMLElement;
   private readonly propsSection: HTMLElement;
   private readonly propsContent: HTMLElement;
-  private currentPropGateId: GateId | null = null;
+  private currentPropId: string | null = null; // gate or segment ID
   onPropChange: (() => void) | null = null;
 
   constructor(options: {
@@ -356,27 +356,34 @@ export class TestPanel {
   // ---------------------------------------------------------------------------
 
   updateProps(state: EditorState): void {
+    // Check for selected gate (IO/constant only)
     const gateItem = state.selection.find(s => s.type === 'gate');
-    const gateId = gateItem?.type === 'gate' ? gateItem.id : null;
+    if (gateItem?.type === 'gate') {
+      const gate = state.circuit.gates.get(gateItem.id);
+      if (gate && (gate.type === 'input' || gate.type === 'output' || gate.type === 'constant')) {
+        this.showGateProps(state, gateItem.id);
+        return;
+      }
+    }
 
-    if (!gateId) {
-      this.propsSection.style.display = 'none';
-      this.currentPropGateId = null;
+    // Check for selected wire segment
+    const segItem = state.selection.find(s => s.type === 'wireSegment');
+    if (segItem?.type === 'wireSegment') {
+      this.showSegmentProps(state, segItem.id);
       return;
     }
 
-    const gate = state.circuit.gates.get(gateId);
-    if (!gate || (gate.type !== 'input' && gate.type !== 'output' && gate.type !== 'constant')) {
-      this.propsSection.style.display = 'none';
-      this.currentPropGateId = null;
-      return;
-    }
+    this.propsSection.style.display = 'none';
+    this.currentPropId = null;
+  }
 
+  private showGateProps(state: EditorState, gateId: GateId): void {
     this.propsSection.style.display = 'block';
-    if (this.currentPropGateId === gateId) return;
-    this.currentPropGateId = gateId;
+    if (this.currentPropId === (gateId as string)) return;
+    this.currentPropId = gateId as string;
     this.propsContent.innerHTML = '';
 
+    const gate = state.circuit.gates.get(gateId)!;
     const def = GATE_DEFS[gate.type];
     this.propsContent.appendChild(this.propLabel('Type', def.label));
 
@@ -401,10 +408,26 @@ export class TestPanel {
           const pin = state.circuit.pins.get(pid);
           if (pin) pin.bitWidth = v;
         }
-        this.currentPropGateId = null; // force rebuild to update value max
+        this.currentPropId = null; // force rebuild to update value max
         this.onPropChange?.();
       }));
     }
+  }
+
+  private showSegmentProps(state: EditorState, segId: WireSegmentId): void {
+    this.propsSection.style.display = 'block';
+    if (this.currentPropId === (segId as string)) return;
+    this.currentPropId = segId as string;
+    this.propsContent.innerHTML = '';
+
+    const seg = state.circuit.wireSegments.get(segId);
+    if (!seg) return;
+
+    this.propsContent.appendChild(this.propLabel('Type', 'Wire'));
+    this.propsContent.appendChild(this.propText('Label', seg.label ?? '', (v) => {
+      seg.label = v || undefined;
+      state.dirty = true;
+    }));
   }
 
   private propLabel(label: string, value: string): HTMLElement {
@@ -460,6 +483,32 @@ export class TestPanel {
       v = Math.max(min, Math.min(max, v));
       onSet(v);
     });
+    row.appendChild(input);
+    return row;
+  }
+
+  private propText(label: string, value: string, onSet: (v: string) => void): HTMLElement {
+    const row = document.createElement('div');
+    Object.assign(row.style, {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '3px 6px', background: PROP_BG, borderRadius: '3px', fontSize: '11px',
+    });
+    const l = document.createElement('span');
+    l.textContent = label;
+    l.style.color = TEXT_DIM;
+    row.appendChild(l);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = value;
+    input.placeholder = 'none';
+    Object.assign(input.style, {
+      width: '70px', background: INPUT_BG, color: TEXT_COLOR,
+      border: `1px solid ${INPUT_BORDER}`, borderRadius: '3px',
+      padding: '2px 4px', fontSize: '11px', fontFamily: 'inherit', outline: 'none',
+    });
+    input.addEventListener('change', () => { onSet(input.value); });
+    input.addEventListener('input', () => { onSet(input.value); });
     row.appendChild(input);
     return row;
   }

@@ -267,6 +267,34 @@ export class Renderer {
     }
     ctx.setLineDash([]);
     ctx.lineDashOffset = 0;
+
+    // Pass 3: draw wire labels
+    for (const segment of circuit.wireSegments.values()) {
+      if (!segment.label) continue;
+      const fromNode = circuit.wireNodes.get(segment.from);
+      const toNode = circuit.wireNodes.get(segment.to);
+      if (!fromNode || !toNode) continue;
+
+      // Position label slightly above midpoint
+      const mx = (fromNode.x + toNode.x) / 2;
+      const my = (fromNode.y + toNode.y) / 2;
+
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      const tw = ctx.measureText(segment.label).width + 6;
+
+      // Background pill
+      ctx.fillStyle = COLORS.background;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.roundRect(mx - tw / 2, my - 16, tw, 12, 3);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = segment.color ?? '#9ca3af';
+      ctx.fillText(segment.label, mx, my - 5);
+    }
   }
 
   private drawWireNodes(state: EditorState): void {
