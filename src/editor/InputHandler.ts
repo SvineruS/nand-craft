@@ -789,10 +789,21 @@ export class InputHandler {
     }
 
     if (e.key === 'r' || e.key === 'R') {
+      // Rotate clipboard in paste mode
+      if (state.pasteMode && state.clipboard) {
+        this.rotateClipboard(state);
+        return;
+      }
+      // Rotate selection (gates + free nodes around group center)
       const gateIds = state.selection
         .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
         .map((s) => s.id);
-      if (gateIds.length > 0) this.history.execute(new RotateGatesCommand(state, gateIds));
+      const nodeIds = state.selection
+        .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
+        .map((s) => s.id);
+      if (gateIds.length > 0 || nodeIds.length > 0) {
+        this.history.execute(new RotateGatesCommand(state, gateIds, nodeIds));
+      }
       return;
     }
 
@@ -1007,6 +1018,32 @@ export class InputHandler {
     }
 
     return [...visited] as WireSegmentId[];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Clipboard rotation
+  // ---------------------------------------------------------------------------
+
+  private rotateClipboard(state: EditorState): void {
+    const clip = state.clipboard;
+    if (!clip) return;
+
+    // Rotate all dx/dy by 90° CW around origin (0,0)
+    for (const cg of clip.gates) {
+      const dx = cg.dx;
+      const dy = cg.dy;
+      cg.dx = -dy;
+      cg.dy = dx;
+      cg.rotation = (((cg.rotation + 90) % 360) as 0 | 90 | 180 | 270);
+    }
+    for (const cn of clip.nodes) {
+      const dx = cn.dx;
+      const dy = cn.dy;
+      cn.dx = -dy;
+      cn.dy = dx;
+    }
+
+    this.setState((s) => { s.dirty = true; });
   }
 
   // ---------------------------------------------------------------------------
