@@ -23,6 +23,7 @@ export class Editor {
   private canvas: HTMLCanvasElement;
   private simulationInterval: ReturnType<typeof setInterval> | null = null;
   private resizeHandler: () => void;
+  onCircuitChange: (() => void) | null = null;
 
   constructor(container: HTMLElement) {
     // Create canvas filling the container
@@ -36,7 +37,7 @@ export class Editor {
 
     // Initialize state
     this.state = createEditorState();
-    this.history = new CommandHistory();
+    this.history = this.createHistory();
     this.engine = new SimulationEngine();
     this.renderer = new Renderer(this.canvas);
 
@@ -65,7 +66,7 @@ export class Editor {
     this.state.circuit = createCircuit();
 
     // Reset history by creating a new one
-    this.history = new CommandHistory();
+    this.history = this.createHistory();
 
     // Rebuild input handler with new history
     this.input.detach();
@@ -120,7 +121,7 @@ export class Editor {
     }
 
     // Reset history again so the input/output gate placements aren't undoable
-    this.history = new CommandHistory();
+    this.history = this.createHistory();
     this.input.detach();
     this.input = new InputHandler(
       this.canvas,
@@ -195,10 +196,81 @@ export class Editor {
     this.state.dirty = true;
   }
 
+  /** Clear all pin values and delay state (reset simulation visuals). */
+  resetSimulation(): void {
+    for (const pin of this.state.circuit.pins.values()) {
+      pin.value = null;
+    }
+    this.state.circuit.delayState.clear();
+    this.state.dirty = true;
+  }
+
   runTests(level: Level): TestResult[] {
-    // Deep clone the circuit to not affect editor state
     const cloned = this.cloneCircuit(this.state.circuit);
     return runLevel(cloned, level);
+  }
+
+  /** Run a single test case on the LIVE circuit so pin values are visible. */
+  runSingleCase(level: Level, caseIndex: number): TestResult {
+    const cases = level.test.cases;
+    if (!cases || !cases[caseIndex]) {
+      return { passed: false, caseIndex, message: 'Case not found' };
+    }
+
+    const testCase = cases[caseIndex];
+    const inputNames = level.inputs.map(i => i.name);
+    const outputNames = level.outputs.map(o => o.name);
+
+    // Find input/output gates by type order
+    const inputGateIds: GateId[] = [];
+    const outputGateIds: GateId[] = [];
+    for (const [id, gate] of this.state.circuit.gates) {
+      if (gate.type === 'input') inputGateIds.push(id);
+      if (gate.type === 'output') outputGateIds.push(id);
+    }
+
+    // Set input values on the live circuit
+    const inputs = new Map<GateId, number>();
+    for (let j = 0; j < inputNames.length; j++) {
+      const name = inputNames[j];
+      if (name in testCase.inputs) {
+        inputs.set(inputGateIds[j], testCase.inputs[name]);
+      }
+    }
+
+    // Tick the live circuit
+    this.engine.tick(this.state.circuit, inputs);
+    this.state.dirty = true;
+
+    // Check outputs
+    let passed = true;
+    const mismatches: string[] = [];
+    for (let j = 0; j < outputNames.length; j++) {
+      const name = outputNames[j];
+      if (!(name in testCase.expected)) continue;
+      const outputGate = this.state.circuit.gates.get(outputGateIds[j]);
+      const inputPin = outputGate?.inputPins[0]
+        ? this.state.circuit.pins.get(outputGate.inputPins[0])
+        : undefined;
+      const actual = inputPin?.value ?? null;
+      const expected = testCase.expected[name];
+      if (actual !== expected) {
+        passed = false;
+        mismatches.push(`${name}: expected ${expected}, got ${actual}`);
+      }
+    }
+
+    const inputDesc = Object.entries(testCase.inputs)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(', ');
+
+    return {
+      passed,
+      caseIndex,
+      message: passed
+        ? `Inputs(${inputDesc}) — all outputs correct`
+        : `Inputs(${inputDesc}) — ${mismatches.join('; ')}`,
+    };
   }
 
   destroy(): void {
@@ -209,6 +281,12 @@ export class Editor {
       clearInterval(this.simulationInterval);
       this.simulationInterval = null;
     }
+  }
+
+  private createHistory(): CommandHistory {
+    const h = new CommandHistory();
+    h.onChange = () => this.onCircuitChange?.();
+    return h;
   }
 
   private cloneCircuit(circuit: Circuit): Circuit {

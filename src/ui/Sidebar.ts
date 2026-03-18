@@ -27,7 +27,7 @@ export class Sidebar {
       width: '160px',
       minWidth: '160px',
       background: SIDEBAR_BG,
-      borderRight: `1px solid ${BORDER_COLOR}`,
+      borderLeft: `1px solid ${BORDER_COLOR}`,
       overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',

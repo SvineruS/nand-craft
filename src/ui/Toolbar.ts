@@ -6,8 +6,6 @@ const BUTTON_BG = '#363650';
 const BUTTON_HOVER = '#44446a';
 const BUTTON_TEXT = '#e0e0e0';
 const SEPARATOR_COLOR = '#444466';
-const TEST_BG = '#22c55e';
-const TEST_HOVER = '#16a34a';
 
 function createButton(label: string, title?: string): HTMLButtonElement {
   const btn = document.createElement('button');
@@ -26,10 +24,10 @@ function createButton(label: string, title?: string): HTMLButtonElement {
     transition: 'background 0.15s',
   } satisfies Partial<Record<keyof CSSStyleDeclaration, string>>);
   btn.addEventListener('mouseenter', () => {
-    btn.style.background = BUTTON_HOVER;
+    if (!btn.dataset['active']) btn.style.background = BUTTON_HOVER;
   });
   btn.addEventListener('mouseleave', () => {
-    btn.style.background = BUTTON_BG;
+    if (!btn.dataset['active']) btn.style.background = BUTTON_BG;
   });
   return btn;
 }
@@ -57,17 +55,11 @@ export class Toolbar {
   private readonly levelNameEl: HTMLElement;
   private readonly undoBtn: HTMLButtonElement;
   private readonly redoBtn: HTMLButtonElement;
-  private readonly stepBtn: HTMLButtonElement;
-  private readonly playPauseBtn: HTMLButtonElement;
-  private readonly testBtn: HTMLButtonElement;
   private readonly colorSwatches: HTMLElement[] = [];
 
   constructor(options: {
     onUndo: () => void;
     onRedo: () => void;
-    onTest: () => void;
-    onStepTick: () => void;
-    onToggleSimulation: () => void;
     onColorChange: (color: string) => void;
   }) {
     const bar = document.createElement('div');
@@ -110,17 +102,6 @@ export class Toolbar {
 
     bar.appendChild(createSeparator());
 
-    // Simulation controls
-    this.stepBtn = createButton('Step', 'Advance one tick');
-    this.stepBtn.addEventListener('click', () => options.onStepTick());
-    bar.appendChild(this.stepBtn);
-
-    this.playPauseBtn = createButton('Play', 'Toggle simulation');
-    this.playPauseBtn.addEventListener('click', () => options.onToggleSimulation());
-    bar.appendChild(this.playPauseBtn);
-
-    bar.appendChild(createSeparator());
-
     // Wire color picker
     const colorLabel = document.createElement('span');
     Object.assign(colorLabel.style, {
@@ -143,43 +124,22 @@ export class Toolbar {
         boxSizing: 'border-box',
         transition: 'border-color 0.15s',
       });
-      swatch.title = `Wire color (E to apply, Shift+E for all connected)`;
+      swatch.title = 'Wire color (E to apply, Shift+E for all connected)';
       swatch.addEventListener('click', () => options.onColorChange(color));
       this.colorSwatches.push(swatch);
       bar.appendChild(swatch);
     }
 
-    bar.appendChild(createSeparator());
-
     // Spacer
     const spacer = document.createElement('div');
     spacer.style.flex = '1';
     bar.appendChild(spacer);
-
-    // Test button
-    this.testBtn = createButton('Test');
-    Object.assign(this.testBtn.style, {
-      background: TEST_BG,
-      color: '#ffffff',
-      fontWeight: '600',
-      padding: '6px 20px',
-    });
-    this.testBtn.addEventListener('mouseenter', () => {
-      this.testBtn.style.background = TEST_HOVER;
-    });
-    this.testBtn.addEventListener('mouseleave', () => {
-      this.testBtn.style.background = TEST_BG;
-    });
-    this.testBtn.addEventListener('click', () => options.onTest());
-    bar.appendChild(this.testBtn);
   }
 
   update(state: EditorState): void {
     setDisabled(this.undoBtn, false);
     setDisabled(this.redoBtn, false);
-    this.playPauseBtn.textContent = state.simulationRunning ? 'Pause' : 'Play';
 
-    // Highlight active wire color
     for (let i = 0; i < WIRE_COLORS.length; i++) {
       const isActive = state.wireColor === WIRE_COLORS[i];
       this.colorSwatches[i].style.borderColor = isActive ? '#ffffff' : 'transparent';

@@ -4,12 +4,12 @@ import { Sidebar } from './ui/Sidebar.ts';
 import { TestPanel } from './ui/TestPanel.ts';
 import { LevelDialog } from './ui/LevelDialog.ts';
 import { LEVELS } from './levels/registry.ts';
+import type { TestResult } from './types.ts';
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = '';
 
-// Layout: toolbar top, then [sidebar | canvas] row
 Object.assign(app.style, {
   display: 'flex',
   flexDirection: 'column',
@@ -28,62 +28,99 @@ Object.assign(editorContainer.style, {
 
 const editor = new Editor(editorContainer);
 const sidebar = new Sidebar();
-const testPanel = new TestPanel();
 const levelDialog = new LevelDialog();
 
 let currentLevelIndex = 0;
+let testCaseIndex = -1;
+let testResults: TestResult[] = [];
+
+function stepTestCase(): void {
+  const level = LEVELS[currentLevelIndex];
+  const cases = level.test.cases;
+  if (!cases || cases.length === 0) return;
+
+  testCaseIndex++;
+  if (testCaseIndex >= cases.length) {
+    testCaseIndex = 0;
+    testResults = [];
+  }
+
+  const result = editor.runSingleCase(level, testCaseIndex);
+  testResults[testCaseIndex] = result;
+  testPanel.show(level, testResults, testCaseIndex);
+}
+
+function runAllCases(): void {
+  const level = LEVELS[currentLevelIndex];
+  const results = editor.runTests(level);
+  testResults = results;
+  testCaseIndex = results.length - 1;
+  testPanel.show(level, testResults);
+}
+
+function resetTests(): void {
+  simulateFirstCase();
+}
+
+function simulateFirstCase(): void {
+  const level = LEVELS[currentLevelIndex];
+  testCaseIndex = 0;
+  testResults = [];
+  const result = editor.runSingleCase(level, 0);
+  testResults[0] = result;
+  testPanel.show(level, testResults, 0);
+}
+
+const testPanel = new TestPanel({
+  onReset: resetTests,
+  onStep: stepTestCase,
+  onRunAll: runAllCases,
+});
 
 function loadLevel(index: number): void {
   currentLevelIndex = index;
+  testCaseIndex = -1;
+  testResults = [];
   const level = LEVELS[index];
   editor.loadLevel(level);
   toolbar.setLevelName(level.name);
+  simulateFirstCase();
   levelDialog.showIntro(level, () => levelDialog.hide());
 }
+
+// Re-simulate first case whenever the circuit changes (debounced to next frame)
+let resimScheduled = false;
+editor.onCircuitChange = () => {
+  if (!resimScheduled) {
+    resimScheduled = true;
+    requestAnimationFrame(() => {
+      resimScheduled = false;
+      simulateFirstCase();
+    });
+  }
+};
 
 const toolbar = new Toolbar({
   onUndo: () => editor.undo(),
   onRedo: () => editor.redo(),
-  onTest: () => {
-    const level = LEVELS[currentLevelIndex];
-    const results = editor.runTests(level);
-    testPanel.show(results, level);
-
-    const allPassed = results.every((r) => r.passed);
-    if (allPassed) {
-      levelDialog.showResults(
-        results,
-        level,
-        () => { levelDialog.hide(); },
-        currentLevelIndex < LEVELS.length - 1
-          ? () => { levelDialog.hide(); loadLevel(currentLevelIndex + 1); }
-          : undefined,
-      );
-    } else {
-      levelDialog.showResults(results, level, () => levelDialog.hide());
-    }
-  },
-  onStepTick: () => editor.stepTick(),
-  onToggleSimulation: () => editor.toggleSimulation(),
   onColorChange: (color) => { editor.getState().wireColor = color; },
 });
 
-// Horizontal row: sidebar + canvas
+// Layout: toolbar top, then [testPanel | canvas | sidebar]
 const mainRow = document.createElement('div');
 Object.assign(mainRow.style, {
   display: 'flex',
   flex: '1',
   overflow: 'hidden',
 });
-mainRow.appendChild(sidebar.element);
+mainRow.appendChild(testPanel.element);
 mainRow.appendChild(editorContainer);
+mainRow.appendChild(sidebar.element);
 
 app.appendChild(toolbar.element);
 app.appendChild(mainRow);
-app.appendChild(testPanel.element);
 app.appendChild(levelDialog.element);
 
-// Update toolbar each frame
 function updateUI(): void {
   toolbar.update(editor.getState());
   requestAnimationFrame(updateUI);

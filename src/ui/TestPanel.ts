@@ -1,273 +1,260 @@
 import type { TestResult, Level } from '../types.ts';
 
 const PANEL_BG = '#1e1e2e';
-const PANEL_WIDTH = '380px';
 const HEADER_BG = '#2d2d4d';
-const ROW_PASS = 'rgba(34,197,94,0.12)';
-const ROW_FAIL = 'rgba(239,68,68,0.12)';
 const BORDER_COLOR = '#444466';
 const TEXT_COLOR = '#e0e0e0';
 const TEXT_DIM = '#999baf';
 const PASS_COLOR = '#22c55e';
 const FAIL_COLOR = '#ef4444';
+const LABEL_BG = '#252540';
+const CURRENT_BG = 'rgba(96,165,250,0.12)';
+const CURRENT_BORDER = '#60a5fa';
+const BUTTON_BG = '#363650';
+const BUTTON_HOVER = '#44446a';
 
 export class TestPanel {
   readonly element: HTMLElement;
-  private readonly resultsContainer: HTMLElement;
-  private readonly headerEl: HTMLElement;
-  private readonly closeBtn: HTMLButtonElement;
-  private visible = false;
+  private readonly summaryEl: HTMLElement;
+  private readonly tableWrap: HTMLElement;
 
-  constructor() {
+  constructor(options: {
+    onReset: () => void;
+    onStep: () => void;
+    onRunAll: () => void;
+  }) {
     const panel = document.createElement('div');
     this.element = panel;
     Object.assign(panel.style, {
-      position: 'absolute',
-      top: '0',
-      right: '0',
-      width: PANEL_WIDTH,
-      height: '100%',
+      width: '200px',
+      minWidth: '200px',
       background: PANEL_BG,
-      borderLeft: `1px solid ${BORDER_COLOR}`,
-      display: 'none',
+      borderRight: `1px solid ${BORDER_COLOR}`,
+      display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      zIndex: '100',
-      boxShadow: '-4px 0 16px rgba(0,0,0,0.4)',
-    });
-
-    // Header
-    this.headerEl = document.createElement('div');
-    Object.assign(this.headerEl.style, {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '12px 16px',
-      background: HEADER_BG,
-      borderBottom: `1px solid ${BORDER_COLOR}`,
       flexShrink: '0',
     });
 
+    // Header with title + summary
+    const headerEl = document.createElement('div');
+    Object.assign(headerEl.style, {
+      padding: '8px 10px',
+      background: HEADER_BG,
+      borderBottom: `1px solid ${BORDER_COLOR}`,
+      flexShrink: '0',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+    });
+
+    const titleRow = document.createElement('div');
+    Object.assign(titleRow.style, {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: '6px',
+    });
+
     const title = document.createElement('span');
-    title.textContent = 'Test Results';
+    title.textContent = 'Truth Table';
     Object.assign(title.style, {
       color: '#ffffff',
-      fontSize: '14px',
+      fontSize: '12px',
       fontWeight: '600',
     });
-    this.headerEl.appendChild(title);
+    titleRow.appendChild(title);
 
-    this.closeBtn = document.createElement('button');
-    this.closeBtn.textContent = '\u00d7';
-    Object.assign(this.closeBtn.style, {
-      background: 'none',
-      border: 'none',
-      color: TEXT_DIM,
-      fontSize: '20px',
-      cursor: 'pointer',
-      padding: '0 4px',
-      lineHeight: '1',
+    this.summaryEl = document.createElement('span');
+    Object.assign(this.summaryEl.style, {
+      fontSize: '11px',
+      fontWeight: '500',
     });
-    this.closeBtn.addEventListener('click', () => this.hide());
-    this.headerEl.appendChild(this.closeBtn);
+    titleRow.appendChild(this.summaryEl);
+    headerEl.appendChild(titleRow);
 
-    panel.appendChild(this.headerEl);
+    // Button rows
+    const topBtnRow = document.createElement('div');
+    Object.assign(topBtnRow.style, { display: 'flex', gap: '4px' });
 
-    // Results container
-    this.resultsContainer = document.createElement('div');
-    Object.assign(this.resultsContainer.style, {
+    const stepBtn = this.createBtn('\u25B6| Step', 'Next test case');
+    stepBtn.addEventListener('click', () => options.onStep());
+    topBtnRow.appendChild(stepBtn);
+
+    const runBtn = this.createBtn('\u25B6\u25B6 Run All', 'Run all cases');
+    runBtn.addEventListener('click', () => options.onRunAll());
+    topBtnRow.appendChild(runBtn);
+
+    headerEl.appendChild(topBtnRow);
+
+    const resetBtn = this.createBtn('\u21BA Reset', 'Reset tests');
+    resetBtn.style.width = '100%';
+    resetBtn.addEventListener('click', () => options.onReset());
+    headerEl.appendChild(resetBtn);
+    panel.appendChild(headerEl);
+
+    // Scrollable table area
+    this.tableWrap = document.createElement('div');
+    Object.assign(this.tableWrap.style, {
       flex: '1',
-      overflowY: 'auto',
-      padding: '12px 16px',
+      overflow: 'auto',
+      padding: '6px',
     });
-    panel.appendChild(this.resultsContainer);
+    panel.appendChild(this.tableWrap);
   }
 
-  show(results: TestResult[], level: Level): void {
-    this.visible = true;
-    this.element.style.display = 'flex';
-    this.resultsContainer.innerHTML = '';
+  show(level: Level, results?: TestResult[], currentCase?: number): void {
+    this.tableWrap.innerHTML = '';
 
-    const passCount = results.filter(r => r.passed).length;
-    const totalCount = results.length;
-    const allPassed = passCount === totalCount;
+    if (!level.test.cases || level.test.cases.length === 0) {
+      this.summaryEl.textContent = '';
+      return;
+    }
+
+    const cases = level.test.cases;
+    const inputNames = level.inputs.map(i => i.name);
+    const outputNames = level.outputs.map(o => o.name);
 
     // Summary
-    const summary = document.createElement('div');
-    Object.assign(summary.style, {
-      padding: '10px 14px',
-      borderRadius: '6px',
-      marginBottom: '16px',
-      background: allPassed ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-      border: `1px solid ${allPassed ? PASS_COLOR : FAIL_COLOR}`,
-      color: allPassed ? PASS_COLOR : FAIL_COLOR,
-      fontSize: '14px',
-      fontWeight: '600',
-      textAlign: 'center',
+    if (results && results.length > 0) {
+      const passCount = results.filter(r => r.passed).length;
+      const tested = results.length;
+      const allDone = tested === cases.length;
+      const allPassed = allDone && passCount === tested;
+      this.summaryEl.textContent = allDone
+        ? (allPassed ? `${tested}/${tested}` : `${passCount}/${tested}`)
+        : `${tested}/${cases.length}`;
+      this.summaryEl.style.color = allPassed ? PASS_COLOR : (passCount < tested ? FAIL_COLOR : TEXT_DIM);
+    } else {
+      this.summaryEl.textContent = `${cases.length}`;
+      this.summaryEl.style.color = TEXT_DIM;
+    }
+
+    // Transposed table: rows = cases, columns = pins
+    const table = document.createElement('table');
+    Object.assign(table.style, {
+      borderCollapse: 'separate',
+      borderSpacing: '0',
+      fontSize: '12px',
+      fontFamily: 'ui-monospace, Consolas, monospace',
+      color: TEXT_COLOR,
+      whiteSpace: 'nowrap',
+      width: '100%',
     });
-    summary.textContent = allPassed
-      ? `All ${totalCount} tests passed!`
-      : `${passCount}/${totalCount} tests passed`;
-    this.resultsContainer.appendChild(summary);
 
-    // Build truth table for combinational tests
-    if (level.mode === 'combinational' && level.test.cases) {
-      const table = document.createElement('table');
-      Object.assign(table.style, {
-        width: '100%',
-        borderCollapse: 'collapse',
-        fontSize: '13px',
-        color: TEXT_COLOR,
+    // Header row: pin names
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(this.headerCell('#'));
+    for (const name of inputNames) {
+      headerRow.appendChild(this.headerCell(name, 'input'));
+    }
+    for (const name of outputNames) {
+      headerRow.appendChild(this.headerCell(name, 'output'));
+    }
+    table.appendChild(headerRow);
+
+    // Data rows: one per test case
+    for (let c = 0; c < cases.length; c++) {
+      const isCurrent = currentCase !== undefined && currentCase === c;
+      const result = results?.[c];
+      const row = document.createElement('tr');
+      row.style.background = this.rowBg(result?.passed, isCurrent);
+
+      // Case number
+      const numTd = document.createElement('td');
+      numTd.textContent = String(c + 1);
+      Object.assign(numTd.style, {
+        padding: '3px 6px',
+        textAlign: 'center',
+        fontSize: '10px',
+        fontWeight: '600',
+        color: isCurrent ? CURRENT_BORDER : TEXT_DIM,
+        borderBottom: `1px solid ${BORDER_COLOR}33`,
+        borderRight: `2px solid ${BORDER_COLOR}`,
+        background: LABEL_BG,
       });
+      row.appendChild(numTd);
 
-      // Header row
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-
-      const inputNames = level.inputs.map(i => i.name);
-      const outputNames = level.outputs.map(o => o.name);
-
-      const allHeaders = [
-        ...inputNames,
-        ...outputNames.map(n => `Exp ${n}`),
-        ...outputNames.map(n => `Act ${n}`),
-        'Result',
-      ];
-
-      for (const h of allHeaders) {
-        const th = document.createElement('th');
-        th.textContent = h;
-        Object.assign(th.style, {
-          padding: '6px 8px',
+      // Input values
+      for (const name of inputNames) {
+        const td = document.createElement('td');
+        td.textContent = String(cases[c].inputs[name] ?? '?');
+        Object.assign(td.style, {
+          padding: '3px 6px',
           textAlign: 'center',
-          borderBottom: `2px solid ${BORDER_COLOR}`,
-          color: TEXT_DIM,
-          fontWeight: '500',
-          fontSize: '11px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
+          borderBottom: `1px solid ${BORDER_COLOR}33`,
         });
-        headerRow.appendChild(th);
+        row.appendChild(td);
       }
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
 
-      // Body rows
-      const tbody = document.createElement('tbody');
-      for (let i = 0; i < level.test.cases.length; i++) {
-        const testCase = level.test.cases[i]!;
-        const result = results[i];
-        const passed = result ? result.passed : false;
-
-        const row = document.createElement('tr');
-        row.style.background = passed ? ROW_PASS : ROW_FAIL;
-
-        // Input values
-        for (const name of inputNames) {
-          const td = document.createElement('td');
-          td.textContent = String(testCase.inputs[name] ?? '?');
-          Object.assign(td.style, {
-            padding: '6px 8px',
-            textAlign: 'center',
-            borderBottom: `1px solid ${BORDER_COLOR}`,
-          });
-          row.appendChild(td);
-        }
-
-        // Expected output values
-        for (const name of outputNames) {
-          const td = document.createElement('td');
-          td.textContent = String(testCase.expected[name] ?? '?');
-          Object.assign(td.style, {
-            padding: '6px 8px',
-            textAlign: 'center',
-            borderBottom: `1px solid ${BORDER_COLOR}`,
-          });
-          row.appendChild(td);
-        }
-
-        // Actual output values (extracted from result message or shown as '?')
-        for (const name of outputNames) {
-          const td = document.createElement('td');
-          // Try to parse actual value from the result message
-          td.textContent = this.extractActual(result, name);
-          Object.assign(td.style, {
-            padding: '6px 8px',
-            textAlign: 'center',
-            borderBottom: `1px solid ${BORDER_COLOR}`,
-            fontWeight: passed ? 'normal' : '600',
-            color: passed ? TEXT_COLOR : FAIL_COLOR,
-          });
-          row.appendChild(td);
-        }
-
-        // Result indicator
-        const resultTd = document.createElement('td');
-        resultTd.textContent = passed ? '\u2713' : '\u2717';
-        Object.assign(resultTd.style, {
-          padding: '6px 8px',
+      // Expected output values
+      for (const name of outputNames) {
+        const td = document.createElement('td');
+        td.textContent = String(cases[c].expected[name] ?? '?');
+        Object.assign(td.style, {
+          padding: '3px 6px',
           textAlign: 'center',
-          borderBottom: `1px solid ${BORDER_COLOR}`,
-          fontWeight: '700',
-          fontSize: '15px',
-          color: passed ? PASS_COLOR : FAIL_COLOR,
+          fontWeight: '600',
+          borderBottom: `1px solid ${BORDER_COLOR}33`,
+          color: result?.passed === false ? FAIL_COLOR : TEXT_COLOR,
         });
-        row.appendChild(resultTd);
-
-        tbody.appendChild(row);
+        row.appendChild(td);
       }
-      table.appendChild(tbody);
-      this.resultsContainer.appendChild(table);
-    } else {
-      // Sequential or generic: list results
-      for (const result of results) {
-        const item = document.createElement('div');
-        Object.assign(item.style, {
-          padding: '8px 12px',
-          marginBottom: '6px',
-          borderRadius: '4px',
-          background: result.passed ? ROW_PASS : ROW_FAIL,
-          border: `1px solid ${result.passed ? PASS_COLOR : FAIL_COLOR}33`,
-          color: TEXT_COLOR,
-          fontSize: '13px',
-        });
-        const icon = document.createElement('span');
-        icon.textContent = result.passed ? '\u2713 ' : '\u2717 ';
-        icon.style.color = result.passed ? PASS_COLOR : FAIL_COLOR;
-        icon.style.fontWeight = '700';
-        item.appendChild(icon);
-        item.appendChild(document.createTextNode(result.message));
-        this.resultsContainer.appendChild(item);
-      }
+
+      table.appendChild(row);
     }
+
+    this.tableWrap.appendChild(table);
   }
 
-  hide(): void {
-    this.visible = false;
-    this.element.style.display = 'none';
+  private rowBg(passed?: boolean, isCurrent?: boolean): string {
+    if (isCurrent) return CURRENT_BG;
+    if (passed === undefined) return 'transparent';
+    return passed ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
   }
 
-  toggle(): void {
-    if (this.visible) {
-      this.hide();
-    } else {
-      // Show requires data, so just toggle visibility if already rendered
-      this.visible = true;
-      this.element.style.display = 'flex';
-    }
+  private headerCell(text: string, kind?: 'input' | 'output'): HTMLTableCellElement {
+    const th = document.createElement('td');
+    th.textContent = text;
+    const color = kind === 'input' ? '#60a5fa'
+      : kind === 'output' ? '#c084fc'
+      : TEXT_DIM;
+    Object.assign(th.style, {
+      padding: '4px 6px',
+      textAlign: 'center',
+      fontWeight: '600',
+      fontSize: '10px',
+      color,
+      textTransform: 'uppercase',
+      letterSpacing: '0.3px',
+      borderBottom: `2px solid ${BORDER_COLOR}`,
+      background: LABEL_BG,
+      position: 'sticky',
+      top: '0',
+      zIndex: '1',
+    });
+    return th;
   }
 
-  private extractActual(result: TestResult | undefined, _pinName: string): string {
-    if (!result) return '?';
-    // If passed, actual equals expected — but we don't have direct access.
-    // The result message typically contains the actual vs expected info.
-    // For a passed test, actual matches expected so we show the expected value.
-    // For a failed test we parse from the message if possible.
-    // Fallback to showing the message or '?'
-    if (result.passed) return '\u2014'; // em-dash; caller can enrich later
-    // Try simple pattern: "expected X got Y" or "pin: expected X, got Y"
-    const match = result.message.match(/got\s+(\d+)/i);
-    if (match) return match[1]!;
-    return '?';
+  private createBtn(label: string, tooltip: string): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.title = tooltip;
+    Object.assign(btn.style, {
+      flex: '1',
+      background: BUTTON_BG,
+      color: TEXT_COLOR,
+      border: 'none',
+      borderRadius: '4px',
+      padding: '7px 4px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontFamily: 'inherit',
+      whiteSpace: 'nowrap',
+      transition: 'background 0.15s',
+    });
+    btn.addEventListener('mouseenter', () => { btn.style.background = BUTTON_HOVER; });
+    btn.addEventListener('mouseleave', () => { btn.style.background = BUTTON_BG; });
+    return btn;
   }
 }
