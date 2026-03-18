@@ -22,6 +22,8 @@ export interface GateDefinition {
   pins: PinDef[];
   svg?: string;    // SVG path data scaled to width×height grid units
   placeable?: boolean; // show in sidebar (default false)
+  color?: string;  // fill color for the gate body
+  stroke?: string; // stroke color for the gate outline
 }
 
 // SVG paths are in grid-unit coordinates (0,0 to width,height)
@@ -30,16 +32,17 @@ export interface GateDefinition {
 export const GATE_DEFS: Record<GateType, GateDefinition> = {
   nand: {
     label: 'NAND', description: 'Bitwise NAND gate', width: 3, height: 3, placeable: true,
+    color: '#3b2d50', stroke: '#7c5aad',
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1.5 },
     ],
-    // D-shape body + bubble
     svg: 'M 0.3,0.3 L 0.3,2.7 L 1.5,2.7 A 1.2,1.2 0 0,0 1.5,0.3 Z M 2.65,1.5 m -0.2,0 a 0.2,0.2 0 1,0 0.4,0 a 0.2,0.2 0 1,0 -0.4,0',
   },
   and: {
     label: 'AND', description: 'Bitwise AND gate', width: 3, height: 3, placeable: true,
+    color: '#2d3a50', stroke: '#5a8aad',
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'input', x: 0, y: 2 },
@@ -49,6 +52,7 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
   },
   or: {
     label: 'OR', description: 'Bitwise OR gate', width: 3, height: 3, placeable: true,
+    color: '#2d4a3a', stroke: '#5aad7c',
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'input', x: 0, y: 2 },
@@ -58,6 +62,7 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
   },
   nor: {
     label: 'NOR', description: 'Bitwise NOR gate', width: 3, height: 3, placeable: true,
+    color: '#3a2d4a', stroke: '#8a5aad',
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'input', x: 0, y: 2 },
@@ -67,6 +72,7 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
   },
   not: {
     label: 'NOT', description: 'Inverter', width: 2, height: 2, placeable: true,
+    color: '#4a2d3a', stroke: '#ad5a7c',
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'output', x: 2, y: 1 },
@@ -75,15 +81,16 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
   },
   delay: {
     label: 'DLY', description: '1-tick delay', width: 3, height: 2, placeable: true,
+    color: '#4a3a2d', stroke: '#ad8a5a',
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    // Rectangle with clock triangle inside
     svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,1.7 L 0.3,1.7 Z M 1.0,1.3 L 1.5,0.5 L 2.0,1.3 Z',
   },
   tristate: {
     label: 'TRI', description: 'Tri-state buffer', width: 3, height: 3, placeable: true,
+    color: '#2d4a4a', stroke: '#5aadad',
     pins: [
       { kind: 'input', x: 0, y: 1, label: 'in' },
       { kind: 'input', x: 1, y: 0, label: 'en', bitWidth: 1 },
@@ -93,6 +100,7 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
   },
   constant: {
     label: 'C', description: 'Constant value', width: 2, height: 2, placeable: true,
+    color: '#3a3a2d', stroke: '#8a8a5a',
     pins: [
       { kind: 'output', x: 2, y: 1 },
     ],
@@ -100,18 +108,18 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
   },
   input: {
     label: 'IN', description: 'Level input', width: 2, height: 2,
+    color: '#2d3d50', stroke: '#5a8abd',
     pins: [
       { kind: 'output', x: 2, y: 1 },
     ],
-    // Right-pointing arrow
     svg: 'M 0.2,0.3 L 1.3,0.3 L 1.8,1 L 1.3,1.7 L 0.2,1.7 Z',
   },
   output: {
     label: 'OUT', description: 'Level output', width: 2, height: 2,
+    color: '#3d2d50', stroke: '#8a5abd',
     pins: [
       { kind: 'input', x: 0, y: 1 },
     ],
-    // Left-pointing arrow
     svg: 'M 1.8,0.3 L 0.7,0.3 L 0.2,1 L 0.7,1.7 L 1.8,1.7 Z',
   },
   splitter: {

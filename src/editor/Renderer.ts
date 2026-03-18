@@ -4,24 +4,24 @@ import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, snapToGrid } from '
 
 // --- Colors (dark theme) ---
 const COLORS = {
-  background: '#1a1a2e',
-  gridDot: '#2a2a4e',
+  background: '#181825',
+  gridDot: '#313150',
   gateFill: '#2d2d4d',
-  gateStroke: '#4a4a7a',
-  gateText: '#e0e0e0',
-  wireDefault: '#4a4a7a',
+  gateStroke: '#5a5a8a',
+  gateText: '#e8e8f0',
+  wireDefault: '#555580',
   wireActive: '#4ade80',
   wireZero: '#f87171',
-  wireHighZ: '#4a4a6a',
-  pinActive: '#4ade80',
+  wireHighZ: '#45456a',
+  pinActive: '#5eebb0',
   pinZero: '#f87171',
-  pinHighZ: '#6b7280',
-  selection: '#60a5fa',
+  pinHighZ: '#7a7a90',
+  selection: '#6cb4ff',
   error: '#ef4444',
-  selectionRectFill: 'rgba(96, 165, 250, 0.2)',
-  selectionRectStroke: '#60a5fa',
-  wireNodeFill: '#3a3a5a',
-  wireNodeStroke: '#7a7aaa',
+  selectionRectFill: 'rgba(108, 180, 255, 0.15)',
+  selectionRectStroke: '#6cb4ff',
+  wireNodeFill: '#3e3e60',
+  wireNodeStroke: '#8888bb',
 } as const;
 
 interface Point {
@@ -376,28 +376,23 @@ export class Renderer {
       ctx.translate(cx, cy);
       ctx.rotate((gate.rotation * Math.PI) / 180);
 
+      const gateFill = def.color ?? COLORS.gateFill;
+      const gateStroke = def.stroke ?? COLORS.gateStroke;
+
       if (def.svg) {
-        // SVG shape rendering
         const path = this.getGatePath(gate.type);
         ctx.save();
         ctx.translate(-w / 2, -h / 2);
         ctx.scale(GRID_SIZE, GRID_SIZE);
-        ctx.fillStyle = COLORS.gateFill;
+        ctx.fillStyle = gateFill;
         ctx.fill(path);
-        ctx.restore();
-
-        // Stroke at pixel scale (not scaled by GRID_SIZE)
-        ctx.save();
-        ctx.translate(-w / 2, -h / 2);
-        ctx.scale(GRID_SIZE, GRID_SIZE);
-        ctx.strokeStyle = COLORS.gateStroke;
+        ctx.strokeStyle = gateStroke;
         ctx.lineWidth = 1.5 / GRID_SIZE;
         ctx.stroke(path);
         ctx.restore();
       } else {
-        // Fallback: plain rectangle
-        ctx.fillStyle = COLORS.gateFill;
-        ctx.strokeStyle = COLORS.gateStroke;
+        ctx.fillStyle = gateFill;
+        ctx.strokeStyle = gateStroke;
         ctx.lineWidth = 1.5;
         ctx.fillRect(-w / 2, -h / 2, w, h);
         ctx.strokeRect(-w / 2, -h / 2, w, h);
@@ -666,15 +661,15 @@ export class Renderer {
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(GRID_SIZE, GRID_SIZE);
-      ctx.fillStyle = COLORS.gateFill;
+      ctx.fillStyle = def.color ?? COLORS.gateFill;
       ctx.fill(path);
-      ctx.strokeStyle = COLORS.selection;
+      ctx.strokeStyle = def.stroke ?? COLORS.selection;
       ctx.lineWidth = 1.5 / GRID_SIZE;
       ctx.stroke(path);
       ctx.restore();
     } else {
-      ctx.fillStyle = COLORS.gateFill;
-      ctx.strokeStyle = COLORS.selection;
+      ctx.fillStyle = def.color ?? COLORS.gateFill;
+      ctx.strokeStyle = def.stroke ?? COLORS.selection;
       ctx.lineWidth = 1.5;
       ctx.fillRect(x, y, w, h);
       ctx.strokeRect(x, y, w, h);
@@ -721,15 +716,15 @@ export class Renderer {
         ctx.save();
         ctx.translate(gx, gy);
         ctx.scale(GRID_SIZE, GRID_SIZE);
-        ctx.fillStyle = COLORS.gateFill;
+        ctx.fillStyle = def.color ?? COLORS.gateFill;
         ctx.fill(path);
-        ctx.strokeStyle = COLORS.selection;
+        ctx.strokeStyle = def.stroke ?? COLORS.selection;
         ctx.lineWidth = 1.5 / GRID_SIZE;
         ctx.stroke(path);
         ctx.restore();
       } else {
-        ctx.fillStyle = COLORS.gateFill;
-        ctx.strokeStyle = COLORS.selection;
+        ctx.fillStyle = def.color ?? COLORS.gateFill;
+        ctx.strokeStyle = def.stroke ?? COLORS.selection;
         ctx.lineWidth = 1.5;
         ctx.fillRect(gx, gy, gw, gh);
         ctx.strokeRect(gx, gy, gw, gh);
