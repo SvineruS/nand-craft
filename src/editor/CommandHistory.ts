@@ -277,15 +277,17 @@ export class MoveGatesCommand implements Command {
   readonly description = 'Move gates';
   private state: EditorState;
   private gateIds: GateId[];
+  private extraNodeIds: WireNodeId[];
   private dx: number;
   private dy: number;
 
-  /** Wire nodes that moved along with the gates (anchored to pins). */
+  /** Wire nodes that moved along with the gates (anchored to pins + extra). */
   private movedNodeIds: WireNodeId[] = [];
 
-  constructor(state: EditorState, gateIds: GateId[], dx: number, dy: number) {
+  constructor(state: EditorState, gateIds: GateId[], dx: number, dy: number, extraNodeIds: WireNodeId[] = []) {
     this.state = state;
     this.gateIds = gateIds;
+    this.extraNodeIds = extraNodeIds;
     this.dx = dx;
     this.dy = dy;
   }
@@ -300,7 +302,10 @@ export class MoveGatesCommand implements Command {
       gate.y += this.dy;
     }
 
-    this.movedNodeIds = getAnchoredNodeIds(circuit, this.gateIds);
+    // Anchored nodes + explicitly selected free nodes (deduplicated)
+    const anchored = getAnchoredNodeIds(circuit, this.gateIds);
+    const allIds = new Set<WireNodeId>([...anchored, ...this.extraNodeIds]);
+    this.movedNodeIds = [...allIds];
     for (const nodeId of this.movedNodeIds) {
       const node = circuit.wireNodes.get(nodeId);
       if (node) { node.x += this.dx; node.y += this.dy; }
@@ -454,15 +459,19 @@ export class AddWireSegmentCommand implements Command {
   private to: WireNodeId;
   private segmentId: WireSegmentId;
 
-  constructor(state: EditorState, from: WireNodeId, to: WireNodeId) {
+  private color: string | undefined;
+
+  constructor(state: EditorState, from: WireNodeId, to: WireNodeId, color?: string) {
     this.state = state;
     this.from = from;
     this.to = to;
+    this.color = color;
     this.segmentId = generateId('ws') as WireSegmentId;
   }
 
   execute(): void {
     const seg: WireSegment = { id: this.segmentId, from: this.from, to: this.to };
+    if (this.color) seg.color = this.color;
     this.state.circuit.wireSegments.set(this.segmentId, seg);
     this.state.dirty = true;
   }

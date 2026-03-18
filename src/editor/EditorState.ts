@@ -1,4 +1,4 @@
-import type { Circuit, GateId, GateType, WireSegmentId } from '../types.ts';
+import type { Circuit, GateId, GateType, WireNodeId, WireSegmentId } from '../types.ts';
 import { createCircuit } from '../types.ts';
 import type { WireEndpoint } from './geometry.ts';
 
@@ -12,6 +12,7 @@ export interface Camera {
 
 export type SelectionItem =
   | { type: 'gate'; id: GateId }
+  | { type: 'wireNode'; id: WireNodeId }
   | { type: 'wireSegment'; id: WireSegmentId };
 
 export interface EditorState {
@@ -28,8 +29,21 @@ export interface EditorState {
   simulationRunning: boolean;
   shortCircuitGates: GateId[];
   contentionNets: string[];
+  wireColor: string;
   dirty: boolean;
 }
+
+export const WIRE_COLORS = [
+  '#4a4a7a', // default (no override)
+  '#f87171', // red
+  '#fb923c', // orange
+  '#facc15', // yellow
+  '#4ade80', // green
+  '#60a5fa', // blue
+  '#c084fc', // purple
+  '#f472b6', // pink
+  '#ffffff', // white
+];
 
 export function createEditorState(): EditorState {
   return {
@@ -46,6 +60,7 @@ export function createEditorState(): EditorState {
     simulationRunning: false,
     shortCircuitGates: [],
     contentionNets: [],
+    wireColor: WIRE_COLORS[0],
     dirty: true,
   };
 }

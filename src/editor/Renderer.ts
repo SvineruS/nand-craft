@@ -213,11 +213,16 @@ export class Renderer {
     const { ctx } = this;
     const { circuit } = state;
 
-    // Count segments per node
+    // Count segments per node + find first connected segment color
     const segmentCount = new Map<string, number>();
+    const nodeColor = new Map<string, string>();
     for (const seg of circuit.wireSegments.values()) {
       segmentCount.set(seg.from as string, (segmentCount.get(seg.from as string) ?? 0) + 1);
       segmentCount.set(seg.to as string, (segmentCount.get(seg.to as string) ?? 0) + 1);
+      if (seg.color) {
+        if (!nodeColor.has(seg.from as string)) nodeColor.set(seg.from as string, seg.color);
+        if (!nodeColor.has(seg.to as string)) nodeColor.set(seg.to as string, seg.color);
+      }
     }
 
     for (const node of circuit.wireNodes.values()) {
@@ -226,7 +231,8 @@ export class Renderer {
 
       const pin = node.pinId ? circuit.pins.get(node.pinId as PinId) : null;
       const value = pin?.value ?? null;
-      const color = wireColorForValue(value);
+      const customColor = nodeColor.get(node.id as string);
+      const color = customColor ?? wireColorForValue(value);
       const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
       // Wire node: filled circle with stroke, always thicker than wire
@@ -320,6 +326,14 @@ export class Renderer {
           ctx.rotate((gate.rotation * Math.PI) / 180);
           ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
           ctx.restore();
+          break;
+        }
+        case 'wireNode': {
+          const node = circuit.wireNodes.get(item.id);
+          if (!node) break;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, 8, 0, Math.PI * 2);
+          ctx.stroke();
           break;
         }
         case 'wireSegment': {

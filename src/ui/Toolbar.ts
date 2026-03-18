@@ -1,4 +1,5 @@
 import type { EditorState } from '../editor/EditorState.ts';
+import { WIRE_COLORS } from '../editor/EditorState.ts';
 
 const TOOLBAR_BG = '#1e1e2e';
 const BUTTON_BG = '#363650';
@@ -59,6 +60,7 @@ export class Toolbar {
   private readonly stepBtn: HTMLButtonElement;
   private readonly playPauseBtn: HTMLButtonElement;
   private readonly testBtn: HTMLButtonElement;
+  private readonly colorSwatches: HTMLElement[] = [];
 
   constructor(options: {
     onUndo: () => void;
@@ -66,6 +68,7 @@ export class Toolbar {
     onTest: () => void;
     onStepTick: () => void;
     onToggleSimulation: () => void;
+    onColorChange: (color: string) => void;
   }) {
     const bar = document.createElement('div');
     this.element = bar;
@@ -118,6 +121,36 @@ export class Toolbar {
 
     bar.appendChild(createSeparator());
 
+    // Wire color picker
+    const colorLabel = document.createElement('span');
+    Object.assign(colorLabel.style, {
+      color: BUTTON_TEXT,
+      fontSize: '11px',
+      marginRight: '2px',
+    });
+    colorLabel.textContent = 'Wire:';
+    bar.appendChild(colorLabel);
+
+    for (const color of WIRE_COLORS) {
+      const swatch = document.createElement('div');
+      Object.assign(swatch.style, {
+        width: '18px',
+        height: '18px',
+        borderRadius: '3px',
+        background: color,
+        cursor: 'pointer',
+        border: '2px solid transparent',
+        boxSizing: 'border-box',
+        transition: 'border-color 0.15s',
+      });
+      swatch.title = `Wire color (E to apply, Shift+E for all connected)`;
+      swatch.addEventListener('click', () => options.onColorChange(color));
+      this.colorSwatches.push(swatch);
+      bar.appendChild(swatch);
+    }
+
+    bar.appendChild(createSeparator());
+
     // Spacer
     const spacer = document.createElement('div');
     spacer.style.flex = '1';
@@ -145,6 +178,12 @@ export class Toolbar {
     setDisabled(this.undoBtn, false);
     setDisabled(this.redoBtn, false);
     this.playPauseBtn.textContent = state.simulationRunning ? 'Pause' : 'Play';
+
+    // Highlight active wire color
+    for (let i = 0; i < WIRE_COLORS.length; i++) {
+      const isActive = state.wireColor === WIRE_COLORS[i];
+      this.colorSwatches[i].style.borderColor = isActive ? '#ffffff' : 'transparent';
+    }
   }
 
   setLevelName(name: string): void {

@@ -65,6 +65,7 @@ const toolbar = new Toolbar({
   },
   onStepTick: () => editor.stepTick(),
   onToggleSimulation: () => editor.toggleSimulation(),
+  onColorChange: (color) => { editor.getState().wireColor = color; },
 });
 
 // Horizontal row: sidebar + canvas

@@ -1,5 +1,6 @@
 import type { GateId, PinId, WireNodeId, WireSegmentId, Gate } from '../types.ts';
 import type { EditorState, PlaceableType } from './EditorState.ts';
+import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
 import type { WireEndpoint } from './geometry.ts';
 import { GATE_DIMS, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
@@ -300,6 +301,16 @@ export class InputHandler {
         return;
       }
 
+      // Single click: if node is already selected (area select), start dragging selection
+      if (ep.kind === 'node' && state.selection.some(s => s.type === 'wireNode' && s.id === ep.nodeId)) {
+        this.isDraggingGates = true;
+        this.dragAccDx = 0;
+        this.dragAccDy = 0;
+        this.lastWorldX = world.x;
+        this.lastWorldY = world.y;
+        return;
+      }
+
       // Single click → start wiring
       this.isWiring = true;
       this.wireStartWorldX = world.x;
@@ -435,7 +446,7 @@ export class InputHandler {
       return;
     }
 
-    // Gate dragging
+    // Gate + selected node dragging
     if (this.isDraggingGates) {
       const dx = world.x - this.lastWorldX;
       const dy = world.y - this.lastWorldY;
@@ -447,13 +458,18 @@ export class InputHandler {
       const gateIds = state.selection
         .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
         .map((s) => s.id);
+      const selectedNodeIds = state.selection
+        .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
+        .map((s) => s.id);
 
       for (const gateId of gateIds) {
         const gate = state.circuit.gates.get(gateId);
         if (gate) { gate.x += dx; gate.y += dy; }
       }
-      const anchoredIds = getAnchoredNodeIds(state.circuit, gateIds);
-      for (const nid of anchoredIds) {
+      // Move anchored + selected free nodes (deduplicated)
+      const anchored = getAnchoredNodeIds(state.circuit, gateIds);
+      const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
+      for (const nid of allNodeIds) {
         const node = state.circuit.wireNodes.get(nid);
         if (node) { node.x += dx; node.y += dy; }
       }
@@ -541,11 +557,13 @@ export class InputHandler {
       const wireStart = state.wireStart;
       const target = hitTestEndpoint(world.x, world.y, state);
 
+      const wireColor = this.getActiveWireColor(state);
+
       if (wireStart && target) {
         // Endpoint → endpoint
         const fromNode = this.ensureWireNode(state, wireStart);
         const toNode = this.ensureWireNode(state, target);
-        if (fromNode && toNode) this.addSegmentIfNew(state, fromNode, toNode);
+        if (fromNode && toNode) this.addSegmentIfNew(state, fromNode, toNode, wireColor);
       } else if (wireStart) {
         // Endpoint → empty space: create free node and connect
         const sx = snapToGrid(world.x);
@@ -553,14 +571,14 @@ export class InputHandler {
         const nodeCmd = new AddWireNodeCommand(state, sx, sy);
         this.history.execute(nodeCmd);
         const fromNode = this.ensureWireNode(state, wireStart);
-        if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId());
+        if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
       }
 
       this.setState((s) => { s.wireStart = null; s.dirty = true; });
       return;
     }
 
-    // Finalise gate drag — snap to grid
+    // Finalise gate + node drag — snap to grid
     if (this.isDraggingGates) {
       const dx = this.dragAccDx;
       const dy = this.dragAccDy;
@@ -570,27 +588,35 @@ export class InputHandler {
         const gateIds = state.selection
           .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
           .map((s) => s.id);
+        const selectedNodeIds = state.selection
+          .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
+          .map((s) => s.id);
 
         // Undo live move
         for (const gateId of gateIds) {
           const gate = state.circuit.gates.get(gateId);
           if (gate) { gate.x -= dx; gate.y -= dy; }
         }
-        const anchoredIds = getAnchoredNodeIds(state.circuit, gateIds);
-        for (const nid of anchoredIds) {
+        const anchored = getAnchoredNodeIds(state.circuit, gateIds);
+        const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
+        for (const nid of allNodeIds) {
           const node = state.circuit.wireNodes.get(nid);
           if (node) { node.x -= dx; node.y -= dy; }
         }
 
-        // Snapped delta
-        const firstGate = gateIds.length > 0 ? state.circuit.gates.get(gateIds[0]) : null;
+        // Snapped delta — use first gate or first selected node for snap reference
         let snapDx = dx, snapDy = dy;
+        const firstGate = gateIds.length > 0 ? state.circuit.gates.get(gateIds[0]) : null;
+        const firstNode = selectedNodeIds.length > 0 ? state.circuit.wireNodes.get(selectedNodeIds[0]) : null;
         if (firstGate) {
           snapDx = snapToGrid(firstGate.x + dx) - firstGate.x;
           snapDy = snapToGrid(firstGate.y + dy) - firstGate.y;
+        } else if (firstNode) {
+          snapDx = snapToGrid(firstNode.x + dx) - firstNode.x;
+          snapDy = snapToGrid(firstNode.y + dy) - firstNode.y;
         }
         if (snapDx !== 0 || snapDy !== 0) {
-          this.history.execute(new MoveGatesCommand(state, gateIds, snapDx, snapDy));
+          this.history.execute(new MoveGatesCommand(state, gateIds, snapDx, snapDy, selectedNodeIds));
         }
       }
       this.dragAccDx = 0;
@@ -606,6 +632,17 @@ export class InputHandler {
         for (const gate of s.circuit.gates.values()) {
           if (rectContainsGate(rect.x, rect.y, rect.w, rect.h, gate)) {
             selected.push({ type: 'gate', id: gate.id });
+          }
+        }
+        // Include free wire nodes in area selection
+        const left = rect.w >= 0 ? rect.x : rect.x + rect.w;
+        const top = rect.h >= 0 ? rect.y : rect.y + rect.h;
+        const right = left + Math.abs(rect.w);
+        const bottom = top + Math.abs(rect.h);
+        for (const node of s.circuit.wireNodes.values()) {
+          if (node.pinId) continue; // skip anchored nodes
+          if (node.x >= left && node.x <= right && node.y >= top && node.y <= bottom) {
+            selected.push({ type: 'wireNode', id: node.id });
           }
         }
         s.selection = selected;
@@ -674,6 +711,35 @@ export class InputHandler {
       return;
     }
 
+    // Apply wire color
+    if (e.key === 'e' || e.key === 'E') {
+      const selectedSegs = state.selection
+        .filter((s): s is { type: 'wireSegment'; id: WireSegmentId } => s.type === 'wireSegment')
+        .map((s) => s.id);
+      if (selectedSegs.length === 0) return;
+
+      const color = state.wireColor;
+      // Default color (first in palette) means remove override
+      const colorValue = color === WIRE_COLORS[0] ? undefined : color;
+
+      if (e.shiftKey || ctrl) {
+        // Apply to all connected segments (flood fill from selected)
+        const allSegs = this.getConnectedSegments(state, selectedSegs);
+        for (const segId of allSegs) {
+          const seg = state.circuit.wireSegments.get(segId);
+          if (seg) seg.color = colorValue;
+        }
+      } else {
+        // Apply to selected segments only
+        for (const segId of selectedSegs) {
+          const seg = state.circuit.wireSegments.get(segId);
+          if (seg) seg.color = colorValue;
+        }
+      }
+      this.setState((s) => { s.dirty = true; });
+      return;
+    }
+
     if (e.key === 'Escape') {
       this.isWiring = false;
       this.isDraggingNode = null;
@@ -712,9 +778,14 @@ export class InputHandler {
   }
 
   /** Add a wire segment between two nodes unless one already exists. */
-  private addSegmentIfNew(state: EditorState, from: WireNodeId, to: WireNodeId): void {
+  private addSegmentIfNew(state: EditorState, from: WireNodeId, to: WireNodeId, color?: string): void {
     if (from === to || this.segmentExists(state, from, to)) return;
-    this.history.execute(new AddWireSegmentCommand(state, from, to));
+    this.history.execute(new AddWireSegmentCommand(state, from, to, color));
+  }
+
+  /** Get the active wire color, or undefined for default. */
+  private getActiveWireColor(state: EditorState): string | undefined {
+    return state.wireColor === WIRE_COLORS[0] ? undefined : state.wireColor;
   }
 
   /** Split a wire segment at (x,y). Returns the new node ID. */
@@ -723,19 +794,26 @@ export class InputHandler {
     if (!seg) return null;
     const fromId = seg.from;
     const toId = seg.to;
+    const color = seg.color;
 
     this.history.execute(new RemoveWireSegmentCommand(state, segId));
     const addNode = new AddWireNodeCommand(state, x, y);
     this.history.execute(addNode);
     const midId = addNode.getNodeId();
-    this.history.execute(new AddWireSegmentCommand(state, fromId, midId));
-    this.history.execute(new AddWireSegmentCommand(state, midId, toId));
+    this.history.execute(new AddWireSegmentCommand(state, fromId, midId, color));
+    this.history.execute(new AddWireSegmentCommand(state, midId, toId, color));
     this.setState((s) => { s.dirty = true; });
     return midId;
   }
 
   /** Delete all selected gates and wire segments. */
   private deleteSelected(state: EditorState): void {
+    // Wire nodes first (cascades to attached segments)
+    const nodeIds = state.selection
+      .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
+      .map((s) => s.id);
+    for (const nodeId of nodeIds) this.history.execute(new RemoveWireNodeCommand(state, nodeId));
+
     const segIds = state.selection
       .filter((s): s is { type: 'wireSegment'; id: WireSegmentId } => s.type === 'wireSegment')
       .map((s) => s.id);
@@ -759,5 +837,40 @@ export class InputHandler {
       }
     }
     return null;
+  }
+
+  /** Flood-fill from selected segments to find all connected segments. */
+  private getConnectedSegments(state: EditorState, startSegIds: WireSegmentId[]): WireSegmentId[] {
+    // Build node→segments adjacency
+    const nodeToSegs = new Map<string, WireSegmentId[]>();
+    for (const seg of state.circuit.wireSegments.values()) {
+      const fromKey = seg.from as string;
+      const toKey = seg.to as string;
+      if (!nodeToSegs.has(fromKey)) nodeToSegs.set(fromKey, []);
+      if (!nodeToSegs.has(toKey)) nodeToSegs.set(toKey, []);
+      nodeToSegs.get(fromKey)!.push(seg.id);
+      nodeToSegs.get(toKey)!.push(seg.id);
+    }
+
+    const visited = new Set<string>();
+    const queue = [...startSegIds];
+    for (const id of queue) visited.add(id as string);
+
+    while (queue.length > 0) {
+      const segId = queue.pop()!;
+      const seg = state.circuit.wireSegments.get(segId);
+      if (!seg) continue;
+
+      for (const nodeKey of [seg.from as string, seg.to as string]) {
+        for (const neighborId of nodeToSegs.get(nodeKey) ?? []) {
+          if (!visited.has(neighborId as string)) {
+            visited.add(neighborId as string);
+            queue.push(neighborId);
+          }
+        }
+      }
+    }
+
+    return [...visited] as WireSegmentId[];
   }
 }
