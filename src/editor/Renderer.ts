@@ -1,5 +1,6 @@
 import type { GateType, PinId } from '../types.ts';
 import type { EditorState, Camera } from './EditorState.ts';
+import { WIRE_COLORS } from './EditorState.ts';
 import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, snapToGrid } from './geometry.ts';
 
 // --- Colors (dark theme) ---
@@ -633,16 +634,19 @@ export class Renderer {
     if (!state.wireStart) return;
 
     const { ctx } = this;
+    const wireColor = state.wireColor === WIRE_COLORS[0] ? COLORS.wireDefault : state.wireColor;
+    const tx = snapToGrid(this.mouseWorld.x);
+    const ty = snapToGrid(this.mouseWorld.y);
 
-    ctx.strokeStyle = COLORS.selection;
-    ctx.lineWidth = 4;
-    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = wireColor;
+    ctx.lineWidth = 6;
     ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.5;
     ctx.beginPath();
     ctx.moveTo(state.wireStart.x, state.wireStart.y);
-    ctx.lineTo(this.mouseWorld.x, this.mouseWorld.y);
+    ctx.lineTo(tx, ty);
     ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
   }
 
   private drawDropPreview(state: EditorState): void {

@@ -530,11 +530,11 @@ export class InputHandler {
       return;
     }
 
-    // Wire node dragging
+    // Wire node dragging (snapped to grid)
     if (this.isDraggingNode) {
       const dragId = this.isDraggingNode;
       const node = state.circuit.wireNodes.get(dragId);
-      if (node) { node.x = world.x; node.y = world.y; }
+      if (node) { node.x = snapToGrid(world.x); node.y = snapToGrid(world.y); }
       this.setState((s) => {
         s.hoveredEndpoint = hitTestEndpoint(world.x, world.y, s, dragId);
         s.dirty = true;
@@ -551,32 +551,36 @@ export class InputHandler {
       return;
     }
 
-    // Gate + selected node dragging
+    // Gate + selected node dragging (snapped to grid)
     if (this.isDraggingGates) {
-      const dx = world.x - this.lastWorldX;
-      const dy = world.y - this.lastWorldY;
+      // Compute snapped delta from drag start
+      const rawDx = world.x - this.lastWorldX + this.dragAccDx;
+      const rawDy = world.y - this.lastWorldY + this.dragAccDy;
+      const snappedDx = snapToGrid(rawDx) - snapToGrid(this.dragAccDx);
+      const snappedDy = snapToGrid(rawDy) - snapToGrid(this.dragAccDy);
+      this.dragAccDx = rawDx;
+      this.dragAccDy = rawDy;
       this.lastWorldX = world.x;
       this.lastWorldY = world.y;
-      this.dragAccDx += dx;
-      this.dragAccDy += dy;
 
-      const gateIds = state.selection
-        .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
-        .map((s) => s.id);
-      const selectedNodeIds = state.selection
-        .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
-        .map((s) => s.id);
+      if (snappedDx !== 0 || snappedDy !== 0) {
+        const gateIds = state.selection
+          .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
+          .map((s) => s.id);
+        const selectedNodeIds = state.selection
+          .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
+          .map((s) => s.id);
 
-      for (const gateId of gateIds) {
-        const gate = state.circuit.gates.get(gateId);
-        if (gate) { gate.x += dx; gate.y += dy; }
-      }
-      // Move anchored + selected free nodes (deduplicated)
-      const anchored = getAnchoredNodeIds(state.circuit, gateIds);
-      const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
-      for (const nid of allNodeIds) {
-        const node = state.circuit.wireNodes.get(nid);
-        if (node) { node.x += dx; node.y += dy; }
+        for (const gateId of gateIds) {
+          const gate = state.circuit.gates.get(gateId);
+          if (gate) { gate.x += snappedDx; gate.y += snappedDy; }
+        }
+        const anchored = getAnchoredNodeIds(state.circuit, gateIds);
+        const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
+        for (const nid of allNodeIds) {
+          const node = state.circuit.wireNodes.get(nid);
+          if (node) { node.x += snappedDx; node.y += snappedDy; }
+        }
       }
       this.setState((s) => { s.dirty = true; });
       return;
@@ -695,13 +699,13 @@ export class InputHandler {
       return;
     }
 
-    // Finalise gate + node drag — snap to grid
+    // Finalise gate + node drag (already snapped during drag)
     if (this.isDraggingGates) {
-      const dx = this.dragAccDx;
-      const dy = this.dragAccDy;
       this.isDraggingGates = false;
+      const snapDx = snapToGrid(this.dragAccDx);
+      const snapDy = snapToGrid(this.dragAccDy);
 
-      if (dx !== 0 || dy !== 0) {
+      if (snapDx !== 0 || snapDy !== 0) {
         const gateIds = state.selection
           .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
           .map((s) => s.id);
@@ -712,29 +716,16 @@ export class InputHandler {
         // Undo live move
         for (const gateId of gateIds) {
           const gate = state.circuit.gates.get(gateId);
-          if (gate) { gate.x -= dx; gate.y -= dy; }
+          if (gate) { gate.x -= snapDx; gate.y -= snapDy; }
         }
         const anchored = getAnchoredNodeIds(state.circuit, gateIds);
         const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
         for (const nid of allNodeIds) {
           const node = state.circuit.wireNodes.get(nid);
-          if (node) { node.x -= dx; node.y -= dy; }
+          if (node) { node.x -= snapDx; node.y -= snapDy; }
         }
 
-        // Snapped delta — use first gate or first selected node for snap reference
-        let snapDx = dx, snapDy = dy;
-        const firstGate = gateIds.length > 0 ? state.circuit.gates.get(gateIds[0]) : null;
-        const firstNode = selectedNodeIds.length > 0 ? state.circuit.wireNodes.get(selectedNodeIds[0]) : null;
-        if (firstGate) {
-          snapDx = snapToGrid(firstGate.x + dx) - firstGate.x;
-          snapDy = snapToGrid(firstGate.y + dy) - firstGate.y;
-        } else if (firstNode) {
-          snapDx = snapToGrid(firstNode.x + dx) - firstNode.x;
-          snapDy = snapToGrid(firstNode.y + dy) - firstNode.y;
-        }
-        if (snapDx !== 0 || snapDy !== 0) {
-          this.history.execute(new MoveGatesCommand(state, gateIds, snapDx, snapDy, selectedNodeIds));
-        }
+        this.history.execute(new MoveGatesCommand(state, gateIds, snapDx, snapDy, selectedNodeIds));
       }
       this.dragAccDx = 0;
       this.dragAccDy = 0;
