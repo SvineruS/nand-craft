@@ -528,6 +528,13 @@ export class ConnectPinsCommand implements Command {
 
     if (!nodeA || !nodeB) return;
 
+    // Check for duplicate segment
+    for (const seg of circuit.wireSegments.values()) {
+      if ((seg.from === nodeA && seg.to === nodeB) || (seg.from === nodeB && seg.to === nodeA)) {
+        return;
+      }
+    }
+
     // Create segment between the two nodes
     this.createdSegmentId = generateId('ws') as WireSegmentId;
     const seg: WireSegment = {

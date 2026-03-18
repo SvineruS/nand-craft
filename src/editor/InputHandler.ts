@@ -600,8 +600,7 @@ export class InputHandler {
         this.connectNodeToPin(state, state.wireStartNode, targetPin);
       } else if (state.wireStartNode && targetNode && targetNode !== state.wireStartNode) {
         // Wire node → wire node
-        const cmd = new AddWireSegmentCommand(state, state.wireStartNode, targetNode);
-        this.history.execute(cmd);
+        this.addSegmentIfNew(state, state.wireStartNode, targetNode);
       } else if (state.wireStartPin || state.wireStartNode) {
         // Dropped on empty space → create a new wire node and connect
         const sx = snapToGrid(world.x);
@@ -613,8 +612,7 @@ export class InputHandler {
         if (state.wireStartPin) {
           this.connectPinToNode(state, state.wireStartPin, newNodeId);
         } else if (state.wireStartNode) {
-          const segCmd = new AddWireSegmentCommand(state, state.wireStartNode, newNodeId);
-          this.history.execute(segCmd);
+          this.addSegmentIfNew(state, state.wireStartNode, newNodeId);
         }
       }
 
@@ -774,12 +772,25 @@ export class InputHandler {
   // Helpers
   // ---------------------------------------------------------------------------
 
+  /** Check if a segment already exists between two nodes (in either direction). */
+  private segmentExists(state: EditorState, a: WireNodeId, b: WireNodeId): boolean {
+    for (const seg of state.circuit.wireSegments.values()) {
+      if ((seg.from === a && seg.to === b) || (seg.from === b && seg.to === a)) return true;
+    }
+    return false;
+  }
+
+  /** Add a wire segment between two nodes, unless one already exists. */
+  private addSegmentIfNew(state: EditorState, from: WireNodeId, to: WireNodeId): void {
+    if (from === to || this.segmentExists(state, from, to)) return;
+    this.history.execute(new AddWireSegmentCommand(state, from, to));
+  }
+
   /** Ensure the pin has an anchored wire node, then add a segment to targetNode. */
   private connectPinToNode(state: EditorState, pinId: PinId, targetNode: WireNodeId): void {
     const existingNode = this.findOrCreatePinNode(state, pinId);
     if (existingNode && existingNode !== targetNode) {
-      const cmd = new AddWireSegmentCommand(state, existingNode, targetNode);
-      this.history.execute(cmd);
+      this.addSegmentIfNew(state, existingNode, targetNode);
     }
   }
 
@@ -787,8 +798,7 @@ export class InputHandler {
   private connectNodeToPin(state: EditorState, sourceNode: WireNodeId, pinId: PinId): void {
     const existingNode = this.findOrCreatePinNode(state, pinId);
     if (existingNode && existingNode !== sourceNode) {
-      const cmd = new AddWireSegmentCommand(state, sourceNode, existingNode);
-      this.history.execute(cmd);
+      this.addSegmentIfNew(state, sourceNode, existingNode);
     }
   }
 
