@@ -604,12 +604,19 @@ export class Renderer {
           const from = circuit.wireNodes.get(seg.from);
           const to = circuit.wireNodes.get(seg.to);
           if (!from || !to) break;
-          ctx.lineWidth = 6;
+          // Draw two thin dashed lines offset on each side of the wire
+          const dx = to.x - from.x;
+          const dy = to.y - from.y;
+          const len = Math.hypot(dx, dy);
+          if (len === 0) break;
+          const nx = (-dy / len) * 5;
+          const ny = (dx / len) * 5;
           ctx.beginPath();
-          ctx.moveTo(from.x, from.y);
-          ctx.lineTo(to.x, to.y);
+          ctx.moveTo(from.x + nx, from.y + ny);
+          ctx.lineTo(to.x + nx, to.y + ny);
+          ctx.moveTo(from.x - nx, from.y - ny);
+          ctx.lineTo(to.x - nx, to.y - ny);
           ctx.stroke();
-          ctx.lineWidth = 2;
           break;
         }
       }
