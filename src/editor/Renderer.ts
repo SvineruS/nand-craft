@@ -227,12 +227,13 @@ export class Renderer {
       const pin = node.pinId ? circuit.pins.get(node.pinId as PinId) : null;
       const value = pin?.value ?? null;
       const color = wireColorForValue(value);
+      const isHovered = state.hoveredNode === node.id;
 
       // Wire node: filled circle with stroke, always thicker than wire
-      const radius = 5;
+      const radius = isHovered ? 7 : 5;
       ctx.fillStyle = COLORS.wireNodeFill;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = isHovered ? COLORS.selection : color;
+      ctx.lineWidth = isHovered ? 3 : 2.5;
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
       ctx.fill();

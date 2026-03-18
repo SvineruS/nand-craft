@@ -236,27 +236,33 @@ export class InputHandler {
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
 
-    // Select element under cursor first (like a left-click would)
+    // Hit-test element under cursor and delete it directly
     const nodeHit = hitTestWireNode(world.x, world.y, state);
     if (nodeHit) {
       const node = state.circuit.wireNodes.get(nodeHit);
       if (node && !node.pinId) {
-        this.setState((s) => { s.selection = [{ type: 'wireNode', id: nodeHit }]; });
-      }
-    } else {
-      const gateHit = hitTestGate(world.x, world.y, state);
-      if (gateHit) {
-        this.setState((s) => { s.selection = [{ type: 'gate', id: gateHit }]; });
-      } else {
-        const segHit = hitTestWireSegment(world.x, world.y, state);
-        if (segHit) {
-          this.setState((s) => { s.selection = [{ type: 'wireSegment', id: segHit }]; });
-        }
+        this.history.execute(new RemoveWireNodeCommand(state, nodeHit));
+        this.setState((s) => { s.dirty = true; });
+        return;
       }
     }
 
-    if (state.selection.length === 0) return;
-    this.deleteSelected(state);
+    const gateHit = hitTestGate(world.x, world.y, state);
+    if (gateHit) {
+      this.setState((s) => { s.selection = [{ type: 'gate', id: gateHit }]; });
+      this.deleteSelected(state);
+      return;
+    }
+
+    const segHit = hitTestWireSegment(world.x, world.y, state);
+    if (segHit) {
+      this.setState((s) => { s.selection = [{ type: 'wireSegment', id: segHit }]; });
+      this.deleteSelected(state);
+      return;
+    }
+
+    // Empty space → just clear selection
+    this.setState((s) => { s.selection = []; s.dirty = true; });
   }
 
   // ---------------------------------------------------------------------------
@@ -298,14 +304,10 @@ export class InputHandler {
           this.setState((s) => {
             s.wireStartPin = null;
             s.wireStartNode = null;
-            s.selection = [{ type: 'wireNode', id: nodeHit }];
             s.dirty = true;
           });
         } else {
           // Single click → start wiring from this node
-          this.setState((s) => {
-            s.selection = [{ type: 'wireNode', id: nodeHit }];
-          });
           this.isWiring = true;
           this.wireStartWorldX = world.x;
           this.wireStartWorldY = world.y;
@@ -382,9 +384,20 @@ export class InputHandler {
       return;
     }
 
-    // 4) Wire segment hit → select
+    // 4) Wire segment hit
     const segHit = hitTestWireSegment(world.x, world.y, state);
     if (segHit) {
+      if (isDblClick) {
+        // Double-click wire → split and start dragging the new node
+        this.isWiring = false;
+        const newNodeId = this.splitWireSegment(state, segHit, snapToGrid(world.x), snapToGrid(world.y));
+        if (newNodeId) {
+          this.isDraggingNode = newNodeId;
+          this.lastWorldX = world.x;
+          this.lastWorldY = world.y;
+        }
+        return;
+      }
       if (e.ctrlKey || e.metaKey) {
         const alreadySel = state.selection.some(
           (s) => s.type === 'wireSegment' && s.id === segHit,
@@ -457,6 +470,7 @@ export class InputHandler {
     if (this.isWiring) {
       this.setState((s) => {
         s.hoveredPin = hitTestPin(world.x, world.y, s);
+        s.hoveredNode = hitTestWireNode(world.x, world.y, s);
         s.dirty = true;
       });
       return;
@@ -509,6 +523,7 @@ export class InputHandler {
 
     // Hover
     this.setState((s) => {
+      s.hoveredNode = hitTestWireNode(world.x, world.y, s);
       s.hoveredGate = hitTestGate(world.x, world.y, s);
       s.hoveredPin = hitTestPin(world.x, world.y, s);
       s.dirty = true;
@@ -795,6 +810,39 @@ export class InputHandler {
     const cmd = new AddWireNodeCommand(state, pos.x, pos.y, pinId);
     this.history.execute(cmd);
     return cmd.getNodeId();
+  }
+
+  /** Split a wire segment by inserting a node at (x,y). Removes the original segment,
+   *  creates a new node, and two new segments connecting the original endpoints to it.
+   *  Returns the new node ID. */
+  private splitWireSegment(state: EditorState, segId: WireSegmentId, x: number, y: number): WireNodeId | null {
+    const seg = state.circuit.wireSegments.get(segId);
+    if (!seg) return null;
+
+    const fromId = seg.from;
+    const toId = seg.to;
+
+    // Remove original segment
+    const removeSeg = new RemoveWireSegmentCommand(state, segId);
+    this.history.execute(removeSeg);
+
+    // Create new node
+    const addNode = new AddWireNodeCommand(state, x, y);
+    this.history.execute(addNode);
+    const midId = addNode.getNodeId();
+
+    // Create two segments: from→mid, mid→to
+    const seg1 = new AddWireSegmentCommand(state, fromId, midId);
+    this.history.execute(seg1);
+    const seg2 = new AddWireSegmentCommand(state, midId, toId);
+    this.history.execute(seg2);
+
+    this.setState((s) => {
+      s.selection = [{ type: 'wireNode', id: midId }];
+      s.dirty = true;
+    });
+
+    return midId;
   }
 
   /** Delete all selected gates, wire segments, and wire nodes. */

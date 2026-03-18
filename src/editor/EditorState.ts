@@ -20,6 +20,7 @@ export interface EditorState {
   selection: SelectionItem[];
   hoveredGate: GateId | null;
   hoveredPin: PinId | null;
+  hoveredNode: WireNodeId | null;
   wireStartPin: PinId | null;
   wireStartNode: WireNodeId | null;
   isDragging: boolean;
@@ -39,6 +40,7 @@ export function createEditorState(): EditorState {
     selection: [],
     hoveredGate: null,
     hoveredPin: null,
+    hoveredNode: null,
     wireStartPin: null,
     wireStartNode: null,
     isDragging: false,
