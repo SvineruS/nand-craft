@@ -1,5 +1,6 @@
-import type { Circuit, GateId, GateType, WireNodeId, WireSegmentId, PinId } from '../types.ts';
+import type { Circuit, GateId, GateType, WireSegmentId } from '../types.ts';
 import { createCircuit } from '../types.ts';
+import type { WireEndpoint } from './geometry.ts';
 
 export type PlaceableType = GateType;
 
@@ -11,7 +12,6 @@ export interface Camera {
 
 export type SelectionItem =
   | { type: 'gate'; id: GateId }
-  | { type: 'wireNode'; id: WireNodeId }
   | { type: 'wireSegment'; id: WireSegmentId };
 
 export interface EditorState {
@@ -19,10 +19,8 @@ export interface EditorState {
   camera: Camera;
   selection: SelectionItem[];
   hoveredGate: GateId | null;
-  hoveredPin: PinId | null;
-  hoveredNode: WireNodeId | null;
-  wireStartPin: PinId | null;
-  wireStartNode: WireNodeId | null;
+  hoveredEndpoint: WireEndpoint | null;
+  wireStart: WireEndpoint | null;
   isDragging: boolean;
   dragStart: { x: number; y: number } | null;
   selectionRect: { x: number; y: number; w: number; h: number } | null;
@@ -39,10 +37,8 @@ export function createEditorState(): EditorState {
     camera: { x: 0, y: 0, zoom: 1 },
     selection: [],
     hoveredGate: null,
-    hoveredPin: null,
-    hoveredNode: null,
-    wireStartPin: null,
-    wireStartNode: null,
+    hoveredEndpoint: null,
+    wireStart: null,
     isDragging: false,
     dragStart: null,
     selectionRect: null,

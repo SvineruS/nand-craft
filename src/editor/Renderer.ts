@@ -227,7 +227,7 @@ export class Renderer {
       const pin = node.pinId ? circuit.pins.get(node.pinId as PinId) : null;
       const value = pin?.value ?? null;
       const color = wireColorForValue(value);
-      const isHovered = state.hoveredNode === node.id;
+      const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
       // Wire node: filled circle with stroke, always thicker than wire
       const radius = isHovered ? 7 : 5;
@@ -282,7 +282,7 @@ export class Renderer {
         const pin = circuit.pins.get(pinId);
         if (!pin) continue;
 
-        const isHovered = state.hoveredPin === pin.id;
+        const isHovered = state.hoveredEndpoint?.kind === 'pin' && state.hoveredEndpoint.pinId === pin.id;
         const radius = isHovered ? 5 : 3.5;
 
         ctx.fillStyle = pinColorForValue(pin.value);
@@ -322,14 +322,6 @@ export class Renderer {
           ctx.restore();
           break;
         }
-        case 'wireNode': {
-          const node = circuit.wireNodes.get(item.id);
-          if (!node) break;
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, 8, 0, Math.PI * 2);
-          ctx.stroke();
-          break;
-        }
         case 'wireSegment': {
           const seg = circuit.wireSegments.get(item.id);
           if (!seg) break;
@@ -363,36 +355,16 @@ export class Renderer {
   }
 
   private drawWireInProgress(state: EditorState): void {
-    if (!state.wireStartPin && !state.wireStartNode) return;
+    if (!state.wireStart) return;
 
     const { ctx } = this;
-    const { circuit } = state;
-
-    let startPos: Point | null = null;
-
-    if (state.wireStartPin) {
-      const pin = circuit.pins.get(state.wireStartPin);
-      if (pin) {
-        const gate = circuit.gates.get(pin.gateId);
-        if (gate) {
-          const positions = getPinPositions(gate, circuit.pins);
-          const pos = positions.get(pin.id);
-          if (pos) startPos = pos;
-        }
-      }
-    } else if (state.wireStartNode) {
-      const node = circuit.wireNodes.get(state.wireStartNode);
-      if (node) startPos = { x: node.x, y: node.y };
-    }
-
-    if (!startPos) return;
 
     ctx.strokeStyle = COLORS.selection;
     ctx.lineWidth = 4;
     ctx.setLineDash([6, 4]);
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(startPos.x, startPos.y);
+    ctx.moveTo(state.wireStart.x, state.wireStart.y);
     ctx.lineTo(this.mouseWorld.x, this.mouseWorld.y);
     ctx.stroke();
     ctx.setLineDash([]);

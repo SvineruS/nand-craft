@@ -87,8 +87,7 @@ export class Editor {
 
     // Clear selection and mode state
     this.state.selection = [];
-    this.state.wireStartPin = null;
-    this.state.wireStartNode = null;
+    this.state.wireStart = null;
 
     // Create input gates on left side (x=2 grid units)
     const inputX = 2 * GRID_SIZE;

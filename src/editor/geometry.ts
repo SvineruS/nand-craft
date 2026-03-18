@@ -1,4 +1,4 @@
-import type { Gate, GateType, PinId, Pin } from '../types.ts';
+import type { Circuit, Gate, GateId, GateType, PinId, WireNodeId, Pin } from '../types.ts';
 
 export const GRID_SIZE = 20;
 
@@ -102,4 +102,38 @@ export function rotatePoint(
 
 export function snapToGrid(v: number): number {
   return Math.round(v / GRID_SIZE) * GRID_SIZE;
+}
+
+// ---------------------------------------------------------------------------
+// WireEndpoint — unified abstraction for pins and wire nodes as wiring targets
+// ---------------------------------------------------------------------------
+
+export type WireEndpoint =
+  | { kind: 'pin'; pinId: PinId; x: number; y: number }
+  | { kind: 'node'; nodeId: WireNodeId; x: number; y: number };
+
+/** Find a wire node anchored to the given pin, or null. */
+export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | null {
+  for (const node of circuit.wireNodes.values()) {
+    if (node.pinId === pinId) return node.id;
+  }
+  return null;
+}
+
+/** Collect wire node IDs that are anchored to pins belonging to the given gates. */
+export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
+  const pinIdSet = new Set<string>();
+  for (const gateId of gateIds) {
+    const gate = circuit.gates.get(gateId);
+    if (gate) {
+      for (const p of [...gate.inputPins, ...gate.outputPins]) pinIdSet.add(p as string);
+    }
+  }
+  const result: WireNodeId[] = [];
+  for (const node of circuit.wireNodes.values()) {
+    if (node.pinId && pinIdSet.has(node.pinId as string)) {
+      result.push(node.id);
+    }
+  }
+  return result;
 }

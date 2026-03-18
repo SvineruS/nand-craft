@@ -11,7 +11,7 @@ import type {
 } from '../types.ts';
 import { generateId } from '../types.ts';
 import type { EditorState } from './EditorState.ts';
-import { getPinPositions } from './geometry.ts';
+import { getPinPositions, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -292,26 +292,18 @@ export class MoveGatesCommand implements Command {
 
   execute(): void {
     const { circuit } = this.state;
-    const pinIdSet = new Set<string>();
 
     for (const gateId of this.gateIds) {
       const gate = circuit.gates.get(gateId);
       if (!gate) continue;
       gate.x += this.dx;
       gate.y += this.dy;
-      for (const p of [...gate.inputPins, ...gate.outputPins]) {
-        pinIdSet.add(p as string);
-      }
     }
 
-    // Move anchored wire nodes
-    this.movedNodeIds = [];
-    for (const node of circuit.wireNodes.values()) {
-      if (node.pinId && pinIdSet.has(node.pinId as string)) {
-        node.x += this.dx;
-        node.y += this.dy;
-        this.movedNodeIds.push(node.id);
-      }
+    this.movedNodeIds = getAnchoredNodeIds(circuit, this.gateIds);
+    for (const nodeId of this.movedNodeIds) {
+      const node = circuit.wireNodes.get(nodeId);
+      if (node) { node.x += this.dx; node.y += this.dy; }
     }
 
     this.state.dirty = true;
@@ -567,12 +559,8 @@ export class ConnectPinsCommand implements Command {
   private findOrCreateNodeForPin(pinId: PinId, which: 'a' | 'b'): WireNodeId | null {
     const { circuit } = this.state;
 
-    // Check if a wire node already exists for this pin
-    for (const node of circuit.wireNodes.values()) {
-      if (node.pinId === pinId) {
-        return node.id;
-      }
-    }
+    const existing = findNodeForPin(circuit, pinId);
+    if (existing) return existing;
 
     // Need to create one -- find pin position from its gate
     const pin = circuit.pins.get(pinId);
