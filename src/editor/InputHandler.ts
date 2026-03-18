@@ -273,24 +273,44 @@ export class InputHandler {
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
 
-    // Middle click: eyedropper (gate → stamp, wire → pick color) or pan
+    // Middle click: move wire node/pin node/split wire segment, or pan
     if (e.button === 1) {
-      const gateHit = hitTestGate(world.x, world.y, state);
-      if (gateHit) {
-        const gate = state.circuit.gates.get(gateHit);
-        if (gate) {
-          this.setState((s) => { s.stampGateType = gate.type; s.pasteMode = false; s.dirty = true; });
+      // Wire node or pin → drag
+      const ep = hitTestEndpoint(world.x, world.y, state);
+      if (ep) {
+        if (ep.kind === 'node') {
+          this.isDraggingNode = ep.nodeId;
+          this.lastWorldX = world.x;
+          this.lastWorldY = world.y;
+          this.setState((s) => { s.dirty = true; });
           return;
         }
+        // Pin: detach anchored wire node and drag it
+        const anchoredNode = this.findAnchoredNode(ep.pinId, state);
+        if (anchoredNode) {
+          const node = state.circuit.wireNodes.get(anchoredNode);
+          if (node) {
+            node.pinId = undefined;
+            this.isDraggingNode = anchoredNode;
+            this.lastWorldX = world.x;
+            this.lastWorldY = world.y;
+            this.setState((s) => { s.wireStart = null; s.dirty = true; });
+            return;
+          }
+        }
       }
+      // Wire segment → split and drag new node
       const segHit = hitTestWireSegment(world.x, world.y, state);
       if (segHit) {
-        const seg = state.circuit.wireSegments.get(segHit);
-        if (seg) {
-          this.setState((s) => { s.wireColor = seg.color ?? WIRE_COLORS[0]; s.dirty = true; });
-          return;
+        const newNodeId = this.splitWireSegment(state, segHit, snapToGrid(world.x), snapToGrid(world.y));
+        if (newNodeId) {
+          this.isDraggingNode = newNodeId;
+          this.lastWorldX = world.x;
+          this.lastWorldY = world.y;
         }
+        return;
       }
+      // Otherwise pan
       this.setState((s) => { s.isDragging = true; s.dragStart = { x: e.offsetX, y: e.offsetY }; });
       return;
     }
