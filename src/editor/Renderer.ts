@@ -29,7 +29,7 @@ interface Point {
   y: number;
 }
 
-function wireColorForValue(value: number | null): string {
+function signalColor(value: number | null): string {
   if (value === null) return COLORS.wireHighZ;
   if (value === 0) return COLORS.wireZero;
   return COLORS.wireActive;
@@ -196,36 +196,76 @@ export class Renderer {
       }
     }
 
+    // Pass 1: draw wire bodies (custom color or neutral default)
+    for (const segment of circuit.wireSegments.values()) {
+      const fromNode = circuit.wireNodes.get(segment.from);
+      const toNode = circuit.wireNodes.get(segment.to);
+      if (!fromNode || !toNode) continue;
+
+      const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
+      const thickness = bitWidth > 1 ? 8 : 6;
+
+      ctx.strokeStyle = segment.color ?? COLORS.wireDefault;
+      ctx.lineWidth = thickness;
+      ctx.lineCap = 'round';
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(fromNode.x, fromNode.y);
+      ctx.lineTo(toNode.x, toNode.y);
+      ctx.stroke();
+    }
+
+    // Pass 2: draw animated signal overlay (dashed colored line on top)
     for (const segment of circuit.wireSegments.values()) {
       const fromNode = circuit.wireNodes.get(segment.from);
       const toNode = circuit.wireNodes.get(segment.to);
       if (!fromNode || !toNode) continue;
 
       const value = nodeValue.get(segment.from as string) ?? nodeValue.get(segment.to as string) ?? null;
-      const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
-      const thickness = bitWidth > 1 ? 6 : 4;
+      if (value === null) continue;
 
-      ctx.strokeStyle = segment.color ?? wireColorForValue(value);
-      ctx.lineWidth = thickness;
+      const color = signalColor(value);
+      // Animated dash offset creates flowing motion
+      const segLen = Math.hypot(toNode.x - fromNode.x, toNode.y - fromNode.y);
+      const dashSize = 3;
+      const offset = this.wireAnimProgress * dashSize * 4;
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
       ctx.lineCap = 'round';
+      ctx.setLineDash([dashSize, dashSize]);
+      ctx.lineDashOffset = -offset;
       ctx.beginPath();
       ctx.moveTo(fromNode.x, fromNode.y);
       ctx.lineTo(toNode.x, toNode.y);
       ctx.stroke();
 
-      // Animated value label
-      if (value !== null) {
-        const t = this.wireAnimProgress;
-        const mx = fromNode.x + (toNode.x - fromNode.x) * t;
-        const my = fromNode.y + (toNode.y - fromNode.y) * t;
-
-        ctx.fillStyle = COLORS.gateText;
-        ctx.font = '10px monospace';
+      // Value label at midpoint
+      if (segLen > 30) {
+        const mx = (fromNode.x + toNode.x) / 2;
+        const my = (fromNode.y + toNode.y) / 2;
+        ctx.setLineDash([]);
+        ctx.fillStyle = color;
+        ctx.font = 'bold 9px monospace';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(String(value), mx, my - 4);
+        ctx.textBaseline = 'middle';
+
+        // Small background pill
+        const text = String(value);
+        const tw = ctx.measureText(text).width + 6;
+        ctx.fillStyle = COLORS.background;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.roundRect(mx - tw / 2, my - 6, tw, 12, 3);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = color;
+        ctx.fillText(text, mx, my);
       }
     }
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
   }
 
   private drawWireNodes(state: EditorState): void {
@@ -265,18 +305,25 @@ export class Renderer {
       const pin = node.pinId ? circuit.pins.get(node.pinId as PinId) : null;
       const value = pin?.value ?? nodeNetValue.get(node.id as string) ?? null;
       const customColor = nodeColor.get(node.id as string);
-      const color = customColor ?? wireColorForValue(value);
       const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
-      // Wire node: filled circle with stroke, always thicker than wire
+      // Wire node: filled circle with stroke
       const radius = isHovered ? 7 : 5;
       ctx.fillStyle = COLORS.wireNodeFill;
-      ctx.strokeStyle = isHovered ? COLORS.selection : color;
+      ctx.strokeStyle = isHovered ? COLORS.selection : (customColor ?? COLORS.wireDefault);
       ctx.lineWidth = isHovered ? 3 : 2.5;
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+
+      // Signal indicator dot inside
+      if (value !== null) {
+        ctx.fillStyle = signalColor(value);
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
@@ -343,8 +390,8 @@ export class Renderer {
     const { circuit, selection } = state;
 
     ctx.strokeStyle = COLORS.selection;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
 
     for (const item of selection) {
       switch (item.type) {
@@ -408,7 +455,7 @@ export class Renderer {
 
     ctx.strokeStyle = COLORS.selection;
     ctx.lineWidth = 4;
-    ctx.setLineDash([6, 4]);
+    ctx.setLineDash([3, 3]);
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(state.wireStart.x, state.wireStart.y);
@@ -430,7 +477,7 @@ export class Renderer {
     ctx.fillStyle = COLORS.gateFill;
     ctx.strokeStyle = COLORS.selection;
     ctx.lineWidth = 2;
-    ctx.setLineDash([6, 4]);
+    ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, 4);
     ctx.fill();

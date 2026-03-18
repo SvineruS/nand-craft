@@ -35,13 +35,13 @@ export interface EditorState {
 
 export const WIRE_COLORS = [
   '#4a4a7a', // default (no override)
-  '#f87171', // red
   '#fb923c', // orange
   '#facc15', // yellow
-  '#4ade80', // green
   '#60a5fa', // blue
   '#c084fc', // purple
   '#f472b6', // pink
+  '#8b5cf6', // violet
+  '#14b8a6', // teal
   '#ffffff', // white
 ];
 
