@@ -356,6 +356,16 @@ export class RotateGatesCommand implements Command {
       const gate = circuit.gates.get(gateId);
       if (!gate) continue;
       gate.rotation = (((gate.rotation + degrees) % 360 + 360) % 360) as 0 | 90 | 180 | 270;
+      // Update anchored wire node positions to match new pin positions
+      const positions = getPinPositions(gate, circuit.pins);
+      for (const [pinId, pos] of positions) {
+        for (const node of circuit.wireNodes.values()) {
+          if (node.pinId === (pinId as unknown as PinId)) {
+            node.x = pos.x;
+            node.y = pos.y;
+          }
+        }
+      }
     }
     this.state.dirty = true;
   }
