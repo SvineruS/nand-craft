@@ -1,5 +1,5 @@
 import type { GateId, PinId, WireNodeId, WireSegmentId, Gate } from '../types.ts';
-import type { EditorState, PlaceableType } from './EditorState.ts';
+import type { EditorState, PlaceableType, ClipboardGate, ClipboardNode, ClipboardWire } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
 import { draggingGateType } from '../ui/Sidebar.ts';
@@ -231,6 +231,12 @@ export class InputHandler {
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
 
+    // Cancel stamp/paste mode
+    if (state.stampGateType || state.pasteMode) {
+      this.setState((s) => { s.stampGateType = null; s.pasteMode = false; s.dropPreview = null; s.dirty = true; });
+      return;
+    }
+
     // Wire node?
     const ep = hitTestEndpoint(world.x, world.y, state);
     if (ep && ep.kind === 'node') {
@@ -267,16 +273,50 @@ export class InputHandler {
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
 
-    // Middle click or shift+left → pan
-    if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
-      this.setState((s) => {
-        s.isDragging = true;
-        s.dragStart = { x: e.offsetX, y: e.offsetY };
-      });
+    // Middle click: eyedropper (gate → stamp, wire → pick color) or pan
+    if (e.button === 1) {
+      const gateHit = hitTestGate(world.x, world.y, state);
+      if (gateHit) {
+        const gate = state.circuit.gates.get(gateHit);
+        if (gate) {
+          this.setState((s) => { s.stampGateType = gate.type; s.pasteMode = false; s.dirty = true; });
+          return;
+        }
+      }
+      const segHit = hitTestWireSegment(world.x, world.y, state);
+      if (segHit) {
+        const seg = state.circuit.wireSegments.get(segHit);
+        if (seg) {
+          this.setState((s) => { s.wireColor = seg.color ?? WIRE_COLORS[0]; s.dirty = true; });
+          return;
+        }
+      }
+      this.setState((s) => { s.isDragging = true; s.dragStart = { x: e.offsetX, y: e.offsetY }; });
+      return;
+    }
+
+    // Shift+left → pan
+    if (e.button === 0 && e.shiftKey) {
+      this.setState((s) => { s.isDragging = true; s.dragStart = { x: e.offsetX, y: e.offsetY }; });
       return;
     }
 
     if (e.button !== 0) return;
+
+    // Stamp mode: place gate on each click
+    if (state.stampGateType && !state.pasteMode) {
+      const def = GATE_DEFS[state.stampGateType];
+      const sx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
+      const sy = snapToGrid(world.y - def.height * GRID_SIZE / 2);
+      this.history.execute(new AddGateCommand(state, state.stampGateType, sx, sy));
+      return;
+    }
+
+    // Paste mode: paste clipboard contents on each click
+    if (state.pasteMode && state.clipboard) {
+      this.pasteClipboard(state, world.x, world.y);
+      return;
+    }
 
     const isDblClick = e.detail >= 2;
 
@@ -437,6 +477,25 @@ export class InputHandler {
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
     this.renderer.setMouseWorld(world);
+
+    // Stamp/paste preview
+    if (state.stampGateType && !state.pasteMode) {
+      const def = GATE_DEFS[state.stampGateType];
+      this.setState((s) => {
+        s.dropPreview = {
+          type: state.stampGateType!,
+          x: snapToGrid(world.x - def.width * GRID_SIZE / 2),
+          y: snapToGrid(world.y - def.height * GRID_SIZE / 2),
+        };
+        s.hoveredGate = hitTestGate(world.x, world.y, s);
+        s.dirty = true;
+      });
+    } else if (state.pasteMode) {
+      this.setState((s) => {
+        s.pasteCursor = { x: snapToGrid(world.x), y: snapToGrid(world.y) };
+        s.dirty = true;
+      });
+    }
 
     // Pan
     if (state.isDragging && state.dragStart) {
@@ -766,6 +825,53 @@ export class InputHandler {
       return;
     }
 
+    // Copy
+    if (ctrl && (e.key === 'c' || e.key === 'C') && !e.shiftKey) {
+      e.preventDefault();
+      this.copySelection(state);
+      return;
+    }
+
+    // Cut
+    if (ctrl && (e.key === 'x' || e.key === 'X')) {
+      e.preventDefault();
+      this.copySelection(state);
+      this.deleteSelected(state);
+      return;
+    }
+
+    // Paste
+    if (ctrl && (e.key === 'v' || e.key === 'V')) {
+      e.preventDefault();
+      if (state.clipboard) {
+        this.setState((s) => { s.pasteMode = true; s.stampGateType = null; s.dirty = true; });
+      }
+      return;
+    }
+
+    // Q — eyedropper: gate → stamp, wire → pick color
+    if (e.key === 'q' || e.key === 'Q') {
+      if (state.hoveredGate) {
+        const gate = state.circuit.gates.get(state.hoveredGate);
+        if (gate) {
+          this.setState((s) => { s.stampGateType = gate.type; s.pasteMode = false; s.dirty = true; });
+          return;
+        }
+      }
+      // Check wire under cursor via hoveredEndpoint is not applicable, check segments
+      // Use last known mouse world position
+      const mw = this.renderer.getMouseWorld();
+      const segHit = hitTestWireSegment(mw.x, mw.y, state);
+      if (segHit) {
+        const seg = state.circuit.wireSegments.get(segHit);
+        if (seg) {
+          this.setState((s) => { s.wireColor = seg.color ?? WIRE_COLORS[0]; s.dirty = true; });
+          return;
+        }
+      }
+      return;
+    }
+
     if (e.key === 'Escape') {
       this.isWiring = false;
       this.isDraggingNode = null;
@@ -773,6 +879,9 @@ export class InputHandler {
         s.selection = [];
         s.wireStart = null;
         s.selectionRect = null;
+        s.stampGateType = null;
+        s.pasteMode = false;
+        s.dropPreview = null;
         s.dirty = true;
       });
       return;
@@ -898,5 +1007,170 @@ export class InputHandler {
     }
 
     return [...visited] as WireSegmentId[];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Copy / Paste
+  // ---------------------------------------------------------------------------
+
+  private copySelection(state: EditorState): void {
+    const selectedGateIds = state.selection
+      .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
+      .map(s => s.id);
+    const selectedSegIds = new Set(
+      state.selection
+        .filter((s): s is { type: 'wireSegment'; id: WireSegmentId } => s.type === 'wireSegment')
+        .map(s => s.id as string),
+    );
+    const selectedNodeIds = new Set(
+      state.selection
+        .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
+        .map(s => s.id as string),
+    );
+
+    if (selectedGateIds.length === 0 && selectedSegIds.size === 0 && selectedNodeIds.size === 0) return;
+
+    // Compute center of selected items
+    let cx = 0, cy = 0, count = 0;
+    for (const gid of selectedGateIds) {
+      const g = state.circuit.gates.get(gid);
+      if (g) { const d = getGateDims(g); cx += g.x + d.w / 2; cy += g.y + d.h / 2; count++; }
+    }
+    for (const nid of selectedNodeIds) {
+      const n = state.circuit.wireNodes.get(nid as WireNodeId);
+      if (n) { cx += n.x; cy += n.y; count++; }
+    }
+    if (count > 0) { cx /= count; cy /= count; }
+
+    // Build gate index map
+    const gateIdxMap = new Map<string, number>();
+    const gates: ClipboardGate[] = [];
+    for (const gid of selectedGateIds) {
+      const g = state.circuit.gates.get(gid);
+      if (!g) continue;
+      const d = getGateDims(g);
+      gateIdxMap.set(gid as string, gates.length);
+      const pinBitWidths = [...g.inputPins, ...g.outputPins].map(pid => {
+        const pin = state.circuit.pins.get(pid);
+        return pin?.bitWidth ?? 1;
+      });
+      gates.push({ type: g.type, dx: g.x + d.w / 2 - cx, dy: g.y + d.h / 2 - cy, rotation: g.rotation, pinBitWidths });
+    }
+
+    // Collect relevant wire nodes (anchored to selected gates or explicitly selected free nodes)
+    // Also collect nodes referenced by selected wire segments
+    const relevantNodeIds = new Set<string>(selectedNodeIds);
+    for (const node of state.circuit.wireNodes.values()) {
+      if (node.pinId) {
+        const pin = state.circuit.pins.get(node.pinId);
+        if (pin && gateIdxMap.has(pin.gateId as string)) {
+          relevantNodeIds.add(node.id as string);
+        }
+      }
+    }
+    for (const seg of state.circuit.wireSegments.values()) {
+      if (selectedSegIds.has(seg.id as string)) {
+        relevantNodeIds.add(seg.from as string);
+        relevantNodeIds.add(seg.to as string);
+      }
+    }
+
+    // Build node index map
+    const nodeIdxMap = new Map<string, number>();
+    const nodes: ClipboardNode[] = [];
+    for (const nid of relevantNodeIds) {
+      const n = state.circuit.wireNodes.get(nid as WireNodeId);
+      if (!n) continue;
+      nodeIdxMap.set(nid, nodes.length);
+      let gateIdx: number | undefined;
+      let pinIdx: number | undefined;
+      if (n.pinId) {
+        const pin = state.circuit.pins.get(n.pinId);
+        if (pin && gateIdxMap.has(pin.gateId as string)) {
+          gateIdx = gateIdxMap.get(pin.gateId as string);
+          const gate = state.circuit.gates.get(pin.gateId);
+          if (gate) {
+            const allPins = [...gate.inputPins, ...gate.outputPins];
+            pinIdx = allPins.indexOf(n.pinId);
+          }
+        }
+      }
+      nodes.push({ dx: n.x - cx, dy: n.y - cy, gateIdx, pinIdx });
+    }
+
+    // Collect wire segments between relevant nodes (or explicitly selected)
+    const wires: ClipboardWire[] = [];
+    for (const seg of state.circuit.wireSegments.values()) {
+      const fromIdx = nodeIdxMap.get(seg.from as string);
+      const toIdx = nodeIdxMap.get(seg.to as string);
+      if (fromIdx !== undefined && toIdx !== undefined) {
+        // Include if both nodes are in clipboard AND (segment is selected OR both nodes belong to selected gates)
+        if (selectedSegIds.has(seg.id as string) || (relevantNodeIds.has(seg.from as string) && relevantNodeIds.has(seg.to as string))) {
+          wires.push({ fromNodeIdx: fromIdx, toNodeIdx: toIdx, color: seg.color, label: seg.label });
+        }
+      }
+    }
+
+    this.setState((s) => {
+      s.clipboard = { gates, nodes, wires };
+    });
+  }
+
+  private pasteClipboard(state: EditorState, wx: number, wy: number): void {
+    const clip = state.clipboard;
+    if (!clip) return;
+
+    const cx = snapToGrid(wx);
+    const cy = snapToGrid(wy);
+
+    // Create gates and collect new pin IDs
+    const newGateIds: GateId[] = [];
+    const newAllPinIds: PinId[][] = []; // per gate, all pin IDs in order
+    for (const cg of clip.gates) {
+      const def = GATE_DEFS[cg.type];
+      const gx = snapToGrid(cx + cg.dx - def.width * GRID_SIZE / 2);
+      const gy = snapToGrid(cy + cg.dy - def.height * GRID_SIZE / 2);
+      const cmd = new AddGateCommand(state, cg.type, gx, gy, cg.rotation, cg.pinBitWidths[0] ?? 1);
+      this.history.execute(cmd);
+      newGateIds.push(cmd.getGateId());
+
+      // Collect pin IDs from the newly created gate
+      const gate = state.circuit.gates.get(cmd.getGateId());
+      newAllPinIds.push(gate ? [...gate.inputPins, ...gate.outputPins] : []);
+    }
+
+    // Create wire nodes
+    const newNodeIds: WireNodeId[] = [];
+    for (const cn of clip.nodes) {
+      const nx = snapToGrid(cx + cn.dx);
+      const ny = snapToGrid(cy + cn.dy);
+
+      // If anchored to a gate pin, find the new pin ID
+      let pinId: PinId | undefined;
+      if (cn.gateIdx !== undefined && cn.pinIdx !== undefined) {
+        pinId = newAllPinIds[cn.gateIdx]?.[cn.pinIdx];
+      }
+
+      const cmd = new AddWireNodeCommand(state, nx, ny, pinId);
+      this.history.execute(cmd);
+      newNodeIds.push(cmd.getNodeId());
+    }
+
+    // Create wire segments
+    for (const cw of clip.wires) {
+      const fromId = newNodeIds[cw.fromNodeIdx];
+      const toId = newNodeIds[cw.toNodeIdx];
+      if (fromId && toId) {
+        const cmd = new AddWireSegmentCommand(state, fromId, toId, cw.color);
+        this.history.execute(cmd);
+        // Apply label
+        if (cw.label) {
+          const seg = state.circuit.wireSegments.get(cmd.getSegmentId());
+          if (seg) seg.label = cw.label;
+        }
+      }
+    }
+
+    this.setState((s) => { s.dirty = true; });
   }
 }

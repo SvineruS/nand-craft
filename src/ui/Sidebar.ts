@@ -13,6 +13,7 @@ export let draggingGateType: GateType | null = null;
 
 export class Sidebar {
   readonly element: HTMLElement;
+  onStamp: ((type: GateType) => void) | null = null;
 
   constructor() {
     const panel = document.createElement('div');
@@ -74,11 +75,13 @@ export class Sidebar {
     el.addEventListener('mouseenter', () => { el.style.background = ITEM_HOVER; });
     el.addEventListener('mouseleave', () => { el.style.background = ITEM_BG; });
 
+    let didDrag = false;
+    el.addEventListener('mousedown', () => { didDrag = false; });
     el.addEventListener('dragstart', (e) => {
+      didDrag = true;
       if (!e.dataTransfer) return;
       e.dataTransfer.setData('text/plain', type);
       e.dataTransfer.effectAllowed = 'copy';
-      // Hide default drag image — canvas draws the preview
       const empty = document.createElement('div');
       empty.style.width = '0';
       empty.style.height = '0';
@@ -91,6 +94,9 @@ export class Sidebar {
     el.addEventListener('dragend', () => {
       el.style.opacity = '1';
       draggingGateType = null;
+    });
+    el.addEventListener('click', () => {
+      if (!didDrag) this.onStamp?.(type);
     });
 
     return el;

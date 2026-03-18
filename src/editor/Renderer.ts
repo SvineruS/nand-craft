@@ -1,6 +1,6 @@
 import type { GateType, PinId } from '../types.ts';
 import type { EditorState, Camera } from './EditorState.ts';
-import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions } from './geometry.ts';
+import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, snapToGrid } from './geometry.ts';
 
 // --- Colors (dark theme) ---
 const COLORS = {
@@ -85,6 +85,7 @@ export class Renderer {
     this.drawSelectionRect(state);
     this.drawWireInProgress(state);
     this.drawDropPreview(state);
+    this.drawPastePreview(state);
 
     ctx.restore();
     ctx.restore();
@@ -129,6 +130,10 @@ export class Renderer {
 
   setMouseWorld(p: Point): void {
     this.mouseWorld = p;
+  }
+
+  getMouseWorld(): Point {
+    return this.mouseWorld;
   }
 
   // --- Private rendering methods ---
@@ -690,6 +695,92 @@ export class Renderer {
       ctx.beginPath();
       ctx.arc(px, py, 3.5, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+  }
+
+  private drawPastePreview(state: EditorState): void {
+    if (!state.pasteMode || !state.clipboard || !state.pasteCursor) return;
+
+    const { ctx } = this;
+    const { pasteCursor: cursor, clipboard: clip } = state;
+
+    ctx.globalAlpha = 0.4;
+
+    // Draw ghost gates
+    for (const cg of clip.gates) {
+      const def = GATE_DEFS[cg.type];
+      const gw = def.width * GRID_SIZE;
+      const gh = def.height * GRID_SIZE;
+      const gx = snapToGrid(cursor.x + cg.dx - gw / 2);
+      const gy = snapToGrid(cursor.y + cg.dy - gh / 2);
+
+      if (def.svg) {
+        const path = this.getGatePath(cg.type);
+        ctx.save();
+        ctx.translate(gx, gy);
+        ctx.scale(GRID_SIZE, GRID_SIZE);
+        ctx.fillStyle = COLORS.gateFill;
+        ctx.fill(path);
+        ctx.strokeStyle = COLORS.selection;
+        ctx.lineWidth = 1.5 / GRID_SIZE;
+        ctx.stroke(path);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = COLORS.gateFill;
+        ctx.strokeStyle = COLORS.selection;
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(gx, gy, gw, gh);
+        ctx.strokeRect(gx, gy, gw, gh);
+      }
+
+      // Label
+      ctx.fillStyle = COLORS.gateText;
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(def.label, gx + gw / 2, gy + gh / 2);
+
+      // Pins
+      for (const pin of def.pins) {
+        ctx.fillStyle = COLORS.pinHighZ;
+        ctx.beginPath();
+        ctx.arc(gx + pin.x * GRID_SIZE, gy + pin.y * GRID_SIZE, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Draw ghost wire segments
+    ctx.strokeStyle = COLORS.selection;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    for (const cw of clip.wires) {
+      const fromNode = clip.nodes[cw.fromNodeIdx];
+      const toNode = clip.nodes[cw.toNodeIdx];
+      if (!fromNode || !toNode) continue;
+      const fx = snapToGrid(cursor.x + fromNode.dx);
+      const fy = snapToGrid(cursor.y + fromNode.dy);
+      const tx = snapToGrid(cursor.x + toNode.dx);
+      const ty = snapToGrid(cursor.y + toNode.dy);
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+    }
+
+    // Draw ghost wire nodes (free only)
+    for (const cn of clip.nodes) {
+      if (cn.gateIdx !== undefined) continue; // anchored nodes shown via gate pins
+      const nx = snapToGrid(cursor.x + cn.dx);
+      const ny = snapToGrid(cursor.y + cn.dy);
+      ctx.fillStyle = COLORS.wireNodeFill;
+      ctx.strokeStyle = COLORS.selection;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
     }
 
     ctx.globalAlpha = 1;

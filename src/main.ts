@@ -28,6 +28,12 @@ Object.assign(editorContainer.style, {
 
 const editor = new Editor(editorContainer);
 const sidebar = new Sidebar();
+sidebar.onStamp = (type) => {
+  const state = editor.getState();
+  state.stampGateType = type;
+  state.pasteMode = false;
+  state.dirty = true;
+};
 const levelDialog = new LevelDialog();
 
 let currentLevelIndex = 0;

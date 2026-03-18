@@ -15,6 +15,27 @@ export type SelectionItem =
   | { type: 'wireNode'; id: WireNodeId }
   | { type: 'wireSegment'; id: WireSegmentId };
 
+export interface ClipboardGate {
+  type: GateType;
+  dx: number; dy: number;
+  rotation: 0 | 90 | 180 | 270;
+  pinBitWidths: number[];
+}
+export interface ClipboardNode {
+  dx: number; dy: number;
+  gateIdx?: number; pinIdx?: number;
+}
+export interface ClipboardWire {
+  fromNodeIdx: number;
+  toNodeIdx: number;
+  color?: string; label?: string;
+}
+export interface ClipboardData {
+  gates: ClipboardGate[];
+  nodes: ClipboardNode[];
+  wires: ClipboardWire[];
+}
+
 export interface EditorState {
   circuit: Circuit;
   camera: Camera;
@@ -26,6 +47,10 @@ export interface EditorState {
   dragStart: { x: number; y: number } | null;
   selectionRect: { x: number; y: number; w: number; h: number } | null;
   dropPreview: { type: PlaceableType; x: number; y: number } | null;
+  stampGateType: GateType | null;
+  clipboard: ClipboardData | null;
+  pasteMode: boolean;
+  pasteCursor: { x: number; y: number } | null;
   simulationRunning: boolean;
   shortCircuitGates: GateId[];
   contentionNets: string[];
@@ -57,6 +82,10 @@ export function createEditorState(): EditorState {
     dragStart: null,
     selectionRect: null,
     dropPreview: null,
+    stampGateType: null,
+    clipboard: null,
+    pasteMode: false,
+    pasteCursor: null,
     simulationRunning: false,
     shortCircuitGates: [],
     contentionNets: [],
