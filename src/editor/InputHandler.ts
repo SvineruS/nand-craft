@@ -1050,11 +1050,10 @@ export class InputHandler {
       if (!g) continue;
       const d = getGateDims(g);
       gateIdxMap.set(gid as string, gates.length);
-      const pinBitWidths = [...g.inputPins, ...g.outputPins].map(pid => {
-        const pin = state.circuit.pins.get(pid);
-        return pin?.bitWidth ?? 1;
-      });
-      gates.push({ type: g.type, dx: g.x + d.w / 2 - cx, dy: g.y + d.h / 2 - cy, rotation: g.rotation, pinBitWidths });
+      const allPids = [...g.inputPins, ...g.outputPins];
+      const pinBitWidths = allPids.map(pid => state.circuit.pins.get(pid)?.bitWidth ?? 1);
+      const pinValues = allPids.map(pid => state.circuit.pins.get(pid)?.value ?? null);
+      gates.push({ type: g.type, dx: g.x + d.w / 2 - cx, dy: g.y + d.h / 2 - cy, rotation: g.rotation, pinBitWidths, pinValues });
     }
 
     // Collect relevant wire nodes (anchored to selected gates or explicitly selected free nodes)
@@ -1134,9 +1133,17 @@ export class InputHandler {
       this.history.execute(cmd);
       newGateIds.push(cmd.getGateId());
 
-      // Collect pin IDs from the newly created gate
+      // Collect pin IDs and restore properties
       const gate = state.circuit.gates.get(cmd.getGateId());
-      newAllPinIds.push(gate ? [...gate.inputPins, ...gate.outputPins] : []);
+      const allPins = gate ? [...gate.inputPins, ...gate.outputPins] : [];
+      newAllPinIds.push(allPins);
+      for (let p = 0; p < allPins.length; p++) {
+        const pin = state.circuit.pins.get(allPins[p]);
+        if (pin) {
+          if (cg.pinBitWidths[p] !== undefined) pin.bitWidth = cg.pinBitWidths[p];
+          if (cg.pinValues[p] !== undefined) pin.value = cg.pinValues[p];
+        }
+      }
     }
 
     // Create wire nodes

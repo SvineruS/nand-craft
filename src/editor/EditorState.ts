@@ -20,6 +20,7 @@ export interface ClipboardGate {
   dx: number; dy: number;
   rotation: 0 | 90 | 180 | 270;
   pinBitWidths: number[];
+  pinValues: (number | null)[];
 }
 export interface ClipboardNode {
   dx: number; dy: number;
