@@ -370,10 +370,10 @@ export class InputHandler {
     // 2) Gate hit
     const gateHit = hitTestGate(world.x, world.y, state);
     if (gateHit) {
-      // Double-click input/constant gate → toggle value
+      // Double-click constant gate → toggle value
       if (isDblClick) {
         const gate = state.circuit.gates.get(gateHit);
-        if (gate && (gate.type === 'input' || gate.type === 'constant')) {
+        if (gate && gate.type === 'constant') {
           const outPinId = gate.outputPins[0];
           if (outPinId) {
             const pin = state.circuit.pins.get(outPinId);
