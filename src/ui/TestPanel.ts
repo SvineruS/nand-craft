@@ -142,14 +142,17 @@ export class TestPanel {
       width: '100%',
     });
 
-    // Header row: pin names
+    // Header row: pin names — inputs + expected + actual per output
     const headerRow = document.createElement('tr');
     headerRow.appendChild(this.headerCell('#'));
     for (const name of inputNames) {
       headerRow.appendChild(this.headerCell(name, 'input'));
     }
     for (const name of outputNames) {
-      headerRow.appendChild(this.headerCell(name, 'output'));
+      headerRow.appendChild(this.headerCell(name, 'expected'));
+    }
+    for (const name of outputNames) {
+      headerRow.appendChild(this.headerCell(name, 'actual'));
     }
     table.appendChild(headerRow);
 
@@ -194,9 +197,27 @@ export class TestPanel {
         Object.assign(td.style, {
           padding: '3px 6px',
           textAlign: 'center',
+          borderBottom: `1px solid ${BORDER_COLOR}33`,
+          borderLeft: c === 0 ? 'none' : undefined,
+          color: TEXT_DIM,
+        });
+        row.appendChild(td);
+      }
+
+      // Actual output values
+      for (const name of outputNames) {
+        const actual = result?.actuals?.[name];
+        const expected = cases[c].expected[name];
+        const match = actual !== undefined && actual === expected;
+        const mismatch = actual !== undefined && actual !== null && actual !== expected;
+        const td = document.createElement('td');
+        td.textContent = actual !== undefined && actual !== null ? String(actual) : '\u2014';
+        Object.assign(td.style, {
+          padding: '3px 6px',
+          textAlign: 'center',
           fontWeight: '600',
           borderBottom: `1px solid ${BORDER_COLOR}33`,
-          color: result?.passed === false ? FAIL_COLOR : TEXT_COLOR,
+          color: mismatch ? FAIL_COLOR : match ? PASS_COLOR : TEXT_DIM,
         });
         row.appendChild(td);
       }
@@ -213,11 +234,19 @@ export class TestPanel {
     return passed ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
   }
 
-  private headerCell(text: string, kind?: 'input' | 'output'): HTMLTableCellElement {
+  private headerCell(text: string, kind?: 'input' | 'expected' | 'actual'): HTMLTableCellElement {
     const th = document.createElement('td');
-    th.textContent = text;
+    th.textContent = kind === 'expected' ? `exp` : kind === 'actual' ? `act` : text;
+    if (kind === 'expected' || kind === 'actual') {
+      const sub = document.createElement('div');
+      sub.textContent = text;
+      Object.assign(sub.style, { fontSize: '9px', opacity: '0.7' });
+      th.textContent = kind === 'expected' ? 'Exp' : 'Act';
+      th.appendChild(sub);
+    }
     const color = kind === 'input' ? '#60a5fa'
-      : kind === 'output' ? '#c084fc'
+      : kind === 'expected' ? '#c084fc'
+      : kind === 'actual' ? '#facc15'
       : TEXT_DIM;
     Object.assign(th.style, {
       padding: '4px 6px',

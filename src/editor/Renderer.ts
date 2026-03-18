@@ -174,16 +174,35 @@ export class Renderer {
     const { ctx } = this;
     const { circuit } = state;
 
+    // Build node→net value lookup (find any pin value on the same net)
+    const nodeValue = new Map<string, number | null>();
+    const nodeBitWidth = new Map<string, number>();
+    for (const net of circuit.nets.values()) {
+      let netValue: number | null = null;
+      let netBitWidth = 1;
+      for (const nodeId of net.nodeIds) {
+        const node = circuit.wireNodes.get(nodeId);
+        if (node?.pinId) {
+          const pin = circuit.pins.get(node.pinId as PinId);
+          if (pin) {
+            if (pin.value !== null) netValue = pin.value;
+            netBitWidth = pin.bitWidth;
+          }
+        }
+      }
+      for (const nodeId of net.nodeIds) {
+        nodeValue.set(nodeId as string, netValue);
+        nodeBitWidth.set(nodeId as string, netBitWidth);
+      }
+    }
+
     for (const segment of circuit.wireSegments.values()) {
       const fromNode = circuit.wireNodes.get(segment.from);
       const toNode = circuit.wireNodes.get(segment.to);
       if (!fromNode || !toNode) continue;
 
-      const pin = fromNode.pinId ? circuit.pins.get(fromNode.pinId as PinId) : null;
-      const toPin = toNode.pinId ? circuit.pins.get(toNode.pinId as PinId) : null;
-      const value = pin?.value ?? toPin?.value ?? null;
-
-      const bitWidth = pin?.bitWidth ?? toPin?.bitWidth ?? 1;
+      const value = nodeValue.get(segment.from as string) ?? nodeValue.get(segment.to as string) ?? null;
+      const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
       const thickness = bitWidth > 1 ? 6 : 4;
 
       ctx.strokeStyle = segment.color ?? wireColorForValue(value);
@@ -225,12 +244,26 @@ export class Renderer {
       }
     }
 
+    // Build node→net value lookup for free nodes
+    const nodeNetValue = new Map<string, number | null>();
+    for (const net of circuit.nets.values()) {
+      let netValue: number | null = null;
+      for (const nid of net.nodeIds) {
+        const n = circuit.wireNodes.get(nid);
+        if (n?.pinId) {
+          const p = circuit.pins.get(n.pinId as PinId);
+          if (p && p.value !== null) netValue = p.value;
+        }
+      }
+      for (const nid of net.nodeIds) nodeNetValue.set(nid as string, netValue);
+    }
+
     for (const node of circuit.wireNodes.values()) {
       const count = segmentCount.get(node.id as string) ?? 0;
       if (count === 0 && !node.pinId) continue;
 
       const pin = node.pinId ? circuit.pins.get(node.pinId as PinId) : null;
-      const value = pin?.value ?? null;
+      const value = pin?.value ?? nodeNetValue.get(node.id as string) ?? null;
       const customColor = nodeColor.get(node.id as string);
       const color = customColor ?? wireColorForValue(value);
       const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;

@@ -483,6 +483,9 @@ export function evaluateGate(gate: Gate, pins: Map<PinId, Pin>): void {
  * topological sort -> evaluate each gate in order -> resolve nets.
  */
 export function propagate(circuit: Circuit): void {
+  // Initial net resolution to propagate input gate values to connected pins
+  resolveNets(circuit);
+
   const sorted = topologicalSort(circuit);
 
   for (const gateId of sorted) {

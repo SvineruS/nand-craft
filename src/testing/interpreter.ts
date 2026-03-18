@@ -31,17 +31,19 @@ export function runTests(
       // Compare outputs with expected values
       let passed = true;
       const mismatches: string[] = [];
+      const actuals: Record<string, number | null> = {};
 
       for (let j = 0; j < outputNames.length; j++) {
         const name = outputNames[j];
-        if (!(name in testCase.expected)) continue;
-
         const actual = outputs.get(outputGateIds[j]) ?? null;
-        const expected = testCase.expected[name];
+        actuals[name] = actual;
 
-        if (actual !== expected) {
-          passed = false;
-          mismatches.push(`${name}: expected ${expected}, got ${actual}`);
+        if (name in testCase.expected) {
+          const expected = testCase.expected[name];
+          if (actual !== expected) {
+            passed = false;
+            mismatches.push(`${name}: expected ${expected}, got ${actual}`);
+          }
         }
       }
 
@@ -52,6 +54,7 @@ export function runTests(
       results.push({
         passed,
         caseIndex: i,
+        actuals,
         message: passed
           ? `Inputs(${inputDesc}) — all outputs correct`
           : `Inputs(${inputDesc}) — ${mismatches.join('; ')}`,

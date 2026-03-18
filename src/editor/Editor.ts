@@ -242,21 +242,24 @@ export class Editor {
     this.engine.tick(this.state.circuit, inputs);
     this.state.dirty = true;
 
-    // Check outputs
+    // Check outputs and collect actuals
     let passed = true;
     const mismatches: string[] = [];
+    const actuals: Record<string, number | null> = {};
     for (let j = 0; j < outputNames.length; j++) {
       const name = outputNames[j];
-      if (!(name in testCase.expected)) continue;
       const outputGate = this.state.circuit.gates.get(outputGateIds[j]);
       const inputPin = outputGate?.inputPins[0]
         ? this.state.circuit.pins.get(outputGate.inputPins[0])
         : undefined;
       const actual = inputPin?.value ?? null;
-      const expected = testCase.expected[name];
-      if (actual !== expected) {
-        passed = false;
-        mismatches.push(`${name}: expected ${expected}, got ${actual}`);
+      actuals[name] = actual;
+      if (name in testCase.expected) {
+        const expected = testCase.expected[name];
+        if (actual !== expected) {
+          passed = false;
+          mismatches.push(`${name}: expected ${expected}, got ${actual}`);
+        }
       }
     }
 
@@ -267,6 +270,7 @@ export class Editor {
     return {
       passed,
       caseIndex,
+      actuals,
       message: passed
         ? `Inputs(${inputDesc}) — all outputs correct`
         : `Inputs(${inputDesc}) — ${mismatches.join('; ')}`,

@@ -128,6 +128,7 @@ export interface TestResult {
   passed: boolean;
   message: string;
   caseIndex: number;
+  actuals?: Record<string, number | null>;
 }
 
 // Level definition
