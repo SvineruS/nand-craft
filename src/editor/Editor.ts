@@ -11,6 +11,7 @@ import { Renderer } from './Renderer.ts';
 import { InputHandler } from './InputHandler.ts';
 import { CommandHistory, AddGateCommand } from './CommandHistory.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
+import { buildNets } from '../simulation/evaluate.ts';
 import { runLevel } from '../levels/runner.ts';
 import { GRID_SIZE } from './geometry.ts';
 
@@ -196,6 +197,34 @@ export class Editor {
     this.state.dirty = true;
   }
 
+  hasShortCircuit(): boolean {
+    return this.state.shortCircuitGates.length > 0;
+  }
+
+  hasContention(): boolean {
+    return this.state.contentionNets.length > 0;
+  }
+
+  private detectContention(): string[] {
+    const result: string[] = [];
+    for (const net of this.state.circuit.nets.values()) {
+      const drivers: { value: number | null }[] = [];
+      for (const nodeId of net.nodeIds) {
+        const node = this.state.circuit.wireNodes.get(nodeId);
+        if (node?.pinId) {
+          const pin = this.state.circuit.pins.get(node.pinId);
+          if (pin && pin.kind === 'output' && pin.value !== null) {
+            drivers.push(pin);
+          }
+        }
+      }
+      if (drivers.length > 1) {
+        result.push(net.id as string);
+      }
+    }
+    return result;
+  }
+
   /** Clear all pin values and delay state (reset simulation visuals). */
   resetSimulation(): void {
     for (const pin of this.state.circuit.pins.values()) {
@@ -212,6 +241,11 @@ export class Editor {
 
   /** Run a single test case on the LIVE circuit so pin values are visible. */
   runSingleCase(level: Level, caseIndex: number): TestResult {
+    // Build nets and detect short circuits before simulation
+    buildNets(this.state.circuit);
+    const cycles = this.engine.detectShortCircuits(this.state.circuit);
+    this.state.shortCircuitGates = cycles.flat();
+
     const cases = level.test.cases;
     if (!cases || !cases[caseIndex]) {
       return { passed: false, caseIndex, message: 'Case not found' };
@@ -238,8 +272,9 @@ export class Editor {
       }
     }
 
-    // Tick the live circuit
+    // Tick the live circuit and detect contention
     this.engine.tick(this.state.circuit, inputs);
+    this.state.contentionNets = this.detectContention();
     this.state.dirty = true;
 
     // Check outputs and collect actuals

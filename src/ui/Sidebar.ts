@@ -1,21 +1,12 @@
+import type { GateType } from '../types.ts';
+import { GATE_DEFS } from '../editor/geometry.ts';
+
 const SIDEBAR_BG = '#1e1e2e';
 const ITEM_BG = '#2d2d4d';
 const ITEM_HOVER = '#3d3d5d';
 const ITEM_TEXT = '#e0e0e0';
 const ITEM_DESC = '#9ca3af';
 const BORDER_COLOR = '#444466';
-
-interface PaletteItem {
-  type: string;
-  label: string;
-  description: string;
-}
-
-const GATE_PALETTE: PaletteItem[] = [
-  { type: 'nand', label: 'NAND', description: 'Bitwise NAND gate' },
-  { type: 'delay', label: 'Delay', description: '1-tick delay' },
-  { type: 'tristate', label: 'Tristate', description: 'Tri-state buffer' },
-];
 
 export class Sidebar {
   readonly element: HTMLElement;
@@ -32,13 +23,12 @@ export class Sidebar {
       display: 'flex',
       flexDirection: 'column',
       padding: '8px',
-      gap: '6px',
+      gap: '4px',
       boxSizing: 'border-box',
       userSelect: 'none',
       flexShrink: '0',
     });
 
-    // Section header
     const header = document.createElement('div');
     Object.assign(header.style, {
       color: ITEM_DESC,
@@ -51,38 +41,40 @@ export class Sidebar {
     header.textContent = 'Components';
     panel.appendChild(header);
 
-    for (const item of GATE_PALETTE) {
-      panel.appendChild(this.createItem(item));
+    // Generate palette from gate definitions
+    for (const [type, def] of Object.entries(GATE_DEFS)) {
+      if (!def.placeable) continue;
+      panel.appendChild(this.createItem(type as GateType, def.label, def.description));
     }
   }
 
-  private createItem(item: PaletteItem): HTMLElement {
+  private createItem(type: GateType, label: string, description: string): HTMLElement {
     const el = document.createElement('div');
     el.draggable = true;
     Object.assign(el.style, {
       background: ITEM_BG,
       borderRadius: '6px',
-      padding: '8px 10px',
+      padding: '6px 10px',
       cursor: 'grab',
       transition: 'background 0.15s',
     });
 
-    const label = document.createElement('div');
-    Object.assign(label.style, {
+    const labelEl = document.createElement('div');
+    Object.assign(labelEl.style, {
       color: ITEM_TEXT,
-      fontSize: '13px',
+      fontSize: '12px',
       fontWeight: '600',
     });
-    label.textContent = item.label;
-    el.appendChild(label);
+    labelEl.textContent = label;
+    el.appendChild(labelEl);
 
     const desc = document.createElement('div');
     Object.assign(desc.style, {
       color: ITEM_DESC,
-      fontSize: '11px',
-      marginTop: '2px',
+      fontSize: '10px',
+      marginTop: '1px',
     });
-    desc.textContent = item.description;
+    desc.textContent = description;
     el.appendChild(desc);
 
     el.addEventListener('mouseenter', () => { el.style.background = ITEM_HOVER; });
@@ -90,7 +82,7 @@ export class Sidebar {
 
     el.addEventListener('dragstart', (e) => {
       if (!e.dataTransfer) return;
-      e.dataTransfer.setData('text/plain', item.type);
+      e.dataTransfer.setData('text/plain', type);
       e.dataTransfer.effectAllowed = 'copy';
       el.style.opacity = '0.6';
     });

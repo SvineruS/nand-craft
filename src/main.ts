@@ -47,6 +47,7 @@ function stepTestCase(): void {
 
   const result = editor.runSingleCase(level, testCaseIndex);
   testResults[testCaseIndex] = result;
+  testPanel.setWarning(getWarning());
   testPanel.show(level, testResults, testCaseIndex);
 }
 
@@ -62,12 +63,20 @@ function resetTests(): void {
   simulateFirstCase();
 }
 
+function getWarning(): string | null {
+  const warnings: string[] = [];
+  if (editor.hasShortCircuit()) warnings.push('Short circuit — feedback loop without delay gate');
+  if (editor.hasContention()) warnings.push('Bus contention — multiple drivers on same net');
+  return warnings.length > 0 ? warnings.join(' | ') : null;
+}
+
 function simulateFirstCase(): void {
   const level = LEVELS[currentLevelIndex];
   testCaseIndex = 0;
   testResults = [];
   const result = editor.runSingleCase(level, 0);
   testResults[0] = result;
+  testPanel.setWarning(getWarning());
   testPanel.show(level, testResults, 0);
 }
 

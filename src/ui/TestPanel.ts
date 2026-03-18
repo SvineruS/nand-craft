@@ -16,6 +16,7 @@ const BUTTON_HOVER = '#44446a';
 export class TestPanel {
   readonly element: HTMLElement;
   private readonly summaryEl: HTMLElement;
+  private readonly warningEl: HTMLElement;
   private readonly tableWrap: HTMLElement;
 
   constructor(options: {
@@ -93,6 +94,20 @@ export class TestPanel {
     headerEl.appendChild(resetBtn);
     panel.appendChild(headerEl);
 
+    // Warning banner
+    this.warningEl = document.createElement('div');
+    Object.assign(this.warningEl.style, {
+      display: 'none',
+      padding: '6px 10px',
+      background: 'rgba(239,68,68,0.15)',
+      borderBottom: `1px solid ${BORDER_COLOR}`,
+      color: FAIL_COLOR,
+      fontSize: '11px',
+      fontWeight: '600',
+      flexShrink: '0',
+    });
+    panel.appendChild(this.warningEl);
+
     // Scrollable table area
     this.tableWrap = document.createElement('div');
     Object.assign(this.tableWrap.style, {
@@ -101,6 +116,15 @@ export class TestPanel {
       padding: '6px',
     });
     panel.appendChild(this.tableWrap);
+  }
+
+  setWarning(text: string | null): void {
+    if (text) {
+      this.warningEl.textContent = '\u26A0 ' + text;
+      this.warningEl.style.display = 'block';
+    } else {
+      this.warningEl.style.display = 'none';
+    }
   }
 
   show(level: Level, results?: TestResult[], currentCase?: number): void {

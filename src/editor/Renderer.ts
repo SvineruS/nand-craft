@@ -1,6 +1,6 @@
-import type { PinId } from '../types.ts';
+import type { GateType, PinId } from '../types.ts';
 import type { EditorState, Camera } from './EditorState.ts';
-import { GRID_SIZE, GATE_DIMS, GATE_LABELS, getGateDims, getPinPositions } from './geometry.ts';
+import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions } from './geometry.ts';
 
 // --- Colors (dark theme) ---
 const COLORS = {
@@ -80,6 +80,7 @@ export class Renderer {
     this.drawWireNodes(state);
     this.drawGates(state);
     this.drawPins(state);
+    this.drawShortCircuitHighlights(state);
     this.drawSelectionHighlights(state);
     this.drawSelectionRect(state);
     this.drawWireInProgress(state);
@@ -333,11 +334,7 @@ export class Renderer {
 
     for (const gate of circuit.gates.values()) {
       const { w, h } = getGateDims(gate);
-      const isError = shortCircuitGates.includes(gate.id);
-
-      ctx.fillStyle = isError ? COLORS.error : COLORS.gateFill;
-      ctx.strokeStyle = isError ? COLORS.error : COLORS.gateStroke;
-      ctx.lineWidth = 1.5;
+      const def = GATE_DEFS[gate.type];
 
       const cx = gate.x + w / 2;
       const cy = gate.y + h / 2;
@@ -345,17 +342,69 @@ export class Renderer {
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate((gate.rotation * Math.PI) / 180);
-      ctx.fillRect(-w / 2, -h / 2, w, h);
-      ctx.strokeRect(-w / 2, -h / 2, w, h);
 
+      if (def.svg) {
+        // SVG shape rendering
+        const path = this.getGatePath(gate.type);
+        ctx.save();
+        ctx.translate(-w / 2, -h / 2);
+        ctx.scale(GRID_SIZE, GRID_SIZE);
+        ctx.fillStyle = COLORS.gateFill;
+        ctx.fill(path);
+        ctx.restore();
+
+        // Stroke at pixel scale (not scaled by GRID_SIZE)
+        ctx.save();
+        ctx.translate(-w / 2, -h / 2);
+        ctx.scale(GRID_SIZE, GRID_SIZE);
+        ctx.strokeStyle = COLORS.gateStroke;
+        ctx.lineWidth = 1.5 / GRID_SIZE;
+        ctx.stroke(path);
+        ctx.restore();
+      } else {
+        // Fallback: plain rectangle
+        ctx.fillStyle = COLORS.gateFill;
+        ctx.strokeStyle = COLORS.gateStroke;
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+      }
+
+      // Label
       ctx.fillStyle = COLORS.gateText;
       ctx.font = 'bold 11px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(GATE_LABELS[gate.type] ?? gate.type.toUpperCase(), 0, 0);
+      ctx.fillText(def.label, 0, 0);
 
       ctx.restore();
+
+      // Short circuit: red glow border
+      if (shortCircuitGates.includes(gate.id)) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate((gate.rotation * Math.PI) / 180);
+        ctx.strokeStyle = COLORS.error;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = COLORS.error;
+        ctx.shadowBlur = 8;
+        ctx.strokeRect(-w / 2 - 1, -h / 2 - 1, w + 2, h + 2);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
     }
+  }
+
+  /** Get or create cached Path2D for a gate type's SVG shape. */
+  private gatePaths = new Map<GateType, Path2D>();
+  private getGatePath(type: GateType): Path2D {
+    let path = this.gatePaths.get(type);
+    if (!path) {
+      const def = GATE_DEFS[type];
+      path = new Path2D(def.svg ?? '');
+      this.gatePaths.set(type, path);
+    }
+    return path;
   }
 
   private drawPins(state: EditorState): void {
@@ -382,6 +431,102 @@ export class Renderer {
           ctx.stroke();
         }
       }
+    }
+  }
+
+  private drawShortCircuitHighlights(state: EditorState): void {
+    const { shortCircuitGates, contentionNets, circuit } = state;
+    if (shortCircuitGates.length === 0 && contentionNets.length === 0) return;
+
+    const { ctx } = this;
+
+    const errorSegments = new Set<string>();
+
+    // Short circuit: find segments on nets touching error gate pins
+    if (shortCircuitGates.length > 0) {
+      const errorPinIds = new Set<string>();
+      for (const gateId of shortCircuitGates) {
+        const gate = circuit.gates.get(gateId);
+        if (!gate) continue;
+        for (const p of [...gate.inputPins, ...gate.outputPins]) errorPinIds.add(p as string);
+      }
+      for (const net of circuit.nets.values()) {
+        let touchesErrorGate = false;
+        for (const nid of net.nodeIds) {
+          const node = circuit.wireNodes.get(nid);
+          if (node?.pinId && errorPinIds.has(node.pinId as string)) {
+            touchesErrorGate = true;
+            break;
+          }
+        }
+        if (touchesErrorGate) {
+          for (const sid of net.segmentIds) errorSegments.add(sid as string);
+        }
+      }
+    }
+
+    // Bus contention: find segments on contention nets
+    if (contentionNets.length > 0) {
+      const contentionSet = new Set(contentionNets);
+      for (const net of circuit.nets.values()) {
+        if (contentionSet.has(net.id as string)) {
+          for (const sid of net.segmentIds) errorSegments.add(sid as string);
+        }
+      }
+    }
+
+    if (errorSegments.size === 0) return;
+
+    // Draw red pulsing overlay on error segments
+    ctx.strokeStyle = COLORS.error;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 3]);
+    ctx.lineDashOffset = -this.wireAnimProgress * 12;
+    ctx.shadowColor = COLORS.error;
+    ctx.shadowBlur = 6;
+    ctx.lineCap = 'round';
+
+    for (const seg of circuit.wireSegments.values()) {
+      if (!errorSegments.has(seg.id as string)) continue;
+      const from = circuit.wireNodes.get(seg.from);
+      const to = circuit.wireNodes.get(seg.to);
+      if (!from || !to) continue;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+
+    // Draw ! label at midpoint of error segments (same style as wire value labels)
+    for (const seg of circuit.wireSegments.values()) {
+      if (!errorSegments.has(seg.id as string)) continue;
+      const from = circuit.wireNodes.get(seg.from);
+      const to = circuit.wireNodes.get(seg.to);
+      if (!from || !to) continue;
+      const segLen = Math.hypot(to.x - from.x, to.y - from.y);
+      if (segLen < 20) continue;
+
+      const mx = (from.x + to.x) / 2;
+      const my = (from.y + to.y) / 2;
+
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const tw = ctx.measureText('!').width + 6;
+      ctx.fillStyle = COLORS.background;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.roundRect(mx - tw / 2, my - 6, tw, 12, 3);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = COLORS.error;
+      ctx.fillText('!', mx, my);
     }
   }
 
@@ -469,9 +614,9 @@ export class Renderer {
 
     const { ctx } = this;
     const { type, x, y } = state.dropPreview;
-    const [gw, gh] = GATE_DIMS[type] ?? [3, 3];
-    const w = gw * GRID_SIZE;
-    const h = gh * GRID_SIZE;
+    const def = GATE_DEFS[type];
+    const w = def.width * GRID_SIZE;
+    const h = def.height * GRID_SIZE;
 
     ctx.globalAlpha = 0.4;
     ctx.fillStyle = COLORS.gateFill;
@@ -488,7 +633,7 @@ export class Renderer {
     ctx.font = '11px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(GATE_LABELS[type] ?? type.toUpperCase(), x + w / 2, y + h / 2);
+    ctx.fillText(def.label, x + w / 2, y + h / 2);
     ctx.globalAlpha = 1;
   }
 }

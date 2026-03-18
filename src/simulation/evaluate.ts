@@ -130,7 +130,9 @@ export function buildNets(circuit: Circuit): void {
  * All null = high-Z (null). One active = net value.
  * Sets all connected input pins to the resolved value.
  */
-export function resolveNets(circuit: Circuit): void {
+export function resolveNets(circuit: Circuit): NetId[] {
+  const contentionNets: NetId[] = [];
+
   for (const net of circuit.nets.values()) {
     // Find all pins connected to this net via wire nodes
     const connectedPinIds: PinId[] = [];
@@ -144,20 +146,11 @@ export function resolveNets(circuit: Circuit): void {
     // Separate output pins (drivers) and input pins (receivers)
     const drivers: Pin[] = [];
     const receivers: Pin[] = [];
-    let expectedBitWidth: number | null = null;
+    let widthMismatch = false;
 
     for (const pinId of connectedPinIds) {
       const pin = circuit.pins.get(pinId);
       if (!pin) continue;
-
-      // Check bit width consistency
-      if (expectedBitWidth === null) {
-        expectedBitWidth = pin.bitWidth;
-      } else if (pin.bitWidth !== expectedBitWidth) {
-        throw new Error(
-          `Bit width mismatch on net ${net.id}: expected ${expectedBitWidth}, found ${pin.bitWidth} on pin ${pin.id}`
-        );
-      }
 
       if (pin.kind === 'output') {
         drivers.push(pin);
@@ -166,14 +159,23 @@ export function resolveNets(circuit: Circuit): void {
       }
     }
 
+    // Check bit width consistency
+    const allPins = [...drivers, ...receivers];
+    if (allPins.length > 1) {
+      const bw = allPins[0].bitWidth;
+      for (let i = 1; i < allPins.length; i++) {
+        if (allPins[i].bitWidth !== bw) { widthMismatch = true; break; }
+      }
+    }
+
     // Resolve net value from drivers
     const activeDrivers = drivers.filter((p) => p.value !== null);
 
     let netValue: number | null;
-    if (activeDrivers.length > 1) {
-      throw new Error(
-        `Bus contention on net ${net.id}: ${activeDrivers.length} active drivers (pins: ${activeDrivers.map((p) => p.id).join(', ')})`
-      );
+    if (widthMismatch || activeDrivers.length > 1) {
+      // Bus contention or width mismatch — record and set null
+      contentionNets.push(net.id);
+      netValue = null;
     } else if (activeDrivers.length === 1) {
       netValue = activeDrivers[0].value;
     } else {
@@ -185,6 +187,8 @@ export function resolveNets(circuit: Circuit): void {
       receiver.value = netValue;
     }
   }
+
+  return contentionNets;
 }
 
 /**
@@ -193,7 +197,7 @@ export function resolveNets(circuit: Circuit): void {
  * Returns sorted gate IDs.
  */
 export function topologicalSort(circuit: Circuit): GateId[] {
-  const combinationalTypes = new Set(['nand', 'tristate', 'splitter', 'joiner']);
+  const combinationalTypes = new Set(['nand', 'and', 'or', 'nor', 'not', 'constant', 'tristate', 'splitter', 'joiner']);
 
   // Build adjacency: for combinational gates, find which gates feed into which
   // A gate A feeds gate B if A has an output pin connected (via net) to an input pin of B
@@ -277,7 +281,7 @@ export function topologicalSort(circuit: Circuit): GateId[] {
  * Returns arrays of gate IDs forming cycles.
  */
 export function detectCycles(circuit: Circuit): GateId[][] {
-  const combinationalTypes = new Set(['nand', 'tristate', 'splitter', 'joiner']);
+  const combinationalTypes = new Set(['nand', 'and', 'or', 'nor', 'not', 'constant', 'tristate', 'splitter', 'joiner']);
 
   const combGateIds = new Set<GateId>();
   for (const gate of circuit.gates.values()) {
@@ -316,15 +320,24 @@ export function detectCycles(circuit: Circuit): GateId[][] {
         if (!pin || pin.kind !== 'input') continue;
 
         const targetGateId = pin.gateId;
-        if (combGateIds.has(targetGateId) && targetGateId !== gateId) {
+        if (combGateIds.has(targetGateId)) {
           adj.get(gateId)!.add(targetGateId);
         }
       }
     }
   }
 
+  // Check for self-loops
+  const selfLoops: GateId[][] = [];
+  for (const [gateId, neighbors] of adj) {
+    if (neighbors.has(gateId)) {
+      selfLoops.push([gateId]);
+      neighbors.delete(gateId); // remove to avoid confusing Tarjan's
+    }
+  }
+
   // Find all SCCs using Tarjan's algorithm
-  const cycles: GateId[][] = [];
+  const cycles: GateId[][] = [...selfLoops];
   let index = 0;
   const nodeIndex = new Map<GateId, number>();
   const lowLink = new Map<GateId, number>();
@@ -356,7 +369,6 @@ export function detectCycles(circuit: Circuit): GateId[][] {
         scc.push(w);
       } while (w !== v);
 
-      // Only report SCCs with more than one node (actual cycles)
       if (scc.length > 1) {
         cycles.push(scc);
       }
@@ -389,6 +401,67 @@ export function evaluateGate(gate: Gate, pins: Map<PinId, Pin>): void {
         const mask = ((1 << out.bitWidth) >>> 0) - 1;
         out.value = (~(inA.value & inB.value) & mask) >>> 0;
       }
+      break;
+    }
+
+    case 'and': {
+      const inA = pins.get(gate.inputPins[0]);
+      const inB = pins.get(gate.inputPins[1]);
+      const out = pins.get(gate.outputPins[0]);
+      if (!inA || !inB || !out) return;
+      if (inA.value === null || inB.value === null) {
+        out.value = null;
+      } else {
+        out.value = inA.value & inB.value;
+      }
+      break;
+    }
+
+    case 'or': {
+      const inA = pins.get(gate.inputPins[0]);
+      const inB = pins.get(gate.inputPins[1]);
+      const out = pins.get(gate.outputPins[0]);
+      if (!inA || !inB || !out) return;
+      if (inA.value === null || inB.value === null) {
+        out.value = null;
+      } else {
+        out.value = inA.value | inB.value;
+      }
+      break;
+    }
+
+    case 'nor': {
+      const inA = pins.get(gate.inputPins[0]);
+      const inB = pins.get(gate.inputPins[1]);
+      const out = pins.get(gate.outputPins[0]);
+      if (!inA || !inB || !out) return;
+      if (inA.value === null || inB.value === null) {
+        out.value = null;
+      } else {
+        const mask = ((1 << out.bitWidth) >>> 0) - 1;
+        out.value = (~(inA.value | inB.value) & mask) >>> 0;
+      }
+      break;
+    }
+
+    case 'not': {
+      const input = pins.get(gate.inputPins[0]);
+      const out = pins.get(gate.outputPins[0]);
+      if (!input || !out) return;
+      if (input.value === null) {
+        out.value = null;
+      } else {
+        const mask = ((1 << out.bitWidth) >>> 0) - 1;
+        out.value = (~input.value & mask) >>> 0;
+      }
+      break;
+    }
+
+    case 'constant': {
+      // Constant gate always outputs its stored value (default 0)
+      const out = pins.get(gate.outputPins[0]);
+      if (!out) return;
+      if (out.value === null) out.value = 0;
       break;
     }
 

@@ -16,8 +16,13 @@ export function generateId(prefix: string): string {
 // Gate types
 export type GateType =
   | 'nand'
+  | 'and'
+  | 'or'
+  | 'nor'
+  | 'not'
   | 'delay'
   | 'tristate'
+  | 'constant'
   | 'splitter'
   | 'joiner'
   | 'input'

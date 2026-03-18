@@ -2,60 +2,162 @@ import type { Circuit, Gate, GateId, GateType, PinId, WireNodeId, Pin } from '..
 
 export const GRID_SIZE = 20;
 
-/**
- * Gate dimensions in grid units: [width, height].
- * Heights are computed so that pins always land on grid intersections.
- * Height = max(inputCount, outputCount) + 1 for standard gates.
- */
-export const GATE_DIMS: Record<GateType, [number, number]> = {
-  nand: [3, 3],       // 2 inputs, 1 output
-  delay: [3, 2],      // 1 input, 1 output
-  tristate: [3, 3],   // 2 inputs (value+enable), 1 output
-  input: [2, 2],      // 1 output
-  output: [2, 2],     // 1 input
-  splitter: [2, 2],   // variable height (recalculated)
-  joiner: [2, 2],     // variable height (recalculated)
-  component: [3, 3],
+// ---------------------------------------------------------------------------
+// Gate Definition Registry
+// ---------------------------------------------------------------------------
+
+export interface PinDef {
+  kind: 'input' | 'output';
+  x: number;  // grid units relative to gate origin
+  y: number;  // grid units relative to gate origin
+  label?: string;
+  bitWidth?: number;  // override per-pin (e.g. tristate enable is always 1-bit)
+}
+
+export interface GateDefinition {
+  label: string;
+  description: string;
+  width: number;   // grid units
+  height: number;  // grid units
+  pins: PinDef[];
+  svg?: string;    // SVG path data scaled to width×height grid units
+  placeable?: boolean; // show in sidebar (default false)
+}
+
+// SVG paths are in grid-unit coordinates (0,0 to width,height)
+// They get scaled by GRID_SIZE at render time
+
+export const GATE_DEFS: Record<GateType, GateDefinition> = {
+  nand: {
+    label: 'NAND', description: 'Bitwise NAND gate', width: 3, height: 3, placeable: true,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 2 },
+      { kind: 'output', x: 3, y: 1.5 },
+    ],
+    // D-shape body + bubble
+    svg: 'M 0.3,0.3 L 0.3,2.7 L 1.5,2.7 A 1.2,1.2 0 0,0 1.5,0.3 Z M 2.65,1.5 m -0.2,0 a 0.2,0.2 0 1,0 0.4,0 a 0.2,0.2 0 1,0 -0.4,0',
+  },
+  and: {
+    label: 'AND', description: 'Bitwise AND gate', width: 3, height: 3, placeable: true,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 2 },
+      { kind: 'output', x: 3, y: 1.5 },
+    ],
+    svg: 'M 0.3,0.3 L 0.3,2.7 L 1.5,2.7 A 1.2,1.2 0 0,0 1.5,0.3 Z',
+  },
+  or: {
+    label: 'OR', description: 'Bitwise OR gate', width: 3, height: 3, placeable: true,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 2 },
+      { kind: 'output', x: 3, y: 1.5 },
+    ],
+    svg: 'M 0.3,0.3 Q 1.0,1.5 0.3,2.7 L 1.2,2.7 Q 2.4,2.7 2.7,1.5 Q 2.4,0.3 1.2,0.3 Z',
+  },
+  nor: {
+    label: 'NOR', description: 'Bitwise NOR gate', width: 3, height: 3, placeable: true,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 2 },
+      { kind: 'output', x: 3, y: 1.5 },
+    ],
+    svg: 'M 0.3,0.3 Q 1.0,1.5 0.3,2.7 L 1.2,2.7 Q 2.2,2.7 2.5,1.5 Q 2.2,0.3 1.2,0.3 Z M 2.65,1.5 m -0.2,0 a 0.2,0.2 0 1,0 0.4,0 a 0.2,0.2 0 1,0 -0.4,0',
+  },
+  not: {
+    label: 'NOT', description: 'Inverter', width: 2, height: 2, placeable: true,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'output', x: 2, y: 1 },
+    ],
+    svg: 'M 0.2,0.3 L 0.2,1.7 L 1.5,1 Z M 1.65,1 m -0.18,0 a 0.18,0.18 0 1,0 0.36,0 a 0.18,0.18 0 1,0 -0.36,0',
+  },
+  delay: {
+    label: 'DLY', description: '1-tick delay', width: 3, height: 2, placeable: true,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'output', x: 3, y: 1 },
+    ],
+    // Rectangle with clock triangle inside
+    svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,1.7 L 0.3,1.7 Z M 1.0,1.3 L 1.5,0.5 L 2.0,1.3 Z',
+  },
+  tristate: {
+    label: 'TRI', description: 'Tri-state buffer', width: 3, height: 3, placeable: true,
+    pins: [
+      { kind: 'input', x: 0, y: 1, label: 'in' },
+      { kind: 'input', x: 1, y: 0, label: 'en', bitWidth: 1 },
+      { kind: 'output', x: 3, y: 1.5 },
+    ],
+    svg: 'M 0.3,0.4 L 0.3,2.6 L 2.5,1.5 Z',
+  },
+  constant: {
+    label: '0/1', description: 'Constant value', width: 2, height: 2, placeable: true,
+    pins: [
+      { kind: 'output', x: 2, y: 1 },
+    ],
+    svg: 'M 0.3,0.3 L 1.7,0.3 L 1.7,1.7 L 0.3,1.7 Z',
+  },
+  input: {
+    label: 'IN', description: 'Level input', width: 2, height: 2,
+    pins: [
+      { kind: 'output', x: 2, y: 1 },
+    ],
+    // Right-pointing arrow
+    svg: 'M 0.2,0.3 L 1.3,0.3 L 1.8,1 L 1.3,1.7 L 0.2,1.7 Z',
+  },
+  output: {
+    label: 'OUT', description: 'Level output', width: 2, height: 2,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+    ],
+    // Left-pointing arrow
+    svg: 'M 1.8,0.3 L 0.7,0.3 L 0.2,1 L 0.7,1.7 L 1.8,1.7 Z',
+  },
+  splitter: {
+    label: 'SPL', description: 'Bus splitter', width: 2, height: 2,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'output', x: 2, y: 1 },
+    ],
+  },
+  joiner: {
+    label: 'JON', description: 'Bus joiner', width: 2, height: 2,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'output', x: 2, y: 1 },
+    ],
+  },
+  component: {
+    label: 'CMP', description: 'Component', width: 3, height: 3,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'output', x: 3, y: 1 },
+    ],
+  },
 };
 
-export const GATE_LABELS: Record<GateType, string> = {
-  nand: 'NAND',
-  delay: 'DLY',
-  tristate: 'TRI',
-  input: 'IN',
-  output: 'OUT',
-  splitter: 'SPL',
-  joiner: 'JON',
-  component: 'CMP',
-};
+// ---------------------------------------------------------------------------
+// Gate geometry helpers
+// ---------------------------------------------------------------------------
 
+export function getGateDef(type: GateType): GateDefinition {
+  return GATE_DEFS[type];
+}
+
+/** Get gate pixel dimensions. For splitter/joiner, adjusts for actual pin count. */
 export function getGateDims(gate: Gate): { w: number; h: number } {
-  const maxPins = Math.max(gate.inputPins.length, gate.outputPins.length, 1);
-
+  const def = GATE_DEFS[gate.type];
   if (gate.type === 'splitter' || gate.type === 'joiner') {
-    return {
-      w: 2 * GRID_SIZE,
-      h: (maxPins + 1) * GRID_SIZE,
-    };
+    const maxPins = Math.max(gate.inputPins.length, gate.outputPins.length, 1);
+    return { w: def.width * GRID_SIZE, h: (maxPins + 1) * GRID_SIZE };
   }
-
-  const [baseW, baseH] = GATE_DIMS[gate.type] ?? [3, 3];
-  // Ensure height accommodates all pins on grid
-  const neededH = maxPins + 1;
-  const h = Math.max(baseH, neededH) * GRID_SIZE;
-  const w = baseW * GRID_SIZE;
-  return { w, h };
+  return { w: def.width * GRID_SIZE, h: def.height * GRID_SIZE };
 }
 
 /**
- * Pin positions for a gate — all pins land on grid intersections.
- *
- * For K pins on a side of height H grid cells:
- *   startOffset = floor((H - 1 - K) / 2) + 1
- *   pin_i at gate.y + (startOffset + i) * GRID_SIZE
- *
- * Inputs on left edge (x = gate.x), outputs on right edge (x = gate.x + w).
- * Rotation is applied around the gate center.
+ * Pin positions for a gate — reads from definition, applies gate position + rotation.
+ * For splitter/joiner, generates dynamic pin positions based on actual pin count.
  */
 export function getPinPositions(
   gate: Gate,
@@ -65,25 +167,48 @@ export function getPinPositions(
   const { w, h } = getGateDims(gate);
   const cx = gate.x + w / 2;
   const cy = gate.y + h / 2;
-  const hUnits = h / GRID_SIZE;
 
-  const place = (pinIds: PinId[], side: 'left' | 'right') => {
-    const K = pinIds.length;
-    if (K === 0) return;
-    const startOffset = Math.floor((hUnits - 1 - K) / 2) + 1;
+  if (gate.type === 'splitter' || gate.type === 'joiner') {
+    // Dynamic pin positions for variable-height gates
+    const hUnits = h / GRID_SIZE;
+    const inputPins = gate.inputPins;
+    const outputPins = gate.outputPins;
 
-    for (let i = 0; i < K; i++) {
-      const lx = side === 'left' ? gate.x : gate.x + w;
-      const ly = gate.y + (startOffset + i) * GRID_SIZE;
-      const { x: rx, y: ry } = rotatePoint(lx, ly, cx, cy, gate.rotation);
-      result.set(pinIds[i], { x: rx, y: ry });
+    const placeSide = (pinIds: PinId[], side: 'left' | 'right') => {
+      const K = pinIds.length;
+      if (K === 0) return;
+      const startOffset = Math.floor((hUnits - 1 - K) / 2) + 1;
+      for (let i = 0; i < K; i++) {
+        const lx = side === 'left' ? gate.x : gate.x + w;
+        const ly = gate.y + (startOffset + i) * GRID_SIZE;
+        const rotated = rotatePoint(lx, ly, cx, cy, gate.rotation);
+        result.set(pinIds[i], rotated);
+      }
+    };
+
+    placeSide(inputPins, 'left');
+    placeSide(outputPins, 'right');
+  } else {
+    // Fixed pin positions from definition
+    const def = GATE_DEFS[gate.type];
+    const allPinIds = [...gate.inputPins, ...gate.outputPins];
+    const defPins = def.pins;
+
+    for (let i = 0; i < Math.min(allPinIds.length, defPins.length); i++) {
+      const pinDef = defPins[i];
+      const lx = gate.x + pinDef.x * GRID_SIZE;
+      const ly = gate.y + pinDef.y * GRID_SIZE;
+      const rotated = rotatePoint(lx, ly, cx, cy, gate.rotation);
+      result.set(allPinIds[i], rotated);
     }
-  };
+  }
 
-  place(gate.inputPins, 'left');
-  place(gate.outputPins, 'right');
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Rotation + grid helpers
+// ---------------------------------------------------------------------------
 
 export function rotatePoint(
   px: number, py: number, cx: number, cy: number,
@@ -112,7 +237,6 @@ export type WireEndpoint =
   | { kind: 'pin'; pinId: PinId; x: number; y: number }
   | { kind: 'node'; nodeId: WireNodeId; x: number; y: number };
 
-/** Find a wire node anchored to the given pin, or null. */
 export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | null {
   for (const node of circuit.wireNodes.values()) {
     if (node.pinId === pinId) return node.id;
@@ -120,7 +244,6 @@ export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | nul
   return null;
 }
 
-/** Collect wire node IDs that are anchored to pins belonging to the given gates. */
 export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
   const pinIdSet = new Set<string>();
   for (const gateId of gateIds) {

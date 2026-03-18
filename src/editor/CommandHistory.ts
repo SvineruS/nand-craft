@@ -11,7 +11,7 @@ import type {
 } from '../types.ts';
 import { generateId } from '../types.ts';
 import type { EditorState } from './EditorState.ts';
-import { getPinPositions, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
+import { GATE_DEFS, getPinPositions, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -61,7 +61,7 @@ export class CommandHistory {
 }
 
 // ---------------------------------------------------------------------------
-// Pin templates per gate type
+// Pin templates — generated from gate definitions
 // ---------------------------------------------------------------------------
 
 interface PinTemplate {
@@ -71,54 +71,35 @@ interface PinTemplate {
 }
 
 function pinTemplatesFor(gateType: GateType, bitWidth: number): PinTemplate[] {
-  switch (gateType) {
-    case 'nand':
-      return [
-        { kind: 'input', index: 0, bitWidth },
-        { kind: 'input', index: 1, bitWidth },
-        { kind: 'output', index: 0, bitWidth },
-      ];
-    case 'delay':
-      return [
-        { kind: 'input', index: 0, bitWidth },
-        { kind: 'output', index: 0, bitWidth },
-      ];
-    case 'tristate':
-      return [
-        { kind: 'input', index: 0, bitWidth },
-        { kind: 'input', index: 1, bitWidth: 1 }, // enable
-        { kind: 'output', index: 0, bitWidth },
-      ];
-    case 'input':
-      return [{ kind: 'output', index: 0, bitWidth }];
-    case 'output':
-      return [{ kind: 'input', index: 0, bitWidth }];
-    case 'splitter':
-      return [
-        { kind: 'input', index: 0, bitWidth },
-        ...Array.from({ length: bitWidth }, (_, i) => ({
-          kind: 'output' as const,
-          index: i,
-          bitWidth: 1,
-        })),
-      ];
-    case 'joiner':
-      return [
-        ...Array.from({ length: bitWidth }, (_, i) => ({
-          kind: 'input' as const,
-          index: i,
-          bitWidth: 1,
-        })),
-        { kind: 'output', index: 0, bitWidth },
-      ];
-    case 'component':
-      return [
-        { kind: 'input', index: 0, bitWidth },
-        { kind: 'output', index: 0, bitWidth },
-      ];
-    default:
-      return [];
+  // Splitter/joiner have dynamic pin counts
+  if (gateType === 'splitter') {
+    return [
+      { kind: 'input', index: 0, bitWidth },
+      ...Array.from({ length: bitWidth }, (_, i) => ({
+        kind: 'output' as const, index: i, bitWidth: 1,
+      })),
+    ];
   }
+  if (gateType === 'joiner') {
+    return [
+      ...Array.from({ length: bitWidth }, (_, i) => ({
+        kind: 'input' as const, index: i, bitWidth: 1,
+      })),
+      { kind: 'output', index: 0, bitWidth },
+    ];
+  }
+
+  // All other gates: read from definition
+  const def = GATE_DEFS[gateType];
+  if (!def) return [];
+
+  let inputIdx = 0;
+  let outputIdx = 0;
+  return def.pins.map(p => ({
+    kind: p.kind,
+    index: p.kind === 'input' ? inputIdx++ : outputIdx++,
+    bitWidth: p.bitWidth ?? bitWidth,
+  }));
 }
 
 // ---------------------------------------------------------------------------

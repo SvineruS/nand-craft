@@ -3,7 +3,7 @@ import type { EditorState, PlaceableType } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
 import type { WireEndpoint } from './geometry.ts';
-import { GATE_DIMS, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
+import { GATE_DEFS, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
 import {
   CommandHistory,
   AddGateCommand,
@@ -203,7 +203,7 @@ export class InputHandler {
     e.preventDefault();
     if (!e.dataTransfer) return;
     const gateType = e.dataTransfer.getData('text/plain') as PlaceableType;
-    if (!gateType || !GATE_DIMS[gateType]) return;
+    if (!gateType || !GATE_DEFS[gateType]) return;
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
     this.history.execute(new AddGateCommand(state, gateType, snapToGrid(world.x), snapToGrid(world.y)));
