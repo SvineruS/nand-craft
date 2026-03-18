@@ -74,7 +74,7 @@ function simulateFirstCase(): void {
   const level = LEVELS[currentLevelIndex];
   testCaseIndex = 0;
   testResults = [];
-  const result = editor.runSingleCase(level, 0);
+  const result = editor.runSingleCase(level, 0, true);
   testResults[0] = result;
   testPanel.setWarning(getWarning());
   testPanel.show(level, testResults, 0);

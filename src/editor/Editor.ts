@@ -240,7 +240,11 @@ export class Editor {
   }
 
   /** Run a single test case on the LIVE circuit so pin values are visible. */
-  runSingleCase(level: Level, caseIndex: number): TestResult {
+  runSingleCase(level: Level, caseIndex: number, resetDelay = false): TestResult {
+    if (resetDelay) {
+      this.state.circuit.delayState.clear();
+    }
+
     // Build nets and detect short circuits before simulation
     buildNets(this.state.circuit);
     const cycles = this.engine.detectShortCircuits(this.state.circuit);
