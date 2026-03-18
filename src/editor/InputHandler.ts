@@ -650,13 +650,25 @@ export class InputHandler {
         const toNode = this.ensureWireNode(state, target);
         if (fromNode && toNode) this.addSegmentIfNew(state, fromNode, toNode, wireColor);
       } else if (wireStart) {
-        // Endpoint → empty space: create free node and connect
-        const sx = snapToGrid(world.x);
-        const sy = snapToGrid(world.y);
-        const nodeCmd = new AddWireNodeCommand(state, sx, sy);
-        this.history.execute(nodeCmd);
-        const fromNode = this.ensureWireNode(state, wireStart);
-        if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
+        // Check if dropped on a wire segment → split it and connect
+        const segHit = hitTestWireSegment(world.x, world.y, state);
+        if (segHit) {
+          const sx = snapToGrid(world.x);
+          const sy = snapToGrid(world.y);
+          const midId = this.splitWireSegment(state, segHit, sx, sy);
+          if (midId) {
+            const fromNode = this.ensureWireNode(state, wireStart);
+            if (fromNode) this.addSegmentIfNew(state, fromNode, midId, wireColor);
+          }
+        } else {
+          // Endpoint → empty space: create free node and connect
+          const sx = snapToGrid(world.x);
+          const sy = snapToGrid(world.y);
+          const nodeCmd = new AddWireNodeCommand(state, sx, sy);
+          this.history.execute(nodeCmd);
+          const fromNode = this.ensureWireNode(state, wireStart);
+          if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
+        }
       }
 
       this.setState((s) => { s.wireStart = null; s.dirty = true; });
