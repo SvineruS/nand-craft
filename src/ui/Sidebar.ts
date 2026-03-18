@@ -8,6 +8,9 @@ const ITEM_TEXT = '#e0e0e0';
 const ITEM_DESC = '#9ca3af';
 const BORDER_COLOR = '#444466';
 
+/** Currently dragged gate type — set on dragstart, cleared on dragend. */
+export let draggingGateType: GateType | null = null;
+
 export class Sidebar {
   readonly element: HTMLElement;
 
@@ -75,9 +78,20 @@ export class Sidebar {
       if (!e.dataTransfer) return;
       e.dataTransfer.setData('text/plain', type);
       e.dataTransfer.effectAllowed = 'copy';
+      // Hide default drag image — canvas draws the preview
+      const empty = document.createElement('div');
+      empty.style.width = '0';
+      empty.style.height = '0';
+      document.body.appendChild(empty);
+      e.dataTransfer.setDragImage(empty, 0, 0);
+      requestAnimationFrame(() => document.body.removeChild(empty));
       el.style.opacity = '0.6';
+      draggingGateType = type;
     });
-    el.addEventListener('dragend', () => { el.style.opacity = '1'; });
+    el.addEventListener('dragend', () => {
+      el.style.opacity = '1';
+      draggingGateType = null;
+    });
 
     return el;
   }

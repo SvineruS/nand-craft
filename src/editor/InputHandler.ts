@@ -2,8 +2,9 @@ import type { GateId, PinId, WireNodeId, WireSegmentId, Gate } from '../types.ts
 import type { EditorState, PlaceableType } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
+import { draggingGateType } from '../ui/Sidebar.ts';
 import type { WireEndpoint } from './geometry.ts';
-import { GATE_DEFS, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
+import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
 import {
   CommandHistory,
   AddGateCommand,
@@ -193,8 +194,12 @@ export class InputHandler {
     e.dataTransfer.dropEffect = 'copy';
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const previewType = (draggingGateType ?? 'nand') as PlaceableType;
+    const def = GATE_DEFS[previewType];
+    const cx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
+    const cy = snapToGrid(world.y - def.height * GRID_SIZE / 2);
     this.setState((s) => {
-      s.dropPreview = { type: 'nand' as PlaceableType, x: snapToGrid(world.x), y: snapToGrid(world.y) };
+      s.dropPreview = { type: previewType, x: cx, y: cy };
       s.dirty = true;
     });
   }
@@ -206,7 +211,10 @@ export class InputHandler {
     if (!gateType || !GATE_DEFS[gateType]) return;
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
-    this.history.execute(new AddGateCommand(state, gateType, snapToGrid(world.x), snapToGrid(world.y)));
+    const def = GATE_DEFS[gateType];
+    const cx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
+    const cy = snapToGrid(world.y - def.height * GRID_SIZE / 2);
+    this.history.execute(new AddGateCommand(state, gateType, cx, cy));
     this.setState((s) => { s.dropPreview = null; s.dirty = true; });
   }
 

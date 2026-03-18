@@ -654,22 +654,44 @@ export class Renderer {
     const w = def.width * GRID_SIZE;
     const h = def.height * GRID_SIZE;
 
-    ctx.globalAlpha = 0.4;
-    ctx.fillStyle = COLORS.gateFill;
-    ctx.strokeStyle = COLORS.selection;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 4);
-    ctx.fill();
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.5;
 
+    if (def.svg) {
+      const path = this.getGatePath(type);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(GRID_SIZE, GRID_SIZE);
+      ctx.fillStyle = COLORS.gateFill;
+      ctx.fill(path);
+      ctx.strokeStyle = COLORS.selection;
+      ctx.lineWidth = 1.5 / GRID_SIZE;
+      ctx.stroke(path);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = COLORS.gateFill;
+      ctx.strokeStyle = COLORS.selection;
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
+    }
+
+    // Label
     ctx.fillStyle = COLORS.gateText;
-    ctx.font = '11px system-ui, sans-serif';
+    ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(def.label, x + w / 2, y + h / 2);
+
+    // Pins
+    for (const pin of def.pins) {
+      const px = x + pin.x * GRID_SIZE;
+      const py = y + pin.y * GRID_SIZE;
+      ctx.fillStyle = COLORS.pinHighZ;
+      ctx.beginPath();
+      ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.globalAlpha = 1;
   }
 }
