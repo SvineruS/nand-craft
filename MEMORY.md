@@ -1,0 +1,2 @@
+- [project_vision.md](project_vision.md) - Core game concept and design vision
+- [feedback_tech_approach.md](feedback_tech_approach.md) - TS first, Rust/WASM later, factory phase deferred, autotest levels
