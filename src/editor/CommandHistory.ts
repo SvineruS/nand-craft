@@ -577,12 +577,14 @@ export class RemoveWireSegmentCommand implements Command {
   readonly description = 'Remove wire segment';
   private state: EditorState;
   private segmentId: WireSegmentId;
+  private cleanOrphans: boolean;
   private segment: WireSegment | null = null;
   private removedOrphanNodes: WireNode[] = [];
 
-  constructor(state: EditorState, segmentId: WireSegmentId) {
+  constructor(state: EditorState, segmentId: WireSegmentId, cleanOrphans = true) {
     this.state = state;
     this.segmentId = segmentId;
+    this.cleanOrphans = cleanOrphans;
   }
 
   execute(): void {
@@ -594,6 +596,7 @@ export class RemoveWireSegmentCommand implements Command {
 
     // Clean up orphaned free nodes (no remaining segments, not anchored to a pin)
     this.removedOrphanNodes = [];
+    if (!this.cleanOrphans) { this.state.dirty = true; return; }
     for (const nodeId of [seg.from, seg.to]) {
       const node = circuit.wireNodes.get(nodeId);
       if (!node || node.pinId) continue; // keep pin-anchored nodes

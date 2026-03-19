@@ -357,6 +357,9 @@ export class InputHandler {
         if (anchoredNode) {
           const node = state.circuit.wireNodes.get(anchoredNode);
           if (node) {
+            // Clear pin value to prevent stale signal display
+            const pin = state.circuit.pins.get(ep.pinId);
+            if (pin) pin.value = null;
             node.pinId = undefined;
             this.isDraggingNode = anchoredNode;
             this.lastWorldX = world.x;
@@ -443,6 +446,8 @@ export class InputHandler {
           if (anchoredNode) {
             const node = state.circuit.wireNodes.get(anchoredNode);
             if (node) {
+              const pin = state.circuit.pins.get(ep.pinId);
+              if (pin) pin.value = null;
               node.pinId = undefined;
               this.isDraggingNode = anchoredNode;
               this.lastWorldX = world.x;
@@ -1075,7 +1080,7 @@ export class InputHandler {
     const toId = seg.to;
     const color = seg.color;
 
-    this.history.execute(new RemoveWireSegmentCommand(state, segId));
+    this.history.execute(new RemoveWireSegmentCommand(state, segId, false));
     const addNode = new AddWireNodeCommand(state, x, y);
     this.history.execute(addNode);
     const midId = addNode.getNodeId();
@@ -1121,19 +1126,28 @@ export class InputHandler {
 
     if (connected.length !== 2) return false;
 
-    // Get color from either segment
+    // Preserve color and label from the segments
     const seg0 = state.circuit.wireSegments.get(connected[0].segId);
-    const color = seg0?.color;
+    const seg1 = state.circuit.wireSegments.get(connected[1].segId);
+    const color = seg0?.color ?? seg1?.color;
+    const label = seg0?.label ?? seg1?.label;
 
-    // Save other endpoint IDs before removal (RemoveWireSegmentCommand may clean up the node)
     const otherId0 = connected[0].otherId;
     const otherId1 = connected[1].otherId;
 
-    // Remove the node and its segments (orphan cleanup handles the node itself)
-    this.history.execute(new RemoveWireNodeCommand(state, nodeId));
+    // Remove segments directly (NOT via RemoveWireSegmentCommand to avoid orphan cleanup
+    // deleting the endpoints we need for the new segment)
+    state.circuit.wireSegments.delete(connected[0].segId);
+    state.circuit.wireSegments.delete(connected[1].segId);
+    state.circuit.wireNodes.delete(nodeId);
 
     // Create a new segment connecting the two remaining endpoints
-    this.addSegmentIfNew(state, otherId0, otherId1, color);
+    const cmd = new AddWireSegmentCommand(state, otherId0, otherId1, color);
+    this.history.execute(cmd);
+    if (label) {
+      const newSeg = state.circuit.wireSegments.get(cmd.getSegmentId());
+      if (newSeg) newSeg.label = label;
+    }
     this.setState((s) => { s.dirty = true; });
     return true;
   }
@@ -1150,7 +1164,7 @@ export class InputHandler {
     this.lastWorldY = wy;
   }
 
-  /** Detach all wire nodes anchored to pins of the given gates. */
+  /** Detach all wire nodes anchored to pins of the given gates. Also clears pin values to prevent stale display. */
   private detachPinNodes(state: EditorState, gateIds: GateId[]): void {
     const pinIds = new Set<string>();
     for (const gateId of gateIds) {
@@ -1161,6 +1175,12 @@ export class InputHandler {
     for (const node of state.circuit.wireNodes.values()) {
       if (node.pinId && pinIds.has(node.pinId as string)) {
         node.pinId = undefined;
+      }
+    }
+    // Clear pin values so disconnected wires don't show stale signals
+    for (const pin of state.circuit.pins.values()) {
+      if (pinIds.has(pin.id as string)) {
+        pin.value = null;
       }
     }
   }
