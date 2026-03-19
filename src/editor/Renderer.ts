@@ -303,6 +303,50 @@ export class Renderer {
     }
   }
 
+  /** Total length of the routed path from A to B. */
+  private routedPathLength(ax: number, ay: number, bx: number, by: number): number {
+    const dx = bx - ax;
+    const dy = by - ay;
+    if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
+      return Math.hypot(dx, dy);
+    }
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+    const sx = Math.sign(dx);
+    const sy = Math.sign(dy);
+    let midX: number, midY: number;
+    if (adx > ady) { midX = ax + (adx - ady) * sx; midY = ay; }
+    else { midX = ax; midY = ay + (ady - adx) * sy; }
+    return Math.hypot(midX - ax, midY - ay) + Math.hypot(bx - midX, by - midY);
+  }
+
+  /** Point at fraction t (0..1) along the routed path. */
+  private routedPointAt(ax: number, ay: number, bx: number, by: number, t: number): { x: number; y: number } {
+    const dx = bx - ax;
+    const dy = by - ay;
+    if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
+      return { x: ax + dx * t, y: ay + dy * t };
+    }
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+    const sx = Math.sign(dx);
+    const sy = Math.sign(dy);
+    let midX: number, midY: number;
+    if (adx > ady) { midX = ax + (adx - ady) * sx; midY = ay; }
+    else { midX = ax; midY = ay + (ady - adx) * sy; }
+    const seg1 = Math.hypot(midX - ax, midY - ay);
+    const seg2 = Math.hypot(bx - midX, by - midY);
+    const total = seg1 + seg2;
+    const dist = t * total;
+    if (dist <= seg1) {
+      const s = seg1 > 0 ? dist / seg1 : 0;
+      return { x: ax + (midX - ax) * s, y: ay + (midY - ay) * s };
+    } else {
+      const s = seg2 > 0 ? (dist - seg1) / seg2 : 0;
+      return { x: midX + (bx - midX) * s, y: midY + (by - midY) * s };
+    }
+  }
+
   private drawWireSegments(state: EditorState): void {
     const { ctx } = this;
     const { circuit } = state;
@@ -379,28 +423,34 @@ export class Renderer {
       this.traceRoutedPath(ctx, fromNode.x, fromNode.y, toNode.x, toNode.y);
       ctx.stroke();
 
-      // Value label at midpoint of routed path
+      // Value labels spaced along the routed path
       if (segLen > 30) {
-        const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
-        const mid = this.routedMidpoint(fromNode.x, fromNode.y, toNode.x, toNode.y);
-        const mx = mid.x;
-        const my = mid.y;
+        const bw = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
+        const text = formatWireValue(value, bw);
         ctx.setLineDash([]);
         ctx.font = 'bold 9px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-
-        const text = formatWireValue(value, bitWidth);
         const tw = ctx.measureText(text).width + 6;
-        ctx.fillStyle = COLORS.background;
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath();
-        ctx.roundRect(mx - tw / 2, my - 6, tw, 12, 3);
-        ctx.fill();
-        ctx.globalAlpha = 1;
 
-        ctx.fillStyle = color;
-        ctx.fillText(text, mx, my);
+        // Compute routed path total length and place labels every ~80px
+        const labelSpacing = 80;
+        const pathLen = this.routedPathLength(fromNode.x, fromNode.y, toNode.x, toNode.y);
+        const labelCount = Math.max(1, Math.floor(pathLen / labelSpacing));
+        for (let li = 0; li < labelCount; li++) {
+          const t = labelCount === 1 ? 0.5 : (li + 0.5) / labelCount;
+          const pt = this.routedPointAt(fromNode.x, fromNode.y, toNode.x, toNode.y, t);
+
+          ctx.fillStyle = COLORS.background;
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.roundRect(pt.x - tw / 2, pt.y - 6, tw, 12, 3);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          ctx.fillStyle = color;
+          ctx.fillText(text, pt.x, pt.y);
+        }
       }
     }
     ctx.setLineDash([]);
