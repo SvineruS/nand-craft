@@ -525,6 +525,7 @@ export class RemoveWireSegmentCommand implements Command {
   private state: EditorState;
   private segmentId: WireSegmentId;
   private segment: WireSegment | null = null;
+  private removedOrphanNodes: WireNode[] = [];
 
   constructor(state: EditorState, segmentId: WireSegmentId) {
     this.state = state;
@@ -532,14 +533,35 @@ export class RemoveWireSegmentCommand implements Command {
   }
 
   execute(): void {
-    const seg = this.state.circuit.wireSegments.get(this.segmentId);
+    const { circuit } = this.state;
+    const seg = circuit.wireSegments.get(this.segmentId);
     if (!seg) return;
     this.segment = { ...seg };
-    this.state.circuit.wireSegments.delete(this.segmentId);
+    circuit.wireSegments.delete(this.segmentId);
+
+    // Clean up orphaned free nodes (no remaining segments, not anchored to a pin)
+    this.removedOrphanNodes = [];
+    for (const nodeId of [seg.from, seg.to]) {
+      const node = circuit.wireNodes.get(nodeId);
+      if (!node || node.pinId) continue; // keep pin-anchored nodes
+      let hasSegments = false;
+      for (const s of circuit.wireSegments.values()) {
+        if (s.from === nodeId || s.to === nodeId) { hasSegments = true; break; }
+      }
+      if (!hasSegments) {
+        this.removedOrphanNodes.push({ ...node });
+        circuit.wireNodes.delete(nodeId);
+      }
+    }
+
     this.state.dirty = true;
   }
 
   undo(): void {
+    // Restore orphaned nodes first, then the segment
+    for (const node of this.removedOrphanNodes) {
+      this.state.circuit.wireNodes.set(node.id, node);
+    }
     if (this.segment) {
       this.state.circuit.wireSegments.set(this.segmentId, this.segment);
     }
