@@ -151,6 +151,7 @@ export class InputHandler {
   private isDraggingGates = false;
   private isDraggingDisconnected = false;
   private didDragMove = false;
+  private nodeFromSplit = false;
   private isWiring = false;
   private wireStartWorldX = 0;
   private wireStartWorldY = 0;
@@ -375,6 +376,7 @@ export class InputHandler {
         const newNodeId = this.splitWireSegment(state, segHit, snapToGrid(world.x), snapToGrid(world.y));
         if (newNodeId) {
           this.isDraggingNode = newNodeId;
+          this.nodeFromSplit = true;
           this.lastWorldX = world.x;
           this.lastWorldY = world.y;
         }
@@ -530,6 +532,7 @@ export class InputHandler {
         const newNodeId = this.splitWireSegment(state, segHit, snapToGrid(world.x), snapToGrid(world.y));
         if (newNodeId) {
           this.isDraggingNode = newNodeId;
+          this.nodeFromSplit = true;
           this.lastWorldX = world.x;
           this.lastWorldY = world.y;
         }
@@ -716,11 +719,13 @@ export class InputHandler {
       const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
       const draggedNodeId = this.isDraggingNode;
       const didMove = this.didDragMove;
+      const fromSplit = this.nodeFromSplit;
       this.isDraggingNode = null;
       this.didDragMove = false;
+      this.nodeFromSplit = false;
 
-      // No drag movement? Try merge (2-segment node removal)
-      if (!didMove && this.tryMergeWireNode(state, draggedNodeId)) return;
+      // No drag movement? Try merge (2-segment node removal) — but not if just created by split
+      if (!didMove && !fromSplit && this.tryMergeWireNode(state, draggedNodeId)) return;
 
       const targetPin = hitTestEndpoint(world.x, world.y, state, draggedNodeId);
 
