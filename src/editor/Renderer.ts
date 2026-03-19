@@ -448,11 +448,11 @@ export class Renderer {
         const val = outPin?.value;
         ctx.fillStyle = val !== null && val !== undefined ? signalColor(val) : COLORS.gateText;
         ctx.font = 'bold 13px monospace';
-        ctx.fillText(val !== null && val !== undefined ? String(val) : '?', 0, 0);
+        ctx.fillText(val !== null && val !== undefined ? String(val) : '?', (def.labelX ?? 0) * GRID_SIZE, (def.labelY ?? 0) * GRID_SIZE);
       } else {
         ctx.fillStyle = COLORS.gateText;
         ctx.font = 'bold 11px monospace';
-        ctx.fillText(def.label, 0, 0);
+        ctx.fillText(def.label, (def.labelX ?? 0) * GRID_SIZE, (def.labelY ?? 0) * GRID_SIZE);
       }
 
       ctx.restore();
@@ -731,7 +731,7 @@ export class Renderer {
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(def.label, x + w / 2, y + h / 2);
+    ctx.fillText(def.label, x + w / 2 + (def.labelX ?? 0) * GRID_SIZE, y + h / 2 + (def.labelY ?? 0) * GRID_SIZE);
 
     // Pins
     for (const pin of def.pins) {
@@ -786,7 +786,7 @@ export class Renderer {
       ctx.font = 'bold 11px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(def.label, gx + gw / 2, gy + gh / 2);
+      ctx.fillText(def.label, gx + gw / 2 + (def.labelX ?? 0) * GRID_SIZE, gy + gh / 2 + (def.labelY ?? 0) * GRID_SIZE);
 
       // Pins
       for (const pin of def.pins) {
