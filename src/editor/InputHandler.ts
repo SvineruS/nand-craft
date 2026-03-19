@@ -290,8 +290,33 @@ export class InputHandler {
     // Wire segment?
     const segHit = hitTestWireSegment(world.x, world.y, state);
     if (segHit) {
-      this.setState((s) => { s.selection = [{ type: 'wireSegment', id: segHit }]; });
-      this.deleteSelected(state);
+      if (e.shiftKey) {
+        // Shift+right-click: delete all connected wires
+        const allSegs = this.getConnectedSegments(state, [segHit]);
+        // Collect free nodes that will become orphaned
+        const nodeIds = new Set<string>();
+        for (const sid of allSegs) {
+          const seg = state.circuit.wireSegments.get(sid);
+          if (seg) { nodeIds.add(seg.from as string); nodeIds.add(seg.to as string); }
+        }
+        for (const sid of allSegs) {
+          this.history.execute(new RemoveWireSegmentCommand(state, sid));
+        }
+        // Remove orphaned free nodes (no remaining segments, not anchored)
+        for (const nid of nodeIds) {
+          const node = state.circuit.wireNodes.get(nid as WireNodeId);
+          if (!node || node.pinId) continue;
+          let hasSegs = false;
+          for (const seg of state.circuit.wireSegments.values()) {
+            if (seg.from === nid || seg.to === nid) { hasSegs = true; break; }
+          }
+          if (!hasSegs) state.circuit.wireNodes.delete(nid as WireNodeId);
+        }
+        this.setState((s) => { s.dirty = true; });
+      } else {
+        this.setState((s) => { s.selection = [{ type: 'wireSegment', id: segHit }]; });
+        this.deleteSelected(state);
+      }
       return;
     }
 
@@ -314,14 +339,15 @@ export class InputHandler {
         this.startDisconnectDrag(state, gateHit, world.x, world.y);
         return;
       }
-      // Wire node: if exactly 2 segments, merge them; else drag
+      // Wire node or pin → start dragging (merge on mouseup if no movement)
       const ep = hitTestEndpoint(world.x, world.y, state);
       if (ep) {
         if (ep.kind === 'node') {
-          if (this.tryMergeWireNode(state, ep.nodeId)) return;
           this.isDraggingNode = ep.nodeId;
           this.lastWorldX = world.x;
           this.lastWorldY = world.y;
+          this.dragAccDx = 0;
+          this.dragAccDy = 0;
           this.setState((s) => { s.dirty = true; });
           return;
         }
@@ -355,10 +381,18 @@ export class InputHandler {
       return;
     }
 
-    // Shift+left: merge wire node / disconnect drag gate / pan
+    // Shift+left: drag wire node (merge on release) / disconnect drag gate / pan
     if (e.button === 0 && e.shiftKey) {
       const ep = hitTestEndpoint(world.x, world.y, state);
-      if (ep && ep.kind === 'node' && this.tryMergeWireNode(state, ep.nodeId)) return;
+      if (ep && ep.kind === 'node') {
+        this.isDraggingNode = ep.nodeId;
+        this.lastWorldX = world.x;
+        this.lastWorldY = world.y;
+        this.dragAccDx = 0;
+        this.dragAccDy = 0;
+        this.setState((s) => { s.dirty = true; });
+        return;
+      }
 
       const gateHit = hitTestGate(world.x, world.y, state);
       if (gateHit) {
@@ -665,12 +699,20 @@ export class InputHandler {
   private handleMouseUp(e: MouseEvent): void {
     const state = this.getState();
 
-    // Complete node drag
+    // Complete node drag — if no movement, try merge
     if (this.isDraggingNode) {
       const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
       const draggedNodeId = this.isDraggingNode;
-      const targetPin = hitTestEndpoint(world.x, world.y, state, draggedNodeId);
       this.isDraggingNode = null;
+
+      // No drag movement? Try merge (2-segment node removal)
+      const draggedNode = state.circuit.wireNodes.get(draggedNodeId);
+      if (draggedNode) {
+        const movedDist = Math.hypot(draggedNode.x - snapToGrid(this.lastWorldX), draggedNode.y - snapToGrid(this.lastWorldY));
+        if (movedDist < 2 && this.tryMergeWireNode(state, draggedNodeId)) return;
+      }
+
+      const targetPin = hitTestEndpoint(world.x, world.y, state, draggedNodeId);
 
       if (targetPin) {
         // Dropped on pin or wire node → merge: repoint all segments, remove dragged node
