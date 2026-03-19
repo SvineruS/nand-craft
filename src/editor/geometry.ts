@@ -123,17 +123,33 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: 'M 1.8,0.3 L 0.7,0.3 L 0.2,1 L 0.7,1.7 L 1.8,1.7 Z',
   },
   splitter: {
-    label: 'SPL', description: 'Bus splitter', width: 2, height: 2,
+    label: 'SPL', description: '8-bit bus splitter', width: 2, height: 9, placeable: true,
+    color: '#2d4040', stroke: '#5a9090',
     pins: [
-      { kind: 'input', x: 0, y: 1 },
-      { kind: 'output', x: 2, y: 1 },
+      { kind: 'input', x: 0, y: 4, bitWidth: 8 },
+      { kind: 'output', x: 2, y: 1, bitWidth: 1 },
+      { kind: 'output', x: 2, y: 2, bitWidth: 1 },
+      { kind: 'output', x: 2, y: 3, bitWidth: 1 },
+      { kind: 'output', x: 2, y: 4, bitWidth: 1 },
+      { kind: 'output', x: 2, y: 5, bitWidth: 1 },
+      { kind: 'output', x: 2, y: 6, bitWidth: 1 },
+      { kind: 'output', x: 2, y: 7, bitWidth: 1 },
+      { kind: 'output', x: 2, y: 8, bitWidth: 1 },
     ],
   },
   joiner: {
-    label: 'JON', description: 'Bus joiner', width: 2, height: 2,
+    label: 'JON', description: '8-bit bus joiner', width: 2, height: 9, placeable: true,
+    color: '#40402d', stroke: '#90905a',
     pins: [
-      { kind: 'input', x: 0, y: 1 },
-      { kind: 'output', x: 2, y: 1 },
+      { kind: 'input', x: 0, y: 1, bitWidth: 1 },
+      { kind: 'input', x: 0, y: 2, bitWidth: 1 },
+      { kind: 'input', x: 0, y: 3, bitWidth: 1 },
+      { kind: 'input', x: 0, y: 4, bitWidth: 1 },
+      { kind: 'input', x: 0, y: 5, bitWidth: 1 },
+      { kind: 'input', x: 0, y: 6, bitWidth: 1 },
+      { kind: 'input', x: 0, y: 7, bitWidth: 1 },
+      { kind: 'input', x: 0, y: 8, bitWidth: 1 },
+      { kind: 'output', x: 2, y: 4, bitWidth: 8 },
     ],
   },
   component: {
@@ -153,19 +169,14 @@ export function getGateDef(type: GateType): GateDefinition {
   return GATE_DEFS[type];
 }
 
-/** Get gate pixel dimensions. For splitter/joiner, adjusts for actual pin count. */
+/** Get gate pixel dimensions from definition. */
 export function getGateDims(gate: Gate): { w: number; h: number } {
   const def = GATE_DEFS[gate.type];
-  if (gate.type === 'splitter' || gate.type === 'joiner') {
-    const maxPins = Math.max(gate.inputPins.length, gate.outputPins.length, 1);
-    return { w: def.width * GRID_SIZE, h: (maxPins + 1) * GRID_SIZE };
-  }
   return { w: def.width * GRID_SIZE, h: def.height * GRID_SIZE };
 }
 
 /**
  * Pin positions for a gate — reads from definition, applies gate position + rotation.
- * For splitter/joiner, generates dynamic pin positions based on actual pin count.
  */
 export function getPinPositions(
   gate: Gate,
@@ -175,39 +186,16 @@ export function getPinPositions(
   const cx = gate.x + w / 2;
   const cy = gate.y + h / 2;
 
-  if (gate.type === 'splitter' || gate.type === 'joiner') {
-    // Dynamic pin positions for variable-height gates
-    const hUnits = h / GRID_SIZE;
-    const inputPins = gate.inputPins;
-    const outputPins = gate.outputPins;
+  const def = GATE_DEFS[gate.type];
+  const allPinIds = [...gate.inputPins, ...gate.outputPins];
+  const defPins = def.pins;
 
-    const placeSide = (pinIds: PinId[], side: 'left' | 'right') => {
-      const K = pinIds.length;
-      if (K === 0) return;
-      const startOffset = Math.floor((hUnits - 1 - K) / 2) + 1;
-      for (let i = 0; i < K; i++) {
-        const lx = side === 'left' ? gate.x : gate.x + w;
-        const ly = gate.y + (startOffset + i) * GRID_SIZE;
-        const rotated = rotatePoint(lx, ly, cx, cy, gate.rotation);
-        result.set(pinIds[i], rotated);
-      }
-    };
-
-    placeSide(inputPins, 'left');
-    placeSide(outputPins, 'right');
-  } else {
-    // Fixed pin positions from definition
-    const def = GATE_DEFS[gate.type];
-    const allPinIds = [...gate.inputPins, ...gate.outputPins];
-    const defPins = def.pins;
-
-    for (let i = 0; i < Math.min(allPinIds.length, defPins.length); i++) {
-      const pinDef = defPins[i];
-      const lx = gate.x + pinDef.x * GRID_SIZE;
-      const ly = gate.y + pinDef.y * GRID_SIZE;
-      const rotated = rotatePoint(lx, ly, cx, cy, gate.rotation);
-      result.set(allPinIds[i], rotated);
-    }
+  for (let i = 0; i < Math.min(allPinIds.length, defPins.length); i++) {
+    const pinDef = defPins[i];
+    const lx = gate.x + pinDef.x * GRID_SIZE;
+    const ly = gate.y + pinDef.y * GRID_SIZE;
+    const rotated = rotatePoint(lx, ly, cx, cy, gate.rotation);
+    result.set(allPinIds[i], rotated);
   }
 
   return result;

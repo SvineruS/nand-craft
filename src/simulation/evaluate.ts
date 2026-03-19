@@ -387,7 +387,7 @@ export function detectCycles(circuit: Circuit): GateId[][] {
 
 /**
  * Evaluate a binary gate (2 inputs, 1 output) with the given operation.
- * If either input is null, the output is null.
+ * Null/disconnected inputs are treated as 0.
  */
 function evaluateBinaryGate(
   gate: Gate,
@@ -399,17 +399,13 @@ function evaluateBinaryGate(
   const out = pins.get(gate.outputPins[0]);
   if (!inA || !inB || !out) return;
 
-  if (inA.value === null || inB.value === null) {
-    out.value = null;
-  } else {
-    const mask = ((1 << out.bitWidth) >>> 0) - 1;
-    out.value = op(inA.value, inB.value, mask);
-  }
+  const mask = ((1 << out.bitWidth) >>> 0) - 1;
+  out.value = op(inA.value ?? 0, inB.value ?? 0, mask);
 }
 
 /**
  * Evaluate a unary gate (1 input, 1 output) with the given operation.
- * If the input is null, the output is null.
+ * Null/disconnected input is treated as 0.
  */
 function evaluateUnaryGate(
   gate: Gate,
@@ -420,12 +416,8 @@ function evaluateUnaryGate(
   const out = pins.get(gate.outputPins[0]);
   if (!input || !out) return;
 
-  if (input.value === null) {
-    out.value = null;
-  } else {
-    const mask = ((1 << out.bitWidth) >>> 0) - 1;
-    out.value = op(input.value, mask);
-  }
+  const mask = ((1 << out.bitWidth) >>> 0) - 1;
+  out.value = op(input.value ?? 0, mask);
 }
 
 /**
@@ -479,15 +471,12 @@ export function evaluateGate(gate: Gate, pins: Map<PinId, Pin>): void {
       const input = pins.get(gate.inputPins[0]);
       if (!input) return;
 
+      // Treat null/disconnected as 0
+      const inputVal = input.value ?? 0;
       for (let i = 0; i < gate.outputPins.length; i++) {
         const out = pins.get(gate.outputPins[i]);
         if (!out) continue;
-
-        if (input.value === null) {
-          out.value = null;
-        } else {
-          out.value = (input.value >>> i) & 1;
-        }
+        out.value = (inputVal >>> i) & 1;
       }
       break;
     }
@@ -496,21 +485,15 @@ export function evaluateGate(gate: Gate, pins: Map<PinId, Pin>): void {
       const out = pins.get(gate.outputPins[0]);
       if (!out) return;
 
+      // Treat null/disconnected inputs as 0
       let result = 0;
-      let hasNull = false;
-
       for (let i = 0; i < gate.inputPins.length; i++) {
         const input = pins.get(gate.inputPins[i]);
         if (!input) continue;
-
-        if (input.value === null) {
-          hasNull = true;
-          break;
-        }
-        result |= (input.value & 1) << i;
+        result |= ((input.value ?? 0) & 1) << i;
       }
 
-      out.value = hasNull ? null : result;
+      out.value = result;
       break;
     }
 

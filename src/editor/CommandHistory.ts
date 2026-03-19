@@ -61,48 +61,6 @@ export class CommandHistory {
 }
 
 // ---------------------------------------------------------------------------
-// Pin templates — generated from gate definitions
-// ---------------------------------------------------------------------------
-
-interface PinTemplate {
-  kind: 'input' | 'output';
-  index: number;
-  bitWidth: number;
-}
-
-function pinTemplatesFor(gateType: GateType, bitWidth: number): PinTemplate[] {
-  // Splitter/joiner have dynamic pin counts
-  if (gateType === 'splitter') {
-    return [
-      { kind: 'input', index: 0, bitWidth },
-      ...Array.from({ length: bitWidth }, (_, i) => ({
-        kind: 'output' as const, index: i, bitWidth: 1,
-      })),
-    ];
-  }
-  if (gateType === 'joiner') {
-    return [
-      ...Array.from({ length: bitWidth }, (_, i) => ({
-        kind: 'input' as const, index: i, bitWidth: 1,
-      })),
-      { kind: 'output', index: 0, bitWidth },
-    ];
-  }
-
-  // All other gates: read from definition
-  const def = GATE_DEFS[gateType];
-  if (!def) return [];
-
-  let inputIdx = 0;
-  let outputIdx = 0;
-  return def.pins.map(p => ({
-    kind: p.kind,
-    index: p.kind === 'input' ? inputIdx++ : outputIdx++,
-    bitWidth: p.bitWidth ?? bitWidth,
-  }));
-}
-
-// ---------------------------------------------------------------------------
 // Concrete commands
 // ---------------------------------------------------------------------------
 
@@ -125,15 +83,17 @@ export class AddGateCommand implements Command {
     this.description = `Add ${gateType} gate`;
     this.gateId = generateId('gate') as GateId;
 
-    const templates = pinTemplatesFor(gateType, bitWidth);
-    for (const t of templates) {
+    const def = GATE_DEFS[gateType];
+    let inputIdx = 0;
+    let outputIdx = 0;
+    for (const p of def.pins) {
       const pinId = generateId('pin') as PinId;
       this.pins.push({
         id: pinId,
         gateId: this.gateId,
-        kind: t.kind,
-        index: t.index,
-        bitWidth: t.bitWidth,
+        kind: p.kind,
+        index: p.kind === 'input' ? inputIdx++ : outputIdx++,
+        bitWidth: p.bitWidth ?? bitWidth,
         value: null,
       });
     }
