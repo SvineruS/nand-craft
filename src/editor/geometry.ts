@@ -31,44 +31,44 @@ export interface GateDefinition {
 
 export const GATE_DEFS: Record<GateType, GateDefinition> = {
   nand: {
-    label: 'NAND', description: 'Bitwise NAND gate', width: 3, height: 3, placeable: true,
+    label: 'NAND', description: 'Bitwise NAND gate', width: 2, height: 2, placeable: true,
     color: '#3b2d50', stroke: '#7c5aad',
     pins: [
-      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
-      { kind: 'output', x: 3, y: 1.5 },
+      { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.3,0.3 L 0.3,2.7 L 1.5,2.7 A 1.2,1.2 0 0,0 1.5,0.3 Z M 2.65,1.5 m -0.2,0 a 0.2,0.2 0 1,0 0.4,0 a 0.2,0.2 0 1,0 -0.4,0',
+    svg: 'M 0.15,0.1 L 0.15,1.9 L 0.8,1.9 A 0.9,0.9 0 0,0 0.8,0.1 Z M 1.7,1 m -0.12,0 a 0.12,0.12 0 1,0 0.24,0 a 0.12,0.12 0 1,0 -0.24,0',
   },
   and: {
-    label: 'AND', description: 'Bitwise AND gate', width: 3, height: 3, placeable: true,
+    label: 'AND', description: 'Bitwise AND gate', width: 2, height: 2, placeable: true,
     color: '#2d3a50', stroke: '#5a8aad',
     pins: [
-      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
-      { kind: 'output', x: 3, y: 1.5 },
+      { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.3,0.3 L 0.3,2.7 L 1.5,2.7 A 1.2,1.2 0 0,0 1.5,0.3 Z',
+    svg: 'M 0.15,0.1 L 0.15,1.9 L 0.8,1.9 A 0.9,0.9 0 0,0 0.8,0.1 Z',
   },
   or: {
-    label: 'OR', description: 'Bitwise OR gate', width: 3, height: 3, placeable: true,
+    label: 'OR', description: 'Bitwise OR gate', width: 2, height: 2, placeable: true,
     color: '#2d4a3a', stroke: '#5aad7c',
     pins: [
-      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
-      { kind: 'output', x: 3, y: 1.5 },
+      { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.3,0.3 Q 1.0,1.5 0.3,2.7 L 1.2,2.7 Q 2.4,2.7 2.7,1.5 Q 2.4,0.3 1.2,0.3 Z',
+    svg: 'M 0.15,0.1 Q 0.6,1 0.15,1.9 L 0.7,1.9 Q 1.5,1.9 1.85,1 Q 1.5,0.1 0.7,0.1 Z',
   },
   nor: {
-    label: 'NOR', description: 'Bitwise NOR gate', width: 3, height: 3, placeable: true,
+    label: 'NOR', description: 'Bitwise NOR gate', width: 2, height: 2, placeable: true,
     color: '#3a2d4a', stroke: '#8a5aad',
     pins: [
-      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
-      { kind: 'output', x: 3, y: 1.5 },
+      { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.3,0.3 Q 1.0,1.5 0.3,2.7 L 1.2,2.7 Q 2.2,2.7 2.5,1.5 Q 2.2,0.3 1.2,0.3 Z M 2.65,1.5 m -0.2,0 a 0.2,0.2 0 1,0 0.4,0 a 0.2,0.2 0 1,0 -0.4,0',
+    svg: 'M 0.15,0.1 Q 0.6,1 0.15,1.9 L 0.7,1.9 Q 1.4,1.9 1.65,1 Q 1.4,0.1 0.7,0.1 Z M 1.7,1 m -0.12,0 a 0.12,0.12 0 1,0 0.24,0 a 0.12,0.12 0 1,0 -0.24,0',
   },
   not: {
     label: 'NOT', description: 'Inverter', width: 2, height: 2, placeable: true,
@@ -89,14 +89,14 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,1.7 L 0.3,1.7 Z M 1.0,1.3 L 1.5,0.5 L 2.0,1.3 Z',
   },
   tristate: {
-    label: 'TRI', description: 'Tri-state buffer', width: 3, height: 3, placeable: true,
+    label: 'TRI', description: 'Tri-state buffer', width: 2, height: 2, placeable: true,
     color: '#2d4a4a', stroke: '#5aadad',
     pins: [
       { kind: 'input', x: 0, y: 1, label: 'in' },
       { kind: 'input', x: 1, y: 0, label: 'en', bitWidth: 1 },
-      { kind: 'output', x: 3, y: 1.5 },
+      { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.3,0.4 L 0.3,2.6 L 2.5,1.5 Z',
+    svg: 'M 0.15,0.1 L 0.15,1.9 L 1.7,1 Z',
   },
   constant: {
     label: 'C', description: 'Constant value', width: 2, height: 2, placeable: true,
