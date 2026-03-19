@@ -118,6 +118,7 @@ export class InputHandler {
   private dragAccDx = 0;
   private dragAccDy = 0;
   private isDraggingGates = false;
+  private isDraggingDisconnected = false;
   private isWiring = false;
   private wireStartWorldX = 0;
   private wireStartWorldY = 0;
@@ -214,7 +215,9 @@ export class InputHandler {
     const def = GATE_DEFS[gateType];
     const cx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
     const cy = snapToGrid(world.y - def.height * GRID_SIZE / 2);
-    this.history.execute(new AddGateCommand(state, gateType, cx, cy));
+    const cmd = new AddGateCommand(state, gateType, cx, cy);
+    this.history.execute(cmd);
+    this.reconnectPinNodes(state, [cmd.getGateId()]);
     this.setState((s) => { s.dropPreview = null; s.dirty = true; });
   }
 
@@ -273,8 +276,13 @@ export class InputHandler {
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
 
-    // Middle click: move wire node/pin node/split wire segment, or pan
+    // Middle click: disconnect drag if over gate, else move wire node/split/pan
     if (e.button === 1) {
+      const gateHit = hitTestGate(world.x, world.y, state);
+      if (gateHit) {
+        this.startDisconnectDrag(state, gateHit, world.x, world.y);
+        return;
+      }
       // Wire node or pin → drag
       const ep = hitTestEndpoint(world.x, world.y, state);
       if (ep) {
@@ -315,8 +323,13 @@ export class InputHandler {
       return;
     }
 
-    // Shift+left → pan
+    // Shift+left: disconnect drag if over gate, else pan
     if (e.button === 0 && e.shiftKey) {
+      const gateHit = hitTestGate(world.x, world.y, state);
+      if (gateHit) {
+        this.startDisconnectDrag(state, gateHit, world.x, world.y);
+        return;
+      }
       this.setState((s) => { s.isDragging = true; s.dragStart = { x: e.offsetX, y: e.offsetY }; });
       return;
     }
@@ -328,7 +341,9 @@ export class InputHandler {
       const def = GATE_DEFS[state.stampGateType];
       const sx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
       const sy = snapToGrid(world.y - def.height * GRID_SIZE / 2);
-      this.history.execute(new AddGateCommand(state, state.stampGateType, sx, sy));
+      const cmd = new AddGateCommand(state, state.stampGateType, sx, sy);
+      this.history.execute(cmd);
+      this.reconnectPinNodes(state, [cmd.getGateId()]);
       return;
     }
 
@@ -576,7 +591,8 @@ export class InputHandler {
           const gate = state.circuit.gates.get(gateId);
           if (gate) { gate.x += snappedDx; gate.y += snappedDy; }
         }
-        const anchored = getAnchoredNodeIds(state.circuit, gateIds);
+        // When disconnected, anchored nodes were detached — skip them
+        const anchored = this.isDraggingDisconnected ? [] : getAnchoredNodeIds(state.circuit, gateIds);
         const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
         for (const nid of allNodeIds) {
           const node = state.circuit.wireNodes.get(nid);
@@ -728,6 +744,16 @@ export class InputHandler {
 
         this.history.execute(new MoveGatesCommand(state, gateIds, snapDx, snapDy, selectedNodeIds));
       }
+
+      // Always try to reconnect pins to nearby wire nodes after move
+      {
+        const gateIds = state.selection
+          .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
+          .map((s) => s.id);
+        this.reconnectPinNodes(state, gateIds);
+      }
+      this.isDraggingDisconnected = false;
+
       this.dragAccDx = 0;
       this.dragAccDy = 0;
       return;
@@ -910,6 +936,7 @@ export class InputHandler {
     if (e.key === 'Escape') {
       this.isWiring = false;
       this.isDraggingNode = null;
+      this.isDraggingDisconnected = false;
       this.setState((s) => {
         s.selection = [];
         s.wireStart = null;
@@ -998,6 +1025,55 @@ export class InputHandler {
   }
 
   /** Find a wire node anchored to this pin that has connected segments. */
+  /** Start a disconnect drag: select gate, detach pin nodes, begin dragging. */
+  private startDisconnectDrag(state: EditorState, gateId: GateId, wx: number, wy: number): void {
+    this.setState((s) => { s.selection = [{ type: 'gate', id: gateId }]; });
+    this.detachPinNodes(state, [gateId]);
+    this.isDraggingGates = true;
+    this.isDraggingDisconnected = true;
+    this.dragAccDx = 0;
+    this.dragAccDy = 0;
+    this.lastWorldX = wx;
+    this.lastWorldY = wy;
+  }
+
+  /** Detach all wire nodes anchored to pins of the given gates. */
+  private detachPinNodes(state: EditorState, gateIds: GateId[]): void {
+    const pinIds = new Set<string>();
+    for (const gateId of gateIds) {
+      const gate = state.circuit.gates.get(gateId);
+      if (!gate) continue;
+      for (const p of [...gate.inputPins, ...gate.outputPins]) pinIds.add(p as string);
+    }
+    for (const node of state.circuit.wireNodes.values()) {
+      if (node.pinId && pinIds.has(node.pinId as string)) {
+        node.pinId = undefined;
+      }
+    }
+  }
+
+  /** Reconnect: for each pin of the given gates, find a wire node at the pin position and anchor it. */
+  private reconnectPinNodes(state: EditorState, gateIds: GateId[]): void {
+    for (const gateId of gateIds) {
+      const gate = state.circuit.gates.get(gateId);
+      if (!gate) continue;
+      const positions = getPinPositions(gate);
+      for (const [pinId, pos] of positions) {
+        // Find a free wire node at this position (within 1px tolerance)
+        for (const node of state.circuit.wireNodes.values()) {
+          if (node.pinId) continue; // already anchored
+          if (Math.abs(node.x - pos.x) < 2 && Math.abs(node.y - pos.y) < 2) {
+            node.pinId = pinId;
+            node.x = pos.x;
+            node.y = pos.y;
+            break;
+          }
+        }
+      }
+    }
+    this.setState((s) => { s.dirty = true; });
+  }
+
   private findAnchoredNode(pinId: PinId, state: EditorState): WireNodeId | null {
     for (const node of state.circuit.wireNodes.values()) {
       if (node.pinId === pinId) {

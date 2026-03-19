@@ -1,4 +1,4 @@
-import type { Circuit, GateId } from '../types.ts';
+import type { Circuit, GateId, PinId } from '../types.ts';
 import { buildNets, detectCycles, propagate } from './evaluate.ts';
 
 export interface ISimulationEngine {
@@ -16,7 +16,18 @@ export class SimulationEngine implements ISimulationEngine {
    * 4. Return output gate values
    */
   tick(circuit: Circuit, inputs: Map<GateId, number>): Map<GateId, number | null> {
-    // 1. Set input gate pin values
+    // 1. Save constant gate values, then reset all pins to null
+    const constantValues = new Map<PinId, number>();
+    for (const gate of circuit.gates.values()) {
+      if (gate.type !== 'constant') continue;
+      const outPin = gate.outputPins[0] ? circuit.pins.get(gate.outputPins[0]) : undefined;
+      if (outPin) constantValues.set(outPin.id, outPin.value ?? 0);
+    }
+    for (const pin of circuit.pins.values()) {
+      pin.value = null;
+    }
+
+    // 2. Set input gate pin values
     for (const [gateId, value] of inputs) {
       const gate = circuit.gates.get(gateId);
       if (!gate || gate.type !== 'input') continue;
@@ -29,7 +40,13 @@ export class SimulationEngine implements ISimulationEngine {
       }
     }
 
-    // 2. Build nets and propagate combinational logic
+    // 3. Restore constant gate values
+    for (const [pinId, value] of constantValues) {
+      const pin = circuit.pins.get(pinId);
+      if (pin) pin.value = value;
+    }
+
+    // 4. Build nets and propagate combinational logic
     buildNets(circuit);
     propagate(circuit);
 
