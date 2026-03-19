@@ -30,16 +30,48 @@ interface Point {
   y: number;
 }
 
-function signalColor(value: number | null): string {
+function signalColor(value: number | null, bitWidth = 1): string {
   if (value === null) return COLORS.wireHighZ;
-  if (value === 0) return COLORS.wireZero;
-  return COLORS.wireActive;
+  if (bitWidth <= 1) {
+    return value === 0 ? COLORS.wireZero : COLORS.wireActive;
+  }
+  // Multi-bit: gradient from blue (0) through cyan/green/yellow to magenta (max)
+  const max = ((1 << bitWidth) >>> 0) - 1;
+  const t = max > 0 ? value / max : 0;
+  return multibitGradient(t);
+}
+
+/** Map 0..1 to a rainbow-ish gradient: blue → cyan → green → yellow → orange → magenta */
+function multibitGradient(t: number): string {
+  const r = Math.round(lerp3(60, 250, 255, t));
+  const g = Math.round(lerp3(130, 220, 100, t));
+  const b = Math.round(lerp3(255, 80, 220, t));
+  return `rgb(${r},${g},${b})`;
+}
+
+function lerp3(a: number, b: number, c: number, t: number): number {
+  if (t < 0.5) return a + (b - a) * (t * 2);
+  return b + (c - b) * ((t - 0.5) * 2);
 }
 
 function pinColorForValue(value: number | null): string {
   if (value === null) return COLORS.pinHighZ;
   if (value === 0) return COLORS.pinZero;
   return COLORS.pinActive;
+}
+
+/** Stroke color for pins based on bit width. */
+function pinStrokeForWidth(bitWidth: number): string {
+  if (bitWidth >= 16) return '#f472b6'; // pink
+  if (bitWidth >= 8) return '#60a5fa';  // blue
+  return '#fb923c';                      // orange (1-bit)
+}
+
+/** Format value for wire label based on bit width. */
+function formatWireValue(value: number, bitWidth: number): string {
+  if (bitWidth >= 16) return '0x' + value.toString(16).toUpperCase();
+  if (bitWidth >= 8) return String(value);
+  return value ? 'T' : 'F';
 }
 
 export class Renderer {
@@ -231,7 +263,8 @@ export class Renderer {
       const value = nodeValue.get(segment.from as string) ?? nodeValue.get(segment.to as string) ?? null;
       if (value === null) continue;
 
-      const color = signalColor(value);
+      const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
+      const color = signalColor(value, bitWidth);
       // Animated dash offset creates flowing motion
       const segLen = Math.hypot(toNode.x - fromNode.x, toNode.y - fromNode.y);
       const dashSize = 3;
@@ -249,16 +282,15 @@ export class Renderer {
 
       // Value label at midpoint
       if (segLen > 30) {
+        const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
         const mx = (fromNode.x + toNode.x) / 2;
         const my = (fromNode.y + toNode.y) / 2;
         ctx.setLineDash([]);
-        ctx.fillStyle = color;
         ctx.font = 'bold 9px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Small background pill
-        const text = String(value);
+        const text = formatWireValue(value, bitWidth);
         const tw = ctx.measureText(text).width + 6;
         ctx.fillStyle = COLORS.background;
         ctx.globalAlpha = 0.8;
@@ -319,18 +351,26 @@ export class Renderer {
       }
     }
 
-    // Build node→net value lookup for free nodes
+    // Build node→net value + bitWidth lookup for free nodes
     const nodeNetValue = new Map<string, number | null>();
+    const nodeNetBitWidth = new Map<string, number>();
     for (const net of circuit.nets.values()) {
       let netValue: number | null = null;
+      let netBw = 1;
       for (const nid of net.nodeIds) {
         const n = circuit.wireNodes.get(nid);
         if (n?.pinId) {
           const p = circuit.pins.get(n.pinId as PinId);
-          if (p && p.value !== null) netValue = p.value;
+          if (p) {
+            if (p.value !== null) netValue = p.value;
+            netBw = p.bitWidth;
+          }
         }
       }
-      for (const nid of net.nodeIds) nodeNetValue.set(nid as string, netValue);
+      for (const nid of net.nodeIds) {
+        nodeNetValue.set(nid as string, netValue);
+        nodeNetBitWidth.set(nid as string, netBw);
+      }
     }
 
     for (const node of circuit.wireNodes.values()) {
@@ -354,7 +394,8 @@ export class Renderer {
 
       // Signal indicator dot inside
       if (value !== null) {
-        ctx.fillStyle = signalColor(value);
+        const bw = pin?.bitWidth ?? nodeNetBitWidth.get(node.id as string) ?? 1;
+        ctx.fillStyle = signalColor(value, bw);
         ctx.beginPath();
         ctx.arc(node.x, node.y, 2.5, 0, Math.PI * 2);
         ctx.fill();
@@ -462,11 +503,10 @@ export class Renderer {
         ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
         ctx.fill();
 
-        if (isHovered) {
-          ctx.strokeStyle = COLORS.selection;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
+        // Stroke ring: color by bit width, highlight on hover
+        ctx.strokeStyle = isHovered ? COLORS.selection : pinStrokeForWidth(pin.bitWidth);
+        ctx.lineWidth = isHovered ? 1.5 : 1;
+        ctx.stroke();
       }
     }
   }
