@@ -73,7 +73,7 @@ function hitTestWireSegment(wx: number, wy: number, state: EditorState): WireSeg
     const a = state.circuit.wireNodes.get(seg.from);
     const b = state.circuit.wireNodes.get(seg.to);
     if (!a || !b) continue;
-    const dist = pointToSegmentDist(wx, wy, a.x, a.y, b.x, b.y);
+    const dist = distToRoutedPath(wx, wy, a.x, a.y, b.x, b.y);
     if (dist < closestDist) {
       closestDist = dist;
       closest = seg.id;
@@ -91,6 +91,37 @@ function pointToSegmentDist(
   if (lenSq === 0) return Math.hypot(px - ax, py - ay);
   const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/** Distance from point to routed path (H/V + diagonal). */
+function distToRoutedPath(
+  px: number, py: number, ax: number, ay: number, bx: number, by: number,
+): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+
+  if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
+    return pointToSegmentDist(px, py, ax, ay, bx, by);
+  }
+
+  const adx = Math.abs(dx);
+  const ady = Math.abs(dy);
+  const sx = Math.sign(dx);
+  const sy = Math.sign(dy);
+
+  let midX: number, midY: number;
+  if (adx > ady) {
+    midX = ax + (adx - ady) * sx;
+    midY = ay;
+  } else {
+    midX = ax;
+    midY = ay + (ady - adx) * sy;
+  }
+
+  return Math.min(
+    pointToSegmentDist(px, py, ax, ay, midX, midY),
+    pointToSegmentDist(px, py, midX, midY, bx, by),
+  );
 }
 
 function rectContainsGate(

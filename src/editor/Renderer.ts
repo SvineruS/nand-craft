@@ -209,6 +209,82 @@ export class Renderer {
     }
   }
 
+  /**
+   * Trace an L-shaped routed path from (ax,ay) to (bx,by) using only
+   * horizontal, vertical, and 45° diagonal segments.
+   * Strategy: horizontal first, then diagonal to align, then vertical.
+   */
+  private traceRoutedPath(ctx: CanvasRenderingContext2D, ax: number, ay: number, bx: number, by: number): void {
+    ctx.moveTo(ax, ay);
+
+    const dx = bx - ax;
+    const dy = by - ay;
+
+    // Already aligned on one axis — straight line
+    if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
+      ctx.lineTo(bx, by);
+      return;
+    }
+
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+    const sx = Math.sign(dx);
+    const sy = Math.sign(dy);
+
+    if (adx > ady) {
+      // Go horizontal first, then diagonal
+      const hLen = adx - ady;
+      const midX = ax + hLen * sx;
+      ctx.lineTo(midX, ay);
+      ctx.lineTo(bx, by);
+    } else {
+      // Go vertical first, then diagonal
+      const vLen = ady - adx;
+      const midY = ay + vLen * sy;
+      ctx.lineTo(ax, midY);
+      ctx.lineTo(bx, by);
+    }
+  }
+
+  /** Get the midpoint of a routed path (matching traceRoutedPath logic). */
+  private routedMidpoint(ax: number, ay: number, bx: number, by: number): { x: number; y: number } {
+    const dx = bx - ax;
+    const dy = by - ay;
+
+    if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
+      return { x: (ax + bx) / 2, y: (ay + by) / 2 };
+    }
+
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+    const sx = Math.sign(dx);
+    const sy = Math.sign(dy);
+
+    // Build the 2 or 3 points of the routed path
+    let midX: number, midY: number;
+    if (adx > ady) {
+      midX = ax + (adx - ady) * sx;
+      midY = ay;
+    } else {
+      midX = ax;
+      midY = ay + (ady - adx) * sy;
+    }
+
+    // Points: A → mid → B. Find midpoint along total path length.
+    const seg1 = Math.hypot(midX - ax, midY - ay);
+    const seg2 = Math.hypot(bx - midX, by - midY);
+    const total = seg1 + seg2;
+    const half = total / 2;
+
+    if (half <= seg1) {
+      const t = seg1 > 0 ? half / seg1 : 0;
+      return { x: ax + (midX - ax) * t, y: ay + (midY - ay) * t };
+    } else {
+      const t = seg2 > 0 ? (half - seg1) / seg2 : 0;
+      return { x: midX + (bx - midX) * t, y: midY + (by - midY) * t };
+    }
+  }
+
   private drawWireSegments(state: EditorState): void {
     const { ctx } = this;
     const { circuit } = state;
@@ -247,10 +323,10 @@ export class Renderer {
       ctx.strokeStyle = segment.color ?? COLORS.wireDefault;
       ctx.lineWidth = thickness;
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.setLineDash([]);
       ctx.beginPath();
-      ctx.moveTo(fromNode.x, fromNode.y);
-      ctx.lineTo(toNode.x, toNode.y);
+      this.traceRoutedPath(ctx, fromNode.x, fromNode.y, toNode.x, toNode.y);
       ctx.stroke();
     }
 
@@ -273,18 +349,19 @@ export class Renderer {
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.setLineDash([dashSize, dashSize]);
       ctx.lineDashOffset = -offset;
       ctx.beginPath();
-      ctx.moveTo(fromNode.x, fromNode.y);
-      ctx.lineTo(toNode.x, toNode.y);
+      this.traceRoutedPath(ctx, fromNode.x, fromNode.y, toNode.x, toNode.y);
       ctx.stroke();
 
-      // Value label at midpoint
+      // Value label at midpoint of routed path
       if (segLen > 30) {
         const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
-        const mx = (fromNode.x + toNode.x) / 2;
-        const my = (fromNode.y + toNode.y) / 2;
+        const mid = this.routedMidpoint(fromNode.x, fromNode.y, toNode.x, toNode.y);
+        const mx = mid.x;
+        const my = mid.y;
         ctx.setLineDash([]);
         ctx.font = 'bold 9px monospace';
         ctx.textAlign = 'center';
@@ -313,9 +390,10 @@ export class Renderer {
       const toNode = circuit.wireNodes.get(segment.to);
       if (!fromNode || !toNode) continue;
 
-      // Position label slightly above midpoint
-      const mx = (fromNode.x + toNode.x) / 2;
-      const my = (fromNode.y + toNode.y) / 2;
+      // Position label slightly above midpoint of routed path
+      const mid = this.routedMidpoint(fromNode.x, fromNode.y, toNode.x, toNode.y);
+      const mx = mid.x;
+      const my = mid.y;
 
       ctx.font = '9px sans-serif';
       ctx.textAlign = 'center';
@@ -569,8 +647,7 @@ export class Renderer {
       const to = circuit.wireNodes.get(seg.to);
       if (!from || !to) continue;
       ctx.beginPath();
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(to.x, to.y);
+      this.traceRoutedPath(ctx, from.x, from.y, to.x, to.y);
       ctx.stroke();
     }
 
@@ -587,8 +664,9 @@ export class Renderer {
       const segLen = Math.hypot(to.x - from.x, to.y - from.y);
       if (segLen < 20) continue;
 
-      const mx = (from.x + to.x) / 2;
-      const my = (from.y + to.y) / 2;
+      const mid = this.routedMidpoint(from.x, from.y, to.x, to.y);
+      const mx = mid.x;
+      const my = mid.y;
 
       ctx.font = 'bold 9px monospace';
       ctx.textAlign = 'center';
@@ -644,18 +722,8 @@ export class Renderer {
           const from = circuit.wireNodes.get(seg.from);
           const to = circuit.wireNodes.get(seg.to);
           if (!from || !to) break;
-          // Draw two thin dashed lines offset on each side of the wire
-          const dx = to.x - from.x;
-          const dy = to.y - from.y;
-          const len = Math.hypot(dx, dy);
-          if (len === 0) break;
-          const nx = (-dy / len) * 5;
-          const ny = (dx / len) * 5;
           ctx.beginPath();
-          ctx.moveTo(from.x + nx, from.y + ny);
-          ctx.lineTo(to.x + nx, to.y + ny);
-          ctx.moveTo(from.x - nx, from.y - ny);
-          ctx.lineTo(to.x - nx, to.y - ny);
+          this.traceRoutedPath(ctx, from.x, from.y, to.x, to.y);
           ctx.stroke();
           break;
         }
@@ -688,10 +756,10 @@ export class Renderer {
     ctx.strokeStyle = wireColor;
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
-    ctx.moveTo(state.wireStart.x, state.wireStart.y);
-    ctx.lineTo(tx, ty);
+    this.traceRoutedPath(ctx, state.wireStart.x, state.wireStart.y, tx, ty);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -810,8 +878,7 @@ export class Renderer {
       const tx = snapToGrid(cursor.x + toNode.dx);
       const ty = snapToGrid(cursor.y + toNode.dy);
       ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(tx, ty);
+      this.traceRoutedPath(ctx, fx, fy, tx, ty);
       ctx.stroke();
     }
 
