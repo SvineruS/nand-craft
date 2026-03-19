@@ -41,7 +41,14 @@ function signalColor(value: number | null, bitWidth = 1): string {
   return multibitGradient(t);
 }
 
-/** Map 0..1 to a rainbow-ish gradient: blue → cyan → green → yellow → orange → magenta */
+/**
+ * Map 0..1 to a rainbow-ish gradient: blue → cyan → green → yellow → orange → magenta.
+ *
+ * Color stops:
+ *  - t=0.0: blue  (60, 130, 255) — represents the minimum multi-bit value (0)
+ *  - t=0.5: cyan/green (250, 220, 80) — midpoint of the value range
+ *  - t=1.0: magenta (255, 100, 220) — represents the maximum multi-bit value
+ */
 function multibitGradient(t: number): string {
   const r = Math.round(lerp3(60, 250, 255, t));
   const g = Math.round(lerp3(130, 220, 100, t));
@@ -212,7 +219,13 @@ export class Renderer {
   /**
    * Trace an L-shaped routed path from (ax,ay) to (bx,by) using only
    * horizontal, vertical, and 45° diagonal segments.
-   * Strategy: horizontal first, then diagonal to align, then vertical.
+   *
+   * Routing strategy:
+   *  - If already axis-aligned or perfectly diagonal: draw a straight line.
+   *  - If horizontal distance > vertical distance: go horizontal first to
+   *    consume the excess, then diagonal to reach the target.
+   *  - Otherwise: go vertical first, then diagonal.
+   * This produces clean two-segment paths (cardinal + 45° diagonal).
    */
   private traceRoutedPath(ctx: CanvasRenderingContext2D, ax: number, ay: number, bx: number, by: number): void {
     ctx.moveTo(ax, ay);
@@ -246,7 +259,12 @@ export class Renderer {
     }
   }
 
-  /** Get the midpoint of a routed path (matching traceRoutedPath logic). */
+  /**
+   * Find the midpoint along the actual routed path length (not the straight-line
+   * midpoint). Computes the two-segment path from traceRoutedPath, measures each
+   * segment's length, then walks exactly half the total distance to place labels
+   * and markers at the visual center of the wire.
+   */
   private routedMidpoint(ax: number, ay: number, bx: number, by: number): { x: number; y: number } {
     const dx = bx - ax;
     const dy = by - ay;
@@ -289,7 +307,12 @@ export class Renderer {
     const { ctx } = this;
     const { circuit } = state;
 
-    // Build node→net value lookup (find any pin value on the same net)
+    // Build node→net value lookup.
+    // Each "net" is a set of wire nodes electrically connected together.
+    // We scan all nodes in each net to find one that is anchored to a gate pin,
+    // then propagate that pin's value and bit width to every node on the same
+    // net. This lets us color wire segments by their signal value even though
+    // only pin-anchored nodes carry values directly.
     const nodeValue = new Map<string, number | null>();
     const nodeBitWidth = new Map<string, number>();
     for (const net of circuit.nets.values()) {

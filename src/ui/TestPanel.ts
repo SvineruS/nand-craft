@@ -1,19 +1,20 @@
 import type { GateId, WireSegmentId, TestResult, Level } from '../types.ts';
 import type { EditorState } from '../editor/EditorState.ts';
 import { GATE_DEFS } from '../editor/geometry.ts';
+import { THEME } from './theme.ts';
 
-const PANEL_BG = '#1e1e2e';
-const HEADER_BG = '#2d2d4d';
-const BORDER_COLOR = '#444466';
-const TEXT_COLOR = '#e0e0e0';
+const PANEL_BG = THEME.bg;
+const HEADER_BG = THEME.surface;
+const BORDER_COLOR = THEME.border;
+const TEXT_COLOR = THEME.text;
 const TEXT_DIM = '#999baf';
-const PASS_COLOR = '#22c55e';
-const FAIL_COLOR = '#ef4444';
+const PASS_COLOR = THEME.pass;
+const FAIL_COLOR = THEME.fail;
 const LABEL_BG = '#252540';
 const CURRENT_BG = 'rgba(96,165,250,0.12)';
 const CURRENT_BORDER = '#60a5fa';
-const BUTTON_BG = '#363650';
-const BUTTON_HOVER = '#44446a';
+const BUTTON_BG = THEME.buttonBg;
+const BUTTON_HOVER = THEME.buttonHover;
 const PROP_BG = '#252540';
 const INPUT_BG = '#1a1a30';
 const INPUT_BORDER = '#4a4a7a';
@@ -300,12 +301,12 @@ export class TestPanel {
 
   private headerCell(text: string, kind?: 'input' | 'expected' | 'actual'): HTMLTableCellElement {
     const th = document.createElement('td');
-    th.textContent = kind === 'expected' ? `exp` : kind === 'actual' ? `act` : text;
+    const displayText = kind === 'expected' ? 'Exp' : kind === 'actual' ? 'Act' : text;
+    th.textContent = displayText;
     if (kind === 'expected' || kind === 'actual') {
       const sub = document.createElement('div');
       sub.textContent = text;
       Object.assign(sub.style, { fontSize: '9px', opacity: '0.7' });
-      th.textContent = kind === 'expected' ? 'Exp' : 'Act';
       th.appendChild(sub);
     }
     const color = kind === 'input' ? '#60a5fa'

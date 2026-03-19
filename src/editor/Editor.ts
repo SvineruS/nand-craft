@@ -42,14 +42,7 @@ export class Editor {
     this.renderer = new Renderer(this.canvas);
 
     // InputHandler needs getState/setState callbacks
-    this.input = new InputHandler(
-      this.canvas,
-      () => this.state,
-      (fn) => { fn(this.state); },
-      this.history,
-      this.renderer,
-    );
-    this.input.attach();
+    this.input = this.rebuildInputHandler();
 
     // Start render loop
     this.renderer.startLoop(() => this.state);
@@ -69,15 +62,7 @@ export class Editor {
     this.history = this.createHistory();
 
     // Rebuild input handler with new history
-    this.input.detach();
-    this.input = new InputHandler(
-      this.canvas,
-      () => this.state,
-      (fn) => { fn(this.state); },
-      this.history,
-      this.renderer,
-    );
-    this.input.attach();
+    this.input = this.rebuildInputHandler();
 
     // Stop simulation if running
     if (this.simulationInterval !== null) {
@@ -122,15 +107,7 @@ export class Editor {
 
     // Reset history again so the input/output gate placements aren't undoable
     this.history = this.createHistory();
-    this.input.detach();
-    this.input = new InputHandler(
-      this.canvas,
-      () => this.state,
-      (fn) => { fn(this.state); },
-      this.history,
-      this.renderer,
-    );
-    this.input.attach();
+    this.input = this.rebuildInputHandler();
 
     this.state.dirty = true;
   }
@@ -322,6 +299,21 @@ export class Editor {
       clearInterval(this.simulationInterval);
       this.simulationInterval = null;
     }
+  }
+
+  private rebuildInputHandler(): InputHandler {
+    if (this.input) {
+      this.input.detach();
+    }
+    const handler = new InputHandler(
+      this.canvas,
+      () => this.state,
+      (fn) => { fn(this.state); },
+      this.history,
+      this.renderer,
+    );
+    handler.attach();
+    return handler;
   }
 
   private createHistory(): CommandHistory {

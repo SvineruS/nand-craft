@@ -1,12 +1,13 @@
 import type { GateType } from '../types.ts';
 import { GATE_DEFS } from '../editor/geometry.ts';
+import { THEME } from './theme.ts';
 
-const SIDEBAR_BG = '#1e1e2e';
-const ITEM_BG = '#2d2d4d';
-const ITEM_HOVER = '#3d3d5d';
-const ITEM_TEXT = '#e0e0e0';
-const ITEM_DESC = '#9ca3af';
-const BORDER_COLOR = '#444466';
+const SIDEBAR_BG = THEME.bg;
+const ITEM_BG = THEME.surface;
+const ITEM_HOVER = THEME.surfaceHover;
+const ITEM_TEXT = THEME.text;
+const ITEM_DESC = THEME.textDim;
+const BORDER_COLOR = THEME.border;
 
 export class Sidebar {
   readonly element: HTMLElement;
@@ -74,6 +75,9 @@ export class Sidebar {
     el.addEventListener('mouseenter', () => { el.style.background = ITEM_HOVER; });
     el.addEventListener('mouseleave', () => { el.style.background = ITEM_BG; });
 
+    // Track whether a drag occurred so we can distinguish a click (stamp) from
+    // a drag-start. On mousedown we reset the flag; dragstart sets it to true.
+    // The click handler only fires onStamp if no drag happened.
     let didDrag = false;
     el.addEventListener('mousedown', () => { didDrag = false; });
     el.addEventListener('dragstart', (e) => {

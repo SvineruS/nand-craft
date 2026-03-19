@@ -1,12 +1,13 @@
 import type { Level } from '../types.ts';
+import { THEME } from './theme.ts';
 
 const OVERLAY_BG = 'rgba(0,0,0,0.7)';
-const CARD_BG = '#2d2d4d';
-const CARD_BORDER = '#444466';
-const TEXT_COLOR = '#e0e0e0';
+const CARD_BG = THEME.surface;
+const CARD_BORDER = THEME.border;
+const TEXT_COLOR = THEME.text;
 const TEXT_DIM = '#999baf';
-const ACCENT_COLOR = '#3b82f6';
-const ACCENT_HOVER = '#2563eb';
+const ACCENT_COLOR = THEME.accent;
+const ACCENT_HOVER = THEME.accentHover;
 
 function createStyledButton(
   label: string,

@@ -1,11 +1,12 @@
 import type { EditorState } from '../editor/EditorState.ts';
 import { WIRE_COLORS } from '../editor/EditorState.ts';
+import { THEME } from './theme.ts';
 
-const TOOLBAR_BG = '#1e1e2e';
-const BUTTON_BG = '#363650';
-const BUTTON_HOVER = '#44446a';
-const BUTTON_TEXT = '#e0e0e0';
-const SEPARATOR_COLOR = '#444466';
+const TOOLBAR_BG = THEME.bg;
+const BUTTON_BG = THEME.buttonBg;
+const BUTTON_HOVER = THEME.buttonHover;
+const BUTTON_TEXT = THEME.text;
+const SEPARATOR_COLOR = THEME.border;
 
 function createButton(label: string, title?: string): HTMLButtonElement {
   const btn = document.createElement('button');

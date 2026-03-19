@@ -10,10 +10,12 @@ export interface ISimulationEngine {
 export class SimulationEngine implements ISimulationEngine {
   /**
    * Execute one simulation tick:
-   * 1. Set input gate pin values from the inputs map
-   * 2. Build nets and propagate combinational logic
-   * 3. Advance delay gates (output = previous state, store current input)
-   * 4. Return output gate values
+   * 1. Save constant gate values, then reset all pins to null
+   * 2. Set input gate pin values from the inputs map
+   * 3. Restore constant gate values
+   * 4. Build nets and propagate combinational logic
+   * 5. Advance delay gates (output = previous state, store current input)
+   * 6. Collect and return output gate values
    */
   tick(circuit: Circuit, inputs: Map<GateId, number>): Map<GateId, number | null> {
     // 1. Save constant gate values, then reset all pins to null
@@ -50,7 +52,7 @@ export class SimulationEngine implements ISimulationEngine {
     buildNets(circuit);
     propagate(circuit);
 
-    // 3. Advance delay gates
+    // 5. Advance delay gates
     for (const gate of circuit.gates.values()) {
       if (gate.type !== 'delay') continue;
 
@@ -66,7 +68,7 @@ export class SimulationEngine implements ISimulationEngine {
       circuit.delayState.set(gate.id, inputPin?.value ?? null);
     }
 
-    // 4. Collect and return output gate values
+    // 6. Collect and return output gate values
     const outputs = new Map<GateId, number | null>();
     for (const gate of circuit.gates.values()) {
       if (gate.type !== 'output') continue;

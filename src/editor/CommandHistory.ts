@@ -1,4 +1,5 @@
 import type {
+  Circuit,
   Gate,
   GateId,
   GateType,
@@ -321,14 +322,7 @@ export class RotateGatesCommand implements Command {
     for (const gateId of this.gateIds) {
       const gate = circuit.gates.get(gateId);
       if (!gate) continue;
-      const positions = getPinPositions(gate);
-      for (const [pinId, pos] of positions) {
-        for (const node of circuit.wireNodes.values()) {
-          if (node.pinId === (pinId as unknown as PinId)) {
-            node.x = pos.x; node.y = pos.y;
-          }
-        }
-      }
+      this.updateAnchoredNodes(gate, circuit);
     }
     this.state.dirty = true;
   }
@@ -346,14 +340,7 @@ export class RotateGatesCommand implements Command {
         if (!gate) continue;
         this.savedGatePositions.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
         gate.rotation = rotateBy(gate.rotation, degrees);
-        const positions = getPinPositions(gate);
-        for (const [pinId, pos] of positions) {
-          for (const node of circuit.wireNodes.values()) {
-            if (node.pinId === (pinId as unknown as PinId)) {
-              node.x = pos.x; node.y = pos.y;
-            }
-          }
-        }
+        this.updateAnchoredNodes(gate, circuit);
       }
       this.state.dirty = true;
       return;
@@ -394,14 +381,7 @@ export class RotateGatesCommand implements Command {
       gate.y = snap(newCy - dims.h / 2);
       gate.rotation = rotateBy(gate.rotation, degrees);
 
-      const positions = getPinPositions(gate);
-      for (const [pinId, pos] of positions) {
-        for (const node of circuit.wireNodes.values()) {
-          if (node.pinId === (pinId as unknown as PinId)) {
-            node.x = pos.x; node.y = pos.y;
-          }
-        }
-      }
+      this.updateAnchoredNodes(gate, circuit);
     }
 
     // Rotate free wire nodes
@@ -416,6 +396,17 @@ export class RotateGatesCommand implements Command {
     }
 
     this.state.dirty = true;
+  }
+
+  private updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
+    const positions = getPinPositions(gate);
+    for (const [pinId, pos] of positions) {
+      for (const node of circuit.wireNodes.values()) {
+        if (node.pinId === (pinId as unknown as PinId)) {
+          node.x = pos.x; node.y = pos.y;
+        }
+      }
+    }
   }
 }
 

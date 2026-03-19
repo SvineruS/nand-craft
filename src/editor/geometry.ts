@@ -192,11 +192,13 @@ export function getPinPositions(
   const allPinIds = [...gate.inputPins, ...gate.outputPins];
   const defPins = def.pins;
 
+  // Guard: iterate only up to the lesser count in case the gate instance has
+  // fewer runtime pins than the definition declares (e.g. dynamically configured components).
   for (let i = 0; i < Math.min(allPinIds.length, defPins.length); i++) {
     const pinDef = defPins[i];
-    const lx = gate.x + pinDef.x * GRID_SIZE;
-    const ly = gate.y + pinDef.y * GRID_SIZE;
-    const rotated = rotatePoint(lx, ly, cx, cy, gate.rotation);
+    const pinWorldX = gate.x + pinDef.x * GRID_SIZE;
+    const pinWorldY = gate.y + pinDef.y * GRID_SIZE;
+    const rotated = rotatePoint(pinWorldX, pinWorldY, cx, cy, gate.rotation);
     result.set(allPinIds[i], rotated);
   }
 
