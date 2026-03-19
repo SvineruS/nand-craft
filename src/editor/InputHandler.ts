@@ -150,6 +150,7 @@ export class InputHandler {
   private dragAccDy = 0;
   private isDraggingGates = false;
   private isDraggingDisconnected = false;
+  private didDragMove = false;
   private isWiring = false;
   private wireStartWorldX = 0;
   private wireStartWorldY = 0;
@@ -619,7 +620,13 @@ export class InputHandler {
     if (this.isDraggingNode) {
       const dragId = this.isDraggingNode;
       const node = state.circuit.wireNodes.get(dragId);
-      if (node) { node.x = snapToGrid(world.x); node.y = snapToGrid(world.y); }
+      if (node) {
+        const newX = snapToGrid(world.x);
+        const newY = snapToGrid(world.y);
+        if (newX !== node.x || newY !== node.y) this.didDragMove = true;
+        node.x = newX;
+        node.y = newY;
+      }
       this.setState((s) => {
         s.hoveredEndpoint = hitTestEndpoint(world.x, world.y, s, dragId);
         s.dirty = true;
@@ -703,14 +710,12 @@ export class InputHandler {
     if (this.isDraggingNode) {
       const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
       const draggedNodeId = this.isDraggingNode;
+      const didMove = this.didDragMove;
       this.isDraggingNode = null;
+      this.didDragMove = false;
 
       // No drag movement? Try merge (2-segment node removal)
-      const draggedNode = state.circuit.wireNodes.get(draggedNodeId);
-      if (draggedNode) {
-        const movedDist = Math.hypot(draggedNode.x - snapToGrid(this.lastWorldX), draggedNode.y - snapToGrid(this.lastWorldY));
-        if (movedDist < 2 && this.tryMergeWireNode(state, draggedNodeId)) return;
-      }
+      if (!didMove && this.tryMergeWireNode(state, draggedNodeId)) return;
 
       const targetPin = hitTestEndpoint(world.x, world.y, state, draggedNodeId);
 
@@ -1120,13 +1125,15 @@ export class InputHandler {
     const seg0 = state.circuit.wireSegments.get(connected[0].segId);
     const color = seg0?.color;
 
-    // Remove both segments and the node
-    this.history.execute(new RemoveWireSegmentCommand(state, connected[0].segId));
-    this.history.execute(new RemoveWireSegmentCommand(state, connected[1].segId));
-    state.circuit.wireNodes.delete(nodeId);
+    // Save other endpoint IDs before removal (RemoveWireSegmentCommand may clean up the node)
+    const otherId0 = connected[0].otherId;
+    const otherId1 = connected[1].otherId;
+
+    // Remove the node and its segments (orphan cleanup handles the node itself)
+    this.history.execute(new RemoveWireNodeCommand(state, nodeId));
 
     // Create a new segment connecting the two remaining endpoints
-    this.addSegmentIfNew(state, connected[0].otherId, connected[1].otherId, color);
+    this.addSegmentIfNew(state, otherId0, otherId1, color);
     this.setState((s) => { s.dirty = true; });
     return true;
   }

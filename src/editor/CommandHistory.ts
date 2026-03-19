@@ -144,6 +144,7 @@ export class RemoveGateCommand implements Command {
   private pins: Pin[] = [];
   private removedNodes: WireNode[] = [];
   private removedSegments: WireSegment[] = [];
+  private removedOrphanNodes: WireNode[] = [];
 
   constructor(state: EditorState, gateId: GateId) {
     this.state = state;
@@ -189,6 +190,13 @@ export class RemoveGateCommand implements Command {
       }
     }
 
+    // Collect neighbor node IDs (other endpoints of removed segments)
+    const neighborNodeIds = new Set<string>();
+    for (const seg of this.removedSegments) {
+      if (!nodeIdsToRemove.has(seg.from as string)) neighborNodeIds.add(seg.from as string);
+      if (!nodeIdsToRemove.has(seg.to as string)) neighborNodeIds.add(seg.to as string);
+    }
+
     // Delete in order: segments, nodes, pins, gate
     for (const seg of this.removedSegments) {
       circuit.wireSegments.delete(seg.id);
@@ -200,11 +208,31 @@ export class RemoveGateCommand implements Command {
       circuit.pins.delete(pin.id);
     }
     circuit.gates.delete(this.gateId);
+
+    // Clean up orphaned free neighbor nodes
+    this.removedOrphanNodes = [];
+    for (const nid of neighborNodeIds) {
+      const neighbor = circuit.wireNodes.get(nid as WireNodeId);
+      if (!neighbor || neighbor.pinId) continue;
+      let hasSegments = false;
+      for (const s of circuit.wireSegments.values()) {
+        if (s.from === nid || s.to === nid) { hasSegments = true; break; }
+      }
+      if (!hasSegments) {
+        this.removedOrphanNodes.push({ ...neighbor });
+        circuit.wireNodes.delete(nid as WireNodeId);
+      }
+    }
+
     this.state.dirty = true;
   }
 
   undo(): void {
     const { circuit } = this.state;
+    // Restore orphaned nodes first
+    for (const node of this.removedOrphanNodes) {
+      circuit.wireNodes.set(node.id, node);
+    }
     if (this.gate) circuit.gates.set(this.gateId, this.gate);
     for (const pin of this.pins) {
       circuit.pins.set(pin.id, pin);
@@ -449,6 +477,7 @@ export class RemoveWireNodeCommand implements Command {
   private nodeId: WireNodeId;
   private node: WireNode | null = null;
   private removedSegments: WireSegment[] = [];
+  private removedOrphanNodes: WireNode[] = [];
 
   constructor(state: EditorState, nodeId: WireNodeId) {
     this.state = state;
@@ -463,9 +492,13 @@ export class RemoveWireNodeCommand implements Command {
 
     // Remove all connected segments
     this.removedSegments = [];
+    const neighborNodeIds = new Set<string>();
     for (const seg of circuit.wireSegments.values()) {
       if (seg.from === this.nodeId || seg.to === this.nodeId) {
         this.removedSegments.push({ ...seg });
+        // Track the other endpoint
+        const otherId = seg.from === this.nodeId ? seg.to : seg.from;
+        if (otherId !== this.nodeId) neighborNodeIds.add(otherId as string);
       }
     }
     for (const seg of this.removedSegments) {
@@ -473,11 +506,31 @@ export class RemoveWireNodeCommand implements Command {
     }
 
     circuit.wireNodes.delete(this.nodeId);
+
+    // Clean up orphaned free neighbor nodes
+    this.removedOrphanNodes = [];
+    for (const nid of neighborNodeIds) {
+      const neighbor = circuit.wireNodes.get(nid as WireNodeId);
+      if (!neighbor || neighbor.pinId) continue;
+      let hasSegments = false;
+      for (const s of circuit.wireSegments.values()) {
+        if (s.from === nid || s.to === nid) { hasSegments = true; break; }
+      }
+      if (!hasSegments) {
+        this.removedOrphanNodes.push({ ...neighbor });
+        circuit.wireNodes.delete(nid as WireNodeId);
+      }
+    }
+
     this.state.dirty = true;
   }
 
   undo(): void {
     const { circuit } = this.state;
+    // Restore orphaned nodes first
+    for (const node of this.removedOrphanNodes) {
+      circuit.wireNodes.set(node.id, node);
+    }
     if (this.node) circuit.wireNodes.set(this.nodeId, this.node);
     for (const seg of this.removedSegments) {
       circuit.wireSegments.set(seg.id, seg);
