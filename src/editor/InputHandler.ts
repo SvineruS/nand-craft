@@ -283,10 +283,11 @@ export class InputHandler {
         this.startDisconnectDrag(state, gateHit, world.x, world.y);
         return;
       }
-      // Wire node or pin → drag
+      // Wire node: if exactly 2 segments, merge them; else drag
       const ep = hitTestEndpoint(world.x, world.y, state);
       if (ep) {
         if (ep.kind === 'node') {
+          if (this.tryMergeWireNode(state, ep.nodeId)) return;
           this.isDraggingNode = ep.nodeId;
           this.lastWorldX = world.x;
           this.lastWorldY = world.y;
@@ -323,8 +324,11 @@ export class InputHandler {
       return;
     }
 
-    // Shift+left: disconnect drag if over gate, else pan
+    // Shift+left: merge wire node / disconnect drag gate / pan
     if (e.button === 0 && e.shiftKey) {
+      const ep = hitTestEndpoint(world.x, world.y, state);
+      if (ep && ep.kind === 'node' && this.tryMergeWireNode(state, ep.nodeId)) return;
+
       const gateHit = hitTestGate(world.x, world.y, state);
       if (gateHit) {
         this.startDisconnectDrag(state, gateHit, world.x, world.y);
@@ -1025,6 +1029,35 @@ export class InputHandler {
   }
 
   /** Find a wire node anchored to this pin that has connected segments. */
+  /** If a free wire node has exactly 2 segments, remove the node and join the segments. Returns true if merged. */
+  private tryMergeWireNode(state: EditorState, nodeId: WireNodeId): boolean {
+    const node = state.circuit.wireNodes.get(nodeId);
+    if (!node || node.pinId) return false; // only free nodes
+
+    // Find connected segments
+    const connected: { segId: WireSegmentId; otherId: WireNodeId }[] = [];
+    for (const seg of state.circuit.wireSegments.values()) {
+      if (seg.from === nodeId) connected.push({ segId: seg.id, otherId: seg.to });
+      else if (seg.to === nodeId) connected.push({ segId: seg.id, otherId: seg.from });
+    }
+
+    if (connected.length !== 2) return false;
+
+    // Get color from either segment
+    const seg0 = state.circuit.wireSegments.get(connected[0].segId);
+    const color = seg0?.color;
+
+    // Remove both segments and the node
+    this.history.execute(new RemoveWireSegmentCommand(state, connected[0].segId));
+    this.history.execute(new RemoveWireSegmentCommand(state, connected[1].segId));
+    state.circuit.wireNodes.delete(nodeId);
+
+    // Create a new segment connecting the two remaining endpoints
+    this.addSegmentIfNew(state, connected[0].otherId, connected[1].otherId, color);
+    this.setState((s) => { s.dirty = true; });
+    return true;
+  }
+
   /** Start a disconnect drag: select gate, detach pin nodes, begin dragging. */
   private startDisconnectDrag(state: EditorState, gateId: GateId, wx: number, wy: number): void {
     this.setState((s) => { s.selection = [{ type: 'gate', id: gateId }]; });
