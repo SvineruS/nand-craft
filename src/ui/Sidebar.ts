@@ -8,12 +8,11 @@ const ITEM_TEXT = '#e0e0e0';
 const ITEM_DESC = '#9ca3af';
 const BORDER_COLOR = '#444466';
 
-/** Currently dragged gate type — set on dragstart, cleared on dragend. */
-export let draggingGateType: GateType | null = null;
-
 export class Sidebar {
   readonly element: HTMLElement;
   onStamp: ((type: GateType) => void) | null = null;
+  onDragStart: ((type: GateType) => void) | null = null;
+  onDragEnd: (() => void) | null = null;
 
   constructor() {
     const panel = document.createElement('div');
@@ -89,11 +88,11 @@ export class Sidebar {
       e.dataTransfer.setDragImage(empty, 0, 0);
       requestAnimationFrame(() => document.body.removeChild(empty));
       el.style.opacity = '0.6';
-      draggingGateType = type;
+      this.onDragStart?.(type);
     });
     el.addEventListener('dragend', () => {
       el.style.opacity = '1';
-      draggingGateType = null;
+      this.onDragEnd?.();
     });
     el.addEventListener('click', () => {
       if (!didDrag) this.onStamp?.(type);

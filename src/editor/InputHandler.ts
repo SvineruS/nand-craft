@@ -2,7 +2,6 @@ import type { GateId, PinId, WireNodeId, WireSegmentId, Gate } from '../types.ts
 import type { EditorState, PlaceableType, ClipboardGate, ClipboardNode, ClipboardWire } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
-import { draggingGateType } from '../ui/Sidebar.ts';
 import type { WireEndpoint } from './geometry.ts';
 import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
 import {
@@ -17,9 +16,10 @@ import {
   AddWireSegmentCommand,
 } from './CommandHistory.ts';
 
-const PIN_HIT_RADIUS = 10;
-const WIRE_HIT_DIST = 8;
-const MIN_WIRE_DRAG = 5;
+// Interaction thresholds (pixels in world space)
+const HIT_RADIUS = 10;       // pin / wire node click target
+const WIRE_HIT_DIST = 8;     // wire segment click target
+const MIN_WIRE_DRAG = 5;     // minimum drag to create wire (prevents accidental wires on dblclick)
 
 // ---------------------------------------------------------------------------
 // Hit testing
@@ -38,7 +38,7 @@ function hitTestGate(wx: number, wy: number, state: EditorState): GateId | null 
 /** Unified hit test — finds the closest pin or free wire node within radius. */
 function hitTestEndpoint(wx: number, wy: number, state: EditorState, excludeNode?: WireNodeId): WireEndpoint | null {
   let best: WireEndpoint | null = null;
-  let bestDist = PIN_HIT_RADIUS;
+  let bestDist = HIT_RADIUS;
 
   // Check free wire nodes
   for (const node of state.circuit.wireNodes.values()) {
@@ -53,7 +53,7 @@ function hitTestEndpoint(wx: number, wy: number, state: EditorState, excludeNode
 
   // Check pins (computed positions)
   for (const gate of state.circuit.gates.values()) {
-    const positions = getPinPositions(gate, state.circuit.pins);
+    const positions = getPinPositions(gate);
     for (const [pinId, pos] of positions) {
       const dist = Math.hypot(wx - pos.x, wy - pos.y);
       if (dist < bestDist) {
@@ -194,7 +194,7 @@ export class InputHandler {
     e.dataTransfer.dropEffect = 'copy';
     const state = this.getState();
     const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
-    const previewType = (draggingGateType ?? 'nand') as PlaceableType;
+    const previewType = (state.stampGateType ?? 'nand') as PlaceableType;
     const def = GATE_DEFS[previewType];
     const cx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
     const cy = snapToGrid(world.y - def.height * GRID_SIZE / 2);

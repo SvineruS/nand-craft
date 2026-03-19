@@ -11,6 +11,11 @@ import type {
 } from '../types.ts';
 import { generateId } from '../types.ts';
 
+/** Gate types that are part of the combinational subgraph. */
+const COMBINATIONAL_TYPES = new Set([
+  'nand', 'and', 'or', 'nor', 'not', 'constant', 'tristate', 'splitter', 'joiner',
+]);
+
 // --- Union-Find for building nets ---
 
 class UnionFind<T> {
@@ -197,13 +202,11 @@ export function resolveNets(circuit: Circuit): NetId[] {
  * Returns sorted gate IDs.
  */
 export function topologicalSort(circuit: Circuit): GateId[] {
-  const combinationalTypes = new Set(['nand', 'and', 'or', 'nor', 'not', 'constant', 'tristate', 'splitter', 'joiner']);
-
   // Build adjacency: for combinational gates, find which gates feed into which
   // A gate A feeds gate B if A has an output pin connected (via net) to an input pin of B
   const combGateIds = new Set<GateId>();
   for (const gate of circuit.gates.values()) {
-    if (combinationalTypes.has(gate.type)) {
+    if (COMBINATIONAL_TYPES.has(gate.type)) {
       combGateIds.add(gate.id);
     }
   }
@@ -281,11 +284,9 @@ export function topologicalSort(circuit: Circuit): GateId[] {
  * Returns arrays of gate IDs forming cycles.
  */
 export function detectCycles(circuit: Circuit): GateId[][] {
-  const combinationalTypes = new Set(['nand', 'and', 'or', 'nor', 'not', 'constant', 'tristate', 'splitter', 'joiner']);
-
   const combGateIds = new Set<GateId>();
   for (const gate of circuit.gates.values()) {
-    if (combinationalTypes.has(gate.type)) {
+    if (COMBINATIONAL_TYPES.has(gate.type)) {
       combGateIds.add(gate.id);
     }
   }
@@ -385,77 +386,72 @@ export function detectCycles(circuit: Circuit): GateId[][] {
 }
 
 /**
+ * Evaluate a binary gate (2 inputs, 1 output) with the given operation.
+ * If either input is null, the output is null.
+ */
+function evaluateBinaryGate(
+  gate: Gate,
+  pins: Map<PinId, Pin>,
+  op: (a: number, b: number, mask: number) => number,
+): void {
+  const inA = pins.get(gate.inputPins[0]);
+  const inB = pins.get(gate.inputPins[1]);
+  const out = pins.get(gate.outputPins[0]);
+  if (!inA || !inB || !out) return;
+
+  if (inA.value === null || inB.value === null) {
+    out.value = null;
+  } else {
+    const mask = ((1 << out.bitWidth) >>> 0) - 1;
+    out.value = op(inA.value, inB.value, mask);
+  }
+}
+
+/**
+ * Evaluate a unary gate (1 input, 1 output) with the given operation.
+ * If the input is null, the output is null.
+ */
+function evaluateUnaryGate(
+  gate: Gate,
+  pins: Map<PinId, Pin>,
+  op: (a: number, mask: number) => number,
+): void {
+  const input = pins.get(gate.inputPins[0]);
+  const out = pins.get(gate.outputPins[0]);
+  if (!input || !out) return;
+
+  if (input.value === null) {
+    out.value = null;
+  } else {
+    const mask = ((1 << out.bitWidth) >>> 0) - 1;
+    out.value = op(input.value, mask);
+  }
+}
+
+/**
  * Evaluate a single gate based on its type.
  */
 export function evaluateGate(gate: Gate, pins: Map<PinId, Pin>): void {
   switch (gate.type) {
-    case 'nand': {
-      const inA = pins.get(gate.inputPins[0]);
-      const inB = pins.get(gate.inputPins[1]);
-      const out = pins.get(gate.outputPins[0]);
-      if (!inA || !inB || !out) return;
-
-      if (inA.value === null || inB.value === null) {
-        out.value = null;
-      } else {
-        const mask = ((1 << out.bitWidth) >>> 0) - 1;
-        out.value = (~(inA.value & inB.value) & mask) >>> 0;
-      }
+    case 'nand':
+      evaluateBinaryGate(gate, pins, (a, b, mask) => (~(a & b) & mask) >>> 0);
       break;
-    }
 
-    case 'and': {
-      const inA = pins.get(gate.inputPins[0]);
-      const inB = pins.get(gate.inputPins[1]);
-      const out = pins.get(gate.outputPins[0]);
-      if (!inA || !inB || !out) return;
-      if (inA.value === null || inB.value === null) {
-        out.value = null;
-      } else {
-        out.value = inA.value & inB.value;
-      }
+    case 'and':
+      evaluateBinaryGate(gate, pins, (a, b) => a & b);
       break;
-    }
 
-    case 'or': {
-      const inA = pins.get(gate.inputPins[0]);
-      const inB = pins.get(gate.inputPins[1]);
-      const out = pins.get(gate.outputPins[0]);
-      if (!inA || !inB || !out) return;
-      if (inA.value === null || inB.value === null) {
-        out.value = null;
-      } else {
-        out.value = inA.value | inB.value;
-      }
+    case 'or':
+      evaluateBinaryGate(gate, pins, (a, b) => a | b);
       break;
-    }
 
-    case 'nor': {
-      const inA = pins.get(gate.inputPins[0]);
-      const inB = pins.get(gate.inputPins[1]);
-      const out = pins.get(gate.outputPins[0]);
-      if (!inA || !inB || !out) return;
-      if (inA.value === null || inB.value === null) {
-        out.value = null;
-      } else {
-        const mask = ((1 << out.bitWidth) >>> 0) - 1;
-        out.value = (~(inA.value | inB.value) & mask) >>> 0;
-      }
+    case 'nor':
+      evaluateBinaryGate(gate, pins, (a, b, mask) => (~(a | b) & mask) >>> 0);
       break;
-    }
 
-    case 'not': {
-      const input = pins.get(gate.inputPins[0]);
-      const out = pins.get(gate.outputPins[0]);
-      if (!input || !out) return;
-      if (input.value === null) {
-        out.value = null;
-      } else {
-        const mask = ((1 << out.bitWidth) >>> 0) - 1;
-        out.value = (~input.value & mask) >>> 0;
-      }
+    case 'not':
+      evaluateUnaryGate(gate, pins, (a, mask) => (~a & mask) >>> 0);
       break;
-    }
 
     case 'constant': {
       // Constant gate always outputs its stored value (default 0)

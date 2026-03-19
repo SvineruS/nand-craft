@@ -11,7 +11,7 @@ import type {
 } from '../types.ts';
 import { generateId } from '../types.ts';
 import type { EditorState } from './EditorState.ts';
-import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
+import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, findNodeForPin, getAnchoredNodeIds, rotateBy } from './geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -361,7 +361,7 @@ export class RotateGatesCommand implements Command {
     for (const gateId of this.gateIds) {
       const gate = circuit.gates.get(gateId);
       if (!gate) continue;
-      const positions = getPinPositions(gate, circuit.pins);
+      const positions = getPinPositions(gate);
       for (const [pinId, pos] of positions) {
         for (const node of circuit.wireNodes.values()) {
           if (node.pinId === (pinId as unknown as PinId)) {
@@ -385,8 +385,8 @@ export class RotateGatesCommand implements Command {
         const gate = circuit.gates.get(gateId);
         if (!gate) continue;
         this.savedGatePositions.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
-        gate.rotation = (((gate.rotation + degrees) % 360 + 360) % 360) as 0 | 90 | 180 | 270;
-        const positions = getPinPositions(gate, circuit.pins);
+        gate.rotation = rotateBy(gate.rotation, degrees);
+        const positions = getPinPositions(gate);
         for (const [pinId, pos] of positions) {
           for (const node of circuit.wireNodes.values()) {
             if (node.pinId === (pinId as unknown as PinId)) {
@@ -432,9 +432,9 @@ export class RotateGatesCommand implements Command {
       const newCy = cy + dx * sin + dy * cos;
       gate.x = snap(newCx - dims.w / 2);
       gate.y = snap(newCy - dims.h / 2);
-      gate.rotation = (((gate.rotation + degrees) % 360 + 360) % 360) as 0 | 90 | 180 | 270;
+      gate.rotation = rotateBy(gate.rotation, degrees);
 
-      const positions = getPinPositions(gate, circuit.pins);
+      const positions = getPinPositions(gate);
       for (const [pinId, pos] of positions) {
         for (const node of circuit.wireNodes.values()) {
           if (node.pinId === (pinId as unknown as PinId)) {
@@ -670,7 +670,7 @@ export class ConnectPinsCommand implements Command {
     const gate = circuit.gates.get(pin.gateId);
     if (!gate) return null;
 
-    const positions = getPinPositions(gate, circuit.pins);
+    const positions = getPinPositions(gate);
     const pos = positions.get(pinId);
     if (!pos) return null;
 

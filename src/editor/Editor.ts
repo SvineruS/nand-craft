@@ -11,7 +11,6 @@ import { Renderer } from './Renderer.ts';
 import { InputHandler } from './InputHandler.ts';
 import { CommandHistory, AddGateCommand } from './CommandHistory.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
-import { buildNets } from '../simulation/evaluate.ts';
 import { runLevel } from '../levels/runner.ts';
 import { GRID_SIZE } from './geometry.ts';
 
@@ -245,11 +244,6 @@ export class Editor {
       this.state.circuit.delayState.clear();
     }
 
-    // Build nets and detect short circuits before simulation
-    buildNets(this.state.circuit);
-    const cycles = this.engine.detectShortCircuits(this.state.circuit);
-    this.state.shortCircuitGates = cycles.flat();
-
     const cases = level.test.cases;
     if (!cases || !cases[caseIndex]) {
       return { passed: false, caseIndex, message: 'Case not found' };
@@ -276,8 +270,12 @@ export class Editor {
       }
     }
 
-    // Tick the live circuit and detect contention
+    // Tick the live circuit (buildNets + propagate happen inside tick)
     this.engine.tick(this.state.circuit, inputs);
+
+    // Detect errors after tick (nets are now built)
+    const cycles = this.engine.detectShortCircuits(this.state.circuit);
+    this.state.shortCircuitGates = cycles.flat();
     this.state.contentionNets = this.detectContention();
     this.state.dirty = true;
 

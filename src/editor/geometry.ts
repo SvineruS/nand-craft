@@ -1,4 +1,4 @@
-import type { Circuit, Gate, GateId, GateType, PinId, WireNodeId, Pin } from '../types.ts';
+import type { Circuit, Gate, GateId, GateType, PinId, WireNodeId } from '../types.ts';
 
 export const GRID_SIZE = 20;
 
@@ -169,7 +169,6 @@ export function getGateDims(gate: Gate): { w: number; h: number } {
  */
 export function getPinPositions(
   gate: Gate,
-  _pins: Map<PinId, Pin>,
 ): Map<PinId, { x: number; y: number }> {
   const result = new Map<PinId, { x: number; y: number }>();
   const { w, h } = getGateDims(gate);
@@ -231,6 +230,10 @@ export function rotatePoint(
     case 270: return { x: cx + dy, y: cy - dx };
     default: return { x: px, y: py };
   }
+}
+
+export function rotateBy(current: 0|90|180|270, degrees: number): 0|90|180|270 {
+  return (((current + degrees) % 360 + 360) % 360) as 0|90|180|270;
 }
 
 export function snapToGrid(v: number): number {

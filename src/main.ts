@@ -10,14 +10,6 @@ import './style.css';
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = '';
 
-Object.assign(app.style, {
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100vh',
-  width: '100vw',
-  overflow: 'hidden',
-});
-
 const editorContainer = document.createElement('div');
 editorContainer.id = 'editor-container';
 Object.assign(editorContainer.style, {
@@ -33,6 +25,12 @@ sidebar.onStamp = (type) => {
   state.stampGateType = type;
   state.pasteMode = false;
   state.dirty = true;
+};
+sidebar.onDragStart = (type) => {
+  editor.getState().stampGateType = type;
+};
+sidebar.onDragEnd = () => {
+  editor.getState().stampGateType = null;
 };
 const levelDialog = new LevelDialog();
 

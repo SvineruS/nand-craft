@@ -449,7 +449,7 @@ export class Renderer {
     const { circuit } = state;
 
     for (const gate of circuit.gates.values()) {
-      const positions = getPinPositions(gate, circuit.pins);
+      const positions = getPinPositions(gate);
       for (const [pinId, pos] of positions) {
         const pin = circuit.pins.get(pinId);
         if (!pin) continue;
