@@ -1,6 +1,6 @@
 import { currentLevel, levelDialogVisible } from './editorStore.ts';
 
-export function LevelDialog({ onStart }: { onStart: () => void }) {
+export function LevelDialog() {
   const level = currentLevel.value;
   const visible = levelDialogVisible.value;
 
@@ -26,7 +26,6 @@ export function LevelDialog({ onStart }: { onStart: () => void }) {
             class="level-dialog-start-btn"
             onClick={() => {
               levelDialogVisible.value = false;
-              onStart();
             }}
           >
             Start

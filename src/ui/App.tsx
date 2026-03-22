@@ -5,7 +5,7 @@ import { Sidebar } from './Sidebar.tsx';
 import { TestPanel } from './TestPanel.tsx';
 import { LevelDialog } from './LevelDialog.tsx';
 import { LEVELS } from '../levels/registry.ts';
-import type { GateType, TestResult } from '../types.ts';
+import type { GateId, GateType, TestResult } from '../types.ts';
 import {
   setStateGetter,
   notifyStateChange,
@@ -25,12 +25,11 @@ import '../style.css';
 export function App() {
   const editorRef = useRef<Editor | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-
-  // RAF-debounce flag for circuit change callback
   const resimScheduled = useRef(false);
+  const runAllInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // -----------------------------------------------------------------------
-  // Helpers (closed over editorRef)
+  // Test case logic (decoupled from Editor — Editor just ticks, we check)
   // -----------------------------------------------------------------------
 
   function getWarning(): string | null {
@@ -42,20 +41,75 @@ export function App() {
     return warnings.length > 0 ? warnings.join(' | ') : null;
   }
 
-  function simulateFirstCase(): void {
-    const editor = editorRef.current;
-    if (!editor) return;
+  /** Apply a test case: set inputs on live circuit, tick, check outputs. */
+  function applyTestCase(caseIdx: number, resetDelay = false): TestResult {
+    const editor = editorRef.current!;
     const level = LEVELS[currentLevelIndex.value];
+    const cases = level.test.cases;
+    if (!cases || !cases[caseIdx]) {
+      return { passed: false, caseIndex: caseIdx, message: 'Case not found' };
+    }
+
+    const testCase = cases[caseIdx];
+    const inputNames = level.inputs.map(i => i.name);
+    const outputNames = level.outputs.map(o => o.name);
+    const inputGateIds = editor.getInputGateIds();
+    const outputGateIds = editor.getOutputGateIds();
+
+    // Build input map from test case
+    const inputs = new Map<GateId, number>();
+    for (let j = 0; j < inputNames.length; j++) {
+      const name = inputNames[j];
+      if (name in testCase.inputs) {
+        inputs.set(inputGateIds[j], testCase.inputs[name]);
+      }
+    }
+
+    // Tick the live circuit
+    editor.applyInputs(inputs, resetDelay);
+
+    // Check outputs
+    const actuals = editor.readOutputs(outputGateIds, outputNames);
+    let passed = true;
+    const mismatches: string[] = [];
+    for (const name of outputNames) {
+      if (!(name in testCase.expected)) continue;
+      if (actuals[name] !== testCase.expected[name]) {
+        passed = false;
+        mismatches.push(`${name}: expected ${testCase.expected[name]}, got ${actuals[name]}`);
+      }
+    }
+
+    return {
+      passed,
+      caseIndex: caseIdx,
+      actuals,
+      message: passed
+        ? `All outputs correct`
+        : mismatches.join('; '),
+    };
+  }
+
+  function cancelRunAll(): void {
+    if (runAllInterval.current !== null) {
+      clearInterval(runAllInterval.current);
+      runAllInterval.current = null;
+    }
+  }
+
+  function simulateFirstCase(): void {
+    cancelRunAll();
+    if (!editorRef.current) return;
     testCaseIndex.value = 0;
     testResults.value = [];
-    const result = editor.runSingleCase(level, 0, true);
+    const result = applyTestCase(0, true);
     testResults.value = [result];
     warningText.value = getWarning();
   }
 
   function stepTestCase(): void {
-    const editor = editorRef.current;
-    if (!editor) return;
+    cancelRunAll();
+    if (!editorRef.current) return;
     const level = LEVELS[currentLevelIndex.value];
     const cases = level.test.cases;
     if (!cases || cases.length === 0) return;
@@ -67,20 +121,49 @@ export function App() {
     }
     testCaseIndex.value = idx;
 
-    const result = editor.runSingleCase(level, idx);
+    const result = applyTestCase(idx);
     const next = [...testResults.value];
     next[idx] = result;
     testResults.value = next;
     warningText.value = getWarning();
   }
 
-  function runAllCases(): void {
-    const editor = editorRef.current;
-    if (!editor) return;
+  function runAllAnimated(): void {
+    cancelRunAll();
+    if (!editorRef.current) return;
     const level = LEVELS[currentLevelIndex.value];
-    const results: TestResult[] = editor.runTests(level);
-    testResults.value = results;
-    testCaseIndex.value = results.length - 1;
+    const cases = level.test.cases;
+    if (!cases || cases.length === 0) return;
+
+    // Reset to start
+    testCaseIndex.value = 0;
+    testResults.value = [];
+    const results: TestResult[] = [];
+    let idx = 0;
+
+    // Run first case immediately
+    const firstResult = applyTestCase(0, true);
+    results[0] = firstResult;
+    testResults.value = [...results];
+    warningText.value = getWarning();
+    idx = 1;
+
+    if (idx >= cases.length) return;
+
+    // Animate remaining cases at 5/sec
+    runAllInterval.current = setInterval(() => {
+      if (idx >= cases.length) {
+        cancelRunAll();
+        return;
+      }
+      testCaseIndex.value = idx;
+      const result = applyTestCase(idx);
+      results[idx] = result;
+      testResults.value = [...results];
+      warningText.value = getWarning();
+      notifyStateChange();
+      idx++;
+    }, 200);
   }
 
   function resetTests(): void {
@@ -90,6 +173,7 @@ export function App() {
   function loadLevel(index: number): void {
     const editor = editorRef.current;
     if (!editor) return;
+    cancelRunAll();
     currentLevelIndex.value = index;
     testCaseIndex.value = -1;
     testResults.value = [];
@@ -104,28 +188,15 @@ export function App() {
   // Toolbar callbacks
   // -----------------------------------------------------------------------
 
-  const handleUndo = useCallback(() => {
-    editorRef.current?.undo();
-  }, []);
-
-  const handleRedo = useCallback(() => {
-    editorRef.current?.redo();
-  }, []);
-
+  const handleUndo = useCallback(() => { editorRef.current?.undo(); }, []);
+  const handleRedo = useCallback(() => { editorRef.current?.redo(); }, []);
   const handleColorChange = useCallback((color: string) => {
     const editor = editorRef.current;
-    if (editor) {
-      editor.getState().wireColor = color;
-      notifyStateChange();
-    }
-  }, []);
-
-  const handleLevelDialogStart = useCallback(() => {
-    // visibility already toggled inside LevelDialog component
+    if (editor) { editor.getState().wireColor = color; notifyStateChange(); }
   }, []);
 
   // -----------------------------------------------------------------------
-  // Sidebar callbacks (stable via useCallback + editorRef)
+  // Sidebar callbacks
   // -----------------------------------------------------------------------
 
   const handleStamp = useCallback((type: GateType) => {
@@ -139,33 +210,26 @@ export function App() {
 
   const handleDragStart = useCallback((type: GateType) => {
     const editor = editorRef.current;
-    if (!editor) return;
-    editor.getState().stampGateType = type;
+    if (editor) editor.getState().stampGateType = type;
   }, []);
 
   const handleDragEnd = useCallback(() => {
     const editor = editorRef.current;
-    if (!editor) return;
-    editor.getState().stampGateType = null;
+    if (editor) editor.getState().stampGateType = null;
   }, []);
 
-  const handlePropChange = useCallback(() => {
-    simulateFirstCase();
-  }, []);
+  const handlePropChange = useCallback(() => { simulateFirstCase(); }, []);
 
   // -----------------------------------------------------------------------
-  // Mount everything once
+  // Mount
   // -----------------------------------------------------------------------
 
   useEffect(() => {
     const container = editorContainerRef.current!;
-
-    // --- Editor ---
     const editor = new Editor(container);
     editorRef.current = editor;
     setStateGetter(() => editor.getState());
 
-    // --- Circuit change callback (debounced via rAF) ---
     editor.onCircuitChange = () => {
       if (!resimScheduled.current) {
         resimScheduled.current = true;
@@ -177,7 +241,6 @@ export function App() {
       }
     };
 
-    // --- Per-frame state sync for reactive components ---
     let animating = true;
     function updateUI(): void {
       if (!animating) return;
@@ -186,15 +249,13 @@ export function App() {
     }
     requestAnimationFrame(updateUI);
 
-    // --- Load first level ---
     loadLevel(0);
 
-    // --- Cleanup ---
     return () => {
       animating = false;
+      cancelRunAll();
       editor.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // -----------------------------------------------------------------------
@@ -208,13 +269,13 @@ export function App() {
         <TestPanel
           onReset={resetTests}
           onStep={stepTestCase}
-          onRunAll={runAllCases}
+          onRunAll={runAllAnimated}
           onPropChange={handlePropChange}
         />
         <div id="editor-container" ref={editorContainerRef} />
         <Sidebar onStamp={handleStamp} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
       </div>
-      <LevelDialog onStart={handleLevelDialogStart} />
+      <LevelDialog />
     </>
   );
 }

@@ -2,7 +2,6 @@ import type {
   Circuit,
   GateId,
   Level,
-  TestResult,
 } from '../types.ts';
 import { createCircuit } from '../types.ts';
 import { createEditorState } from './EditorState.ts';
@@ -11,7 +10,6 @@ import { Renderer } from './Renderer.ts';
 import { InputHandler } from './InputHandler.ts';
 import { CommandHistory, AddGateCommand } from './CommandHistory.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
-import { runLevel } from '../levels/runner.ts';
 import { GRID_SIZE } from './geometry.ts';
 
 export class Editor {
@@ -202,85 +200,45 @@ export class Editor {
     this.state.dirty = true;
   }
 
-  runTests(level: Level): TestResult[] {
-    const cloned = this.cloneCircuit(this.state.circuit);
-    return runLevel(cloned, level);
-  }
-
-  /** Run a single test case on the LIVE circuit so pin values are visible. */
-  runSingleCase(level: Level, caseIndex: number, resetDelay = false): TestResult {
+  /** Tick the live circuit with given input values. Updates pins, detects errors. */
+  applyInputs(inputs: Map<GateId, number>, resetDelay = false): void {
     if (resetDelay) {
       this.state.circuit.delayState.clear();
     }
-
-    const cases = level.test.cases;
-    if (!cases || !cases[caseIndex]) {
-      return { passed: false, caseIndex, message: 'Case not found' };
-    }
-
-    const testCase = cases[caseIndex];
-    const inputNames = level.inputs.map(i => i.name);
-    const outputNames = level.outputs.map(o => o.name);
-
-    // Find input/output gates by type order
-    const inputGateIds: GateId[] = [];
-    const outputGateIds: GateId[] = [];
-    for (const [id, gate] of this.state.circuit.gates) {
-      if (gate.type === 'input') inputGateIds.push(id);
-      if (gate.type === 'output') outputGateIds.push(id);
-    }
-
-    // Set input values on the live circuit
-    const inputs = new Map<GateId, number>();
-    for (let j = 0; j < inputNames.length; j++) {
-      const name = inputNames[j];
-      if (name in testCase.inputs) {
-        inputs.set(inputGateIds[j], testCase.inputs[name]);
-      }
-    }
-
-    // Tick the live circuit (buildNets + propagate happen inside tick)
     this.engine.tick(this.state.circuit, inputs);
-
-    // Detect errors after tick (nets are now built)
     const cycles = this.engine.detectShortCircuits(this.state.circuit);
     this.state.shortCircuitGates = cycles.flat();
     this.state.contentionNets = this.detectContention();
     this.state.dirty = true;
+  }
 
-    // Check outputs and collect actuals
-    let passed = true;
-    const mismatches: string[] = [];
+  /** Get ordered input gate IDs (matched by insertion order). */
+  getInputGateIds(): GateId[] {
+    const ids: GateId[] = [];
+    for (const [id, gate] of this.state.circuit.gates) {
+      if (gate.type === 'input') ids.push(id);
+    }
+    return ids;
+  }
+
+  /** Get ordered output gate IDs (matched by insertion order). */
+  getOutputGateIds(): GateId[] {
+    const ids: GateId[] = [];
+    for (const [id, gate] of this.state.circuit.gates) {
+      if (gate.type === 'output') ids.push(id);
+    }
+    return ids;
+  }
+
+  /** Read current output pin values by name. */
+  readOutputs(outputGateIds: GateId[], outputNames: string[]): Record<string, number | null> {
     const actuals: Record<string, number | null> = {};
     for (let j = 0; j < outputNames.length; j++) {
-      const name = outputNames[j];
-      const outputGate = this.state.circuit.gates.get(outputGateIds[j]);
-      const inputPin = outputGate?.inputPins[0]
-        ? this.state.circuit.pins.get(outputGate.inputPins[0])
-        : undefined;
-      const actual = inputPin?.value ?? null;
-      actuals[name] = actual;
-      if (name in testCase.expected) {
-        const expected = testCase.expected[name];
-        if (actual !== expected) {
-          passed = false;
-          mismatches.push(`${name}: expected ${expected}, got ${actual}`);
-        }
-      }
+      const gate = this.state.circuit.gates.get(outputGateIds[j]);
+      const pin = gate?.inputPins[0] ? this.state.circuit.pins.get(gate.inputPins[0]) : undefined;
+      actuals[outputNames[j]] = pin?.value ?? null;
     }
-
-    const inputDesc = Object.entries(testCase.inputs)
-      .map(([k, v]) => `${k}=${v}`)
-      .join(', ');
-
-    return {
-      passed,
-      caseIndex,
-      actuals,
-      message: passed
-        ? `Inputs(${inputDesc}) — all outputs correct`
-        : `Inputs(${inputDesc}) — ${mismatches.join('; ')}`,
-    };
+    return actuals;
   }
 
   destroy(): void {
@@ -314,48 +272,4 @@ export class Editor {
     return h;
   }
 
-  private cloneCircuit(circuit: Circuit): Circuit {
-    const cloned: Circuit = {
-      gates: new Map(),
-      pins: new Map(),
-      wireNodes: new Map(),
-      wireSegments: new Map(),
-      nets: new Map(),
-      delayState: new Map(),
-    };
-
-    for (const [id, gate] of circuit.gates) {
-      cloned.gates.set(id, {
-        ...gate,
-        inputPins: [...gate.inputPins],
-        outputPins: [...gate.outputPins],
-      });
-    }
-
-    for (const [id, pin] of circuit.pins) {
-      cloned.pins.set(id, { ...pin });
-    }
-
-    for (const [id, node] of circuit.wireNodes) {
-      cloned.wireNodes.set(id, { ...node });
-    }
-
-    for (const [id, seg] of circuit.wireSegments) {
-      cloned.wireSegments.set(id, { ...seg });
-    }
-
-    for (const [id, net] of circuit.nets) {
-      cloned.nets.set(id, {
-        ...net,
-        nodeIds: [...net.nodeIds],
-        segmentIds: [...net.segmentIds],
-      });
-    }
-
-    for (const [id, val] of circuit.delayState) {
-      cloned.delayState.set(id, val);
-    }
-
-    return cloned;
-  }
 }
