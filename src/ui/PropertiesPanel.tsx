@@ -1,0 +1,132 @@
+import { useEditorState } from './editorStore.ts';
+import { GATE_DEFS } from '../editor/geometry.ts';
+
+const BIT_OPTIONS = [1, 8, 16, 32];
+
+interface PropertiesPanelProps {
+  onPropChange: () => void;
+}
+
+export function PropertiesPanel({ onPropChange }: PropertiesPanelProps) {
+  const state = useEditorState();
+  if (!state) return null;
+
+  // Check for selected gate (IO/constant only)
+  const gateItem = state.selection.find(s => s.type === 'gate');
+  if (gateItem?.type === 'gate') {
+    const gate = state.circuit.gates.get(gateItem.id);
+    if (gate && (gate.type === 'input' || gate.type === 'output' || gate.type === 'constant')) {
+      const def = GATE_DEFS[gate.type];
+      const allPinIds = [...gate.inputPins, ...gate.outputPins];
+      const firstPin = allPinIds.length > 0 ? state.circuit.pins.get(allPinIds[0]) : undefined;
+
+      // Value field for input/constant
+      const outPin = (gate.type === 'input' || gate.type === 'constant')
+        ? (gate.outputPins[0] ? state.circuit.pins.get(gate.outputPins[0]) : undefined)
+        : undefined;
+      const mask = outPin ? ((1 << outPin.bitWidth) >>> 0) - 1 : 0;
+
+      return (
+        <div class="props-section" style={{ display: 'block' }}>
+          <div class="props-header">Properties</div>
+          <div class="props-content">
+            <div class="prop-row">
+              <span class="prop-label">Type</span>
+              <span class="prop-value">{def.label}</span>
+            </div>
+
+            {outPin && (
+              <div class="prop-row">
+                <span class="prop-label">Value</span>
+                <input
+                  type="number"
+                  class="prop-input prop-input-number"
+                  value={outPin.value ?? 0}
+                  min={0}
+                  max={mask}
+                  onChange={(e) => {
+                    let v = parseInt((e.target as HTMLInputElement).value, 10);
+                    if (isNaN(v)) v = 0;
+                    v = Math.max(0, Math.min(mask, v));
+                    outPin.value = v;
+                    onPropChange();
+                  }}
+                  onInput={(e) => {
+                    let v = parseInt((e.target as HTMLInputElement).value, 10);
+                    if (isNaN(v)) return;
+                    v = Math.max(0, Math.min(mask, v));
+                    outPin.value = v;
+                    onPropChange();
+                  }}
+                />
+              </div>
+            )}
+
+            {firstPin && (
+              <div class="prop-row">
+                <span class="prop-label">Bits</span>
+                <select
+                  class="prop-select"
+                  value={firstPin.bitWidth}
+                  onChange={(e) => {
+                    const v = parseInt((e.target as HTMLSelectElement).value, 10);
+                    for (const pid of allPinIds) {
+                      const pin = state.circuit.pins.get(pid);
+                      if (pin) pin.bitWidth = v;
+                    }
+                    onPropChange();
+                  }}
+                >
+                  {BIT_OPTIONS.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Check for selected wire segment
+  const segItem = state.selection.find(s => s.type === 'wireSegment');
+  if (segItem?.type === 'wireSegment') {
+    const seg = state.circuit.wireSegments.get(segItem.id);
+    if (seg) {
+      return (
+        <div class="props-section" style={{ display: 'block' }}>
+          <div class="props-header">Properties</div>
+          <div class="props-content">
+            <div class="prop-row">
+              <span class="prop-label">Type</span>
+              <span class="prop-value">Wire</span>
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">Label</span>
+              <input
+                type="text"
+                class="prop-input prop-input-text"
+                value={seg.label ?? ''}
+                placeholder="none"
+                onChange={(e) => {
+                  const v = (e.target as HTMLInputElement).value;
+                  seg.label = v || undefined;
+                  state.dirty = true;
+                }}
+                onInput={(e) => {
+                  const v = (e.target as HTMLInputElement).value;
+                  seg.label = v || undefined;
+                  state.dirty = true;
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Nothing selected — hide
+  return <div class="props-section" />;
+}
