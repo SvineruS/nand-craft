@@ -857,6 +857,8 @@ export class InputHandler {
           .map((s) => s.id);
         this.reconnectPinNodes(state, gateIds);
       }
+      // Trigger resimulation (especially needed for disconnect drag with no movement)
+      this.history.onChange?.();
       this.isDraggingDisconnected = false;
 
       this.dragAccDx = 0;
