@@ -13,7 +13,7 @@ import type {
 import { generateId } from '../types.ts';
 import type { EditorState } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { GRID_SIZE, getGateDims, getPinPositions, findNodeForPin, getAnchoredNodeIds, rotateBy } from './geometry.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, getAnchoredNodeIds, rotateBy } from './geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -623,96 +623,5 @@ export class RemoveWireSegmentCommand implements Command {
       this.state.circuit.wireSegments.set(this.segmentId, this.segment);
     }
     this.state.dirty = true;
-  }
-}
-
-export class ConnectPinsCommand implements Command {
-  readonly description = 'Connect pins';
-  private state: EditorState;
-  private pinA: PinId;
-  private pinB: PinId;
-
-  private createdNodeA: WireNodeId | null = null;
-  private createdNodeB: WireNodeId | null = null;
-  private createdSegmentId: WireSegmentId | null = null;
-
-  constructor(state: EditorState, pinA: PinId, pinB: PinId) {
-    this.state = state;
-    this.pinA = pinA;
-    this.pinB = pinB;
-  }
-
-  execute(): void {
-    const { circuit } = this.state;
-
-    // Find or create wire node for pinA
-    const nodeA = this.findOrCreateNodeForPin(this.pinA, 'a');
-    // Find or create wire node for pinB
-    const nodeB = this.findOrCreateNodeForPin(this.pinB, 'b');
-
-    if (!nodeA || !nodeB) return;
-
-    // Check for duplicate segment
-    for (const seg of circuit.wireSegments.values()) {
-      if ((seg.from === nodeA && seg.to === nodeB) || (seg.from === nodeB && seg.to === nodeA)) {
-        return;
-      }
-    }
-
-    // Create segment between the two nodes
-    this.createdSegmentId = generateId('ws') as WireSegmentId;
-    const seg: WireSegment = {
-      id: this.createdSegmentId,
-      from: nodeA,
-      to: nodeB,
-    };
-    circuit.wireSegments.set(this.createdSegmentId, seg);
-    this.state.dirty = true;
-  }
-
-  undo(): void {
-    const { circuit } = this.state;
-
-    if (this.createdSegmentId) {
-      circuit.wireSegments.delete(this.createdSegmentId);
-      this.createdSegmentId = null;
-    }
-    if (this.createdNodeA) {
-      circuit.wireNodes.delete(this.createdNodeA);
-      this.createdNodeA = null;
-    }
-    if (this.createdNodeB) {
-      circuit.wireNodes.delete(this.createdNodeB);
-      this.createdNodeB = null;
-    }
-    this.state.dirty = true;
-  }
-
-  private findOrCreateNodeForPin(pinId: PinId, which: 'a' | 'b'): WireNodeId | null {
-    const { circuit } = this.state;
-
-    const existing = findNodeForPin(circuit, pinId);
-    if (existing) return existing;
-
-    // Need to create one -- find pin position from its gate
-    const pin = circuit.pins.get(pinId);
-    if (!pin) return null;
-    const gate = circuit.gates.get(pin.gateId);
-    if (!gate) return null;
-
-    const positions = getPinPositions(gate);
-    const pos = positions.get(pinId);
-    if (!pos) return null;
-
-    const nodeId = generateId('wn') as WireNodeId;
-    const node: WireNode = { id: nodeId, x: pos.x, y: pos.y, pinId };
-    circuit.wireNodes.set(nodeId, node);
-
-    if (which === 'a') {
-      this.createdNodeA = nodeId;
-    } else {
-      this.createdNodeB = nodeId;
-    }
-    return nodeId;
   }
 }
