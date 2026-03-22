@@ -38,6 +38,9 @@ export interface Gate {
   inputPins: PinId[];
   outputPins: PinId[];
   componentId?: ComponentId;
+  label?: string;
+  canRemove?: boolean;
+  canMove?: boolean;
 }
 
 export interface Pin {
@@ -136,6 +139,12 @@ export interface TestResult {
   actuals?: Record<string, number | null>;
 }
 
+/** Gate spec in a level definition — same fields as Gate minus runtime-only ones (id, pins). */
+export type LevelGate =
+  Pick<Gate, 'type' | 'x' | 'y'> &
+  Partial<Pick<Gate, 'rotation' | 'label' | 'canRemove' | 'canMove'>> &
+  { bitWidth?: number };
+
 // Level definition
 export interface Level {
   id: LevelId;
@@ -145,4 +154,5 @@ export interface Level {
   outputs: { name: string; bitWidth: number }[];
   mode: 'combinational' | 'sequential';
   test: TestDefinition;
+  predefinedGates?: LevelGate[];
 }

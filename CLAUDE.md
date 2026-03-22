@@ -1,11 +1,12 @@
-
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+See [README.md](README.md) for full project documentation, controls reference, and architecture overview.
+
 ## Project Overview
 
-nand-craft is a vanilla TypeScript + Vite web application (no framework). ES modules throughout (`"type": "module"`).
+nand-craft is a circuit-building game built with TypeScript + Preact + Vite. The canvas editor uses raw Canvas 2D; surrounding UI panels use Preact + @preact/signals.
 
 ## Commands
 
@@ -17,13 +18,22 @@ No test runner or linter is configured.
 
 ## Architecture
 
-- `index.html` — HTML entry point, loads `/src/main.ts`
-- `src/main.ts` — Renders the page via innerHTML template literals, initializes interactive components
-- `src/counter.ts` — Isolated counter module with internal state and DOM event binding
-- `src/style.css` — Global styles using CSS variables, CSS nesting, dark mode via `prefers-color-scheme`, responsive breakpoint at 1024px
-- `src/assets/` — Static images/SVGs imported as ES modules
-- `public/` — Served as-is (favicon, icon spritesheet)
+- `src/main.tsx` — Entry point, renders Preact `<App />` component
+- `src/ui/App.tsx` — Root component, creates Editor, manages levels and test execution
+- `src/ui/editorStore.ts` — Signal-based bridge between mutable EditorState and Preact reactivity
+- `src/editor/` — Canvas 2D editor (Editor, Renderer, InputHandler, CommandHistory, geometry)
+- `src/simulation/` — Tick-based simulation engine (engine, evaluate)
+- `src/levels/` — Level definitions and test runner
+- `src/ui/*.tsx` — Preact UI components (Toolbar, Sidebar, TestPanel, TruthTable, PropertiesPanel, LevelDialog)
+- `src/style.css` — Global styles with CSS variables, nesting, dark theme
 
 ## TypeScript
 
-Strict mode with `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, and `verbatimModuleSyntax` enabled. Target ES2023.
+Strict mode with `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `verbatimModuleSyntax`, and `erasableSyntaxOnly` enabled. Target ES2023. JSX via Preact (`jsxImportSource: "preact"`).
+
+## Key Patterns
+
+- **Gate definitions** are in `src/editor/geometry.ts` (`GATE_DEFS`) — single source of truth for gate types, sizes, pins, SVG shapes, colors
+- **EditorState** is mutable — mutated by Editor, InputHandler, CommandHistory; bridged to Preact via `stateVersion` signal
+- **Commands** (CommandHistory) are undoable/redoable — all circuit mutations go through commands
+- **Orphan cleanup** — RemoveWireSegmentCommand and RemoveWireNodeCommand cascade-delete free wire nodes with no remaining connections

@@ -1,6 +1,6 @@
 import { useRef } from 'preact/hooks';
 import type { GateType } from '../types.ts';
-import { GATE_DEFS } from '../editor/geometry.ts';
+import { GATE_DEFS } from '../editor/gateDefs.ts';
 
 interface SidebarProps {
   onStamp: (type: GateType) => void;

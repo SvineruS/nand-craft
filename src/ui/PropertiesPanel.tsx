@@ -1,5 +1,5 @@
 import { useEditorState } from './editorStore.ts';
-import { GATE_DEFS } from '../editor/geometry.ts';
+import { GATE_DEFS } from '../editor/gateDefs.ts';
 
 const BIT_OPTIONS = [1, 8, 16, 32];
 

@@ -75,34 +75,26 @@ export class Editor {
     this.state.selection = [];
     this.state.wireStart = null;
 
-    // Create input gates on left side (x=2 grid units)
-    const inputX = 2 * GRID_SIZE;
-    for (let i = 0; i < level.inputs.length; i++) {
-      const inputY = (2 + i * 3) * GRID_SIZE;
-      const cmd = new AddGateCommand(
-        this.state,
-        'input',
-        inputX,
-        inputY,
-        0,
-        level.inputs[i].bitWidth,
-      );
-      cmd.execute();
-    }
+    // Create predefined gates from level spec
+    if (level.predefinedGates) {
+      for (const pg of level.predefinedGates) {
+        const cmd = new AddGateCommand(
+          this.state,
+          pg.type,
+          pg.x * GRID_SIZE,
+          pg.y * GRID_SIZE,
+          pg.rotation ?? 0,
+          pg.bitWidth ?? 1,
+        );
+        cmd.execute();
 
-    // Create output gates on right side (x=12 grid units)
-    const outputX = 12 * GRID_SIZE;
-    for (let i = 0; i < level.outputs.length; i++) {
-      const outputY = (2 + i * 3) * GRID_SIZE;
-      const cmd = new AddGateCommand(
-        this.state,
-        'output',
-        outputX,
-        outputY,
-        0,
-        level.outputs[i].bitWidth,
-      );
-      cmd.execute();
+        const gate = this.state.circuit.gates.get(cmd.getGateId());
+        if (gate) {
+          if (pg.label !== undefined) gate.label = pg.label;
+          if (pg.canRemove !== undefined) gate.canRemove = pg.canRemove;
+          if (pg.canMove !== undefined) gate.canMove = pg.canMove;
+        }
+      }
     }
 
     // Reset history again so the input/output gate placements aren't undoable

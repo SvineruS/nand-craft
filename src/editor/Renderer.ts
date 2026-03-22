@@ -1,7 +1,8 @@
 import type { GateType, PinId } from '../types.ts';
 import type { EditorState, Camera } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
-import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, snapToGrid } from './geometry.ts';
+import { GATE_DEFS } from './gateDefs.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid } from './geometry.ts';
 
 // --- Colors (dark theme) ---
 const COLORS = {
@@ -597,13 +598,21 @@ export class Renderer {
       if (gate.type === 'input' || gate.type === 'constant') {
         const outPin = gate.outputPins[0] ? circuit.pins.get(gate.outputPins[0]) : undefined;
         const val = outPin?.value;
+        const labelX = (def.labelX ?? 0) * GRID_SIZE;
+        const labelY = (def.labelY ?? 0) * GRID_SIZE;
+        if (gate.label) {
+          // Show custom label above the value
+          ctx.fillStyle = COLORS.gateText;
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText(gate.label, labelX, labelY - 0.6 * GRID_SIZE);
+        }
         ctx.fillStyle = val !== null && val !== undefined ? signalColor(val) : COLORS.gateText;
         ctx.font = 'bold 13px monospace';
-        ctx.fillText(val !== null && val !== undefined ? String(val) : '?', (def.labelX ?? 0) * GRID_SIZE, (def.labelY ?? 0) * GRID_SIZE);
+        ctx.fillText(val !== null && val !== undefined ? String(val) : '?', labelX, labelY);
       } else {
         ctx.fillStyle = COLORS.gateText;
         ctx.font = 'bold 11px monospace';
-        ctx.fillText(def.label, (def.labelX ?? 0) * GRID_SIZE, (def.labelY ?? 0) * GRID_SIZE);
+        ctx.fillText(gate.label ?? def.label, (def.labelX ?? 0) * GRID_SIZE, (def.labelY ?? 0) * GRID_SIZE);
       }
 
       ctx.restore();

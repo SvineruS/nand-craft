@@ -11,6 +11,10 @@ export const LEVELS: Level[] = [
       'Build a NOT gate using only NAND gates.\n\nA NOT gate inverts the input: 0 becomes 1, 1 becomes 0.\n\nHint: What happens when you connect both inputs of a NAND gate together?',
     inputs: [{ name: 'A', bitWidth: 1 }],
     outputs: [{ name: 'Out', bitWidth: 1 }],
+    predefinedGates: [
+      { type: 'input', x: 2, y: 3, label: 'A', canRemove: false, canMove: false },
+      { type: 'output', x: 12, y: 3, label: 'Out', canRemove: false, canMove: false },
+    ],
     mode: 'combinational',
     test: {
       name: 'NOT gate',
@@ -32,6 +36,11 @@ export const LEVELS: Level[] = [
       { name: 'B', bitWidth: 1 },
     ],
     outputs: [{ name: 'Out', bitWidth: 1 }],
+    predefinedGates: [
+      { type: 'input', x: 2, y: 2, label: 'A', canRemove: false, canMove: false },
+      { type: 'input', x: 2, y: 5, label: 'B', canRemove: false, canMove: false },
+      { type: 'output', x: 12, y: 3, label: 'Out', canRemove: false, canMove: false },
+    ],
     mode: 'combinational',
     test: {
       name: 'AND gate',
@@ -55,6 +64,11 @@ export const LEVELS: Level[] = [
       { name: 'B', bitWidth: 1 },
     ],
     outputs: [{ name: 'Out', bitWidth: 1 }],
+    predefinedGates: [
+      { type: 'input', x: 2, y: 2, label: 'A', canRemove: false, canMove: false },
+      { type: 'input', x: 2, y: 5, label: 'B', canRemove: false, canMove: false },
+      { type: 'output', x: 12, y: 3, label: 'Out', canRemove: false, canMove: false },
+    ],
     mode: 'combinational',
     test: {
       name: 'OR gate',

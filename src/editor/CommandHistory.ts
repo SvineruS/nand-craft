@@ -12,7 +12,8 @@ import type {
 } from '../types.ts';
 import { generateId } from '../types.ts';
 import type { EditorState } from './EditorState.ts';
-import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, findNodeForPin, getAnchoredNodeIds, rotateBy } from './geometry.ts';
+import { GATE_DEFS } from './gateDefs.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, findNodeForPin, getAnchoredNodeIds, rotateBy } from './geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack

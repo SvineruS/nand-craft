@@ -3,7 +3,8 @@ import type { EditorState, PlaceableType, ClipboardGate, ClipboardNode, Clipboar
 import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
 import type { WireEndpoint } from './geometry.ts';
-import { GRID_SIZE, GATE_DEFS, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
+import { GATE_DEFS } from './gateDefs.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
 import {
   CommandHistory,
   AddGateCommand,
@@ -284,6 +285,8 @@ export class InputHandler {
     // Gate?
     const gateHit = hitTestGate(world.x, world.y, state);
     if (gateHit) {
+      const gateObj = state.circuit.gates.get(gateHit);
+      if (gateObj?.canRemove === false) return;
       this.setState((s) => { s.selection = [{ type: 'gate', id: gateHit }]; });
       this.deleteSelected(state);
       return;
@@ -515,11 +518,21 @@ export class InputHandler {
       } else if (!alreadySelected) {
         this.setState((s) => { s.selection = [{ type: 'gate', id: gateHit }]; });
       }
-      this.isDraggingGates = true;
-      this.dragAccDx = 0;
-      this.dragAccDy = 0;
-      this.lastWorldX = world.x;
-      this.lastWorldY = world.y;
+      // Only start drag if at least one selected gate is movable
+      const updatedState = this.getState();
+      const hasMovable = updatedState.selection
+        .filter(s => s.type === 'gate')
+        .some(s => {
+          const g = updatedState.circuit.gates.get(s.id as GateId);
+          return g?.canMove !== false;
+        });
+      if (hasMovable) {
+        this.isDraggingGates = true;
+        this.dragAccDx = 0;
+        this.dragAccDy = 0;
+        this.lastWorldX = world.x;
+        this.lastWorldY = world.y;
+      }
       return;
     }
 
@@ -673,7 +686,7 @@ export class InputHandler {
 
         for (const gateId of gateIds) {
           const gate = state.circuit.gates.get(gateId);
-          if (gate) { gate.x += snappedDx; gate.y += snappedDy; }
+          if (gate && gate.canMove !== false) { gate.x += snappedDx; gate.y += snappedDy; }
         }
         // When disconnected, anchored nodes were detached — skip them
         const anchored = this.isDraggingDisconnected ? [] : getAnchoredNodeIds(state.circuit, gateIds);
@@ -939,7 +952,11 @@ export class InputHandler {
       // Rotate selection (gates + free nodes around group center)
       const gateIds = state.selection
         .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
-        .map((s) => s.id);
+        .map((s) => s.id)
+        .filter(gid => {
+          const g = state.circuit.gates.get(gid);
+          return g?.canMove !== false;
+        });
       const nodeIds = state.selection
         .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
         .map((s) => s.id);
@@ -1110,7 +1127,11 @@ export class InputHandler {
 
     const gateIds = state.selection
       .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
-      .map((s) => s.id);
+      .map((s) => s.id)
+      .filter(gid => {
+        const g = state.circuit.gates.get(gid);
+        return g?.canRemove !== false;
+      });
     for (const gateId of gateIds) this.history.execute(new RemoveGateCommand(state, gateId));
 
     this.setState((s) => { s.selection = []; s.dirty = true; });
@@ -1159,6 +1180,8 @@ export class InputHandler {
 
   /** Start a disconnect drag: select gate, detach pin nodes, begin dragging. */
   private startDisconnectDrag(state: EditorState, gateId: GateId, wx: number, wy: number): void {
+    const gate = state.circuit.gates.get(gateId);
+    if (gate?.canMove === false) return;
     this.setState((s) => { s.selection = [{ type: 'gate', id: gateId }]; });
     this.detachPinNodes(state, [gateId]);
     this.isDraggingGates = true;
