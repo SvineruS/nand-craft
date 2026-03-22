@@ -12,11 +12,6 @@ app.innerHTML = '';
 
 const editorContainer = document.createElement('div');
 editorContainer.id = 'editor-container';
-Object.assign(editorContainer.style, {
-  flex: '1',
-  position: 'relative',
-  overflow: 'hidden',
-});
 
 const editor = new Editor(editorContainer);
 const sidebar = new Sidebar();
@@ -122,11 +117,7 @@ const toolbar = new Toolbar({
 
 // Layout: toolbar top, then [testPanel | canvas | sidebar]
 const mainRow = document.createElement('div');
-Object.assign(mainRow.style, {
-  display: 'flex',
-  flex: '1',
-  overflow: 'hidden',
-});
+mainRow.className = 'main-row';
 mainRow.appendChild(testPanel.element);
 mainRow.appendChild(editorContainer);
 mainRow.appendChild(sidebar.element);

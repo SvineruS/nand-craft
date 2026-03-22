@@ -1,2 +1,5 @@
-- [project_vision.md](project_vision.md) - Core game concept and design vision
-- [feedback_tech_approach.md](feedback_tech_approach.md) - TS first, Rust/WASM later, factory phase deferred, autotest levels
+- [project_vision.md](project_vision.md) - Core game concept: NAND gates → CPU → factory → rocket
+- [project_architecture.md](project_architecture.md) - Complete architecture: data model, simulation, editor, testing, components
+- [feedback_tech_approach.md](feedback_tech_approach.md) - TS first, Rust/WASM later, factory phase deferred
+- [feedback_editor_ux.md](feedback_editor_ux.md) - Wire visuals, pin colors, labels on wires not gates
+- [feedback_simulation_rules.md](feedback_simulation_rules.md) - Tick system, short circuits, sequential I/O handshake, tri-state

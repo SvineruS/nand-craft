@@ -1,13 +1,5 @@
 import type { GateType } from '../types.ts';
 import { GATE_DEFS } from '../editor/geometry.ts';
-import { THEME } from './theme.ts';
-
-const SIDEBAR_BG = THEME.bg;
-const ITEM_BG = THEME.surface;
-const ITEM_HOVER = THEME.surfaceHover;
-const ITEM_TEXT = THEME.text;
-const ITEM_DESC = THEME.textDim;
-const BORDER_COLOR = THEME.border;
 
 export class Sidebar {
   readonly element: HTMLElement;
@@ -18,30 +10,10 @@ export class Sidebar {
   constructor() {
     const panel = document.createElement('div');
     this.element = panel;
-    Object.assign(panel.style, {
-      width: '160px',
-      minWidth: '160px',
-      background: SIDEBAR_BG,
-      borderLeft: `1px solid ${BORDER_COLOR}`,
-      overflowY: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '8px',
-      gap: '4px',
-      boxSizing: 'border-box',
-      userSelect: 'none',
-      flexShrink: '0',
-    });
+    panel.className = 'sidebar';
 
     const header = document.createElement('div');
-    Object.assign(header.style, {
-      color: ITEM_DESC,
-      fontSize: '11px',
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-      padding: '4px 4px 2px',
-    });
+    header.className = 'sidebar-header';
     header.textContent = 'Components';
     panel.appendChild(header);
 
@@ -54,26 +26,17 @@ export class Sidebar {
   private createItem(type: GateType, label: string, description: string): HTMLElement {
     const el = document.createElement('div');
     el.draggable = true;
-    Object.assign(el.style, {
-      background: ITEM_BG,
-      borderRadius: '6px',
-      padding: '6px 10px',
-      cursor: 'grab',
-      transition: 'background 0.15s',
-    });
+    el.className = 'sidebar-item';
 
     const labelEl = document.createElement('div');
-    Object.assign(labelEl.style, { color: ITEM_TEXT, fontSize: '12px', fontWeight: '600' });
+    labelEl.className = 'sidebar-item-label';
     labelEl.textContent = label;
     el.appendChild(labelEl);
 
     const desc = document.createElement('div');
-    Object.assign(desc.style, { color: ITEM_DESC, fontSize: '10px', marginTop: '1px' });
+    desc.className = 'sidebar-item-desc';
     desc.textContent = description;
     el.appendChild(desc);
-
-    el.addEventListener('mouseenter', () => { el.style.background = ITEM_HOVER; });
-    el.addEventListener('mouseleave', () => { el.style.background = ITEM_BG; });
 
     // Track whether a drag occurred so we can distinguish a click (stamp) from
     // a drag-start. On mousedown we reset the flag; dragstart sets it to true.

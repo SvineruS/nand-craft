@@ -1,54 +1,5 @@
 import type { EditorState } from '../editor/EditorState.ts';
 import { WIRE_COLORS } from '../editor/EditorState.ts';
-import { THEME } from './theme.ts';
-
-const TOOLBAR_BG = THEME.bg;
-const BUTTON_BG = THEME.buttonBg;
-const BUTTON_HOVER = THEME.buttonHover;
-const BUTTON_TEXT = THEME.text;
-const SEPARATOR_COLOR = THEME.border;
-
-function createButton(label: string, title?: string): HTMLButtonElement {
-  const btn = document.createElement('button');
-  btn.textContent = label;
-  if (title) btn.title = title;
-  Object.assign(btn.style, {
-    background: BUTTON_BG,
-    color: BUTTON_TEXT,
-    border: 'none',
-    borderRadius: '4px',
-    padding: '6px 12px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontFamily: 'inherit',
-    whiteSpace: 'nowrap',
-    transition: 'background 0.15s',
-  } satisfies Partial<Record<keyof CSSStyleDeclaration, string>>);
-  btn.addEventListener('mouseenter', () => {
-    if (!btn.dataset['active']) btn.style.background = BUTTON_HOVER;
-  });
-  btn.addEventListener('mouseleave', () => {
-    if (!btn.dataset['active']) btn.style.background = BUTTON_BG;
-  });
-  return btn;
-}
-
-function setDisabled(btn: HTMLButtonElement, disabled: boolean): void {
-  btn.disabled = disabled;
-  btn.style.opacity = disabled ? '0.4' : '1';
-  btn.style.cursor = disabled ? 'default' : 'pointer';
-}
-
-function createSeparator(): HTMLElement {
-  const sep = document.createElement('div');
-  Object.assign(sep.style, {
-    width: '1px',
-    alignSelf: 'stretch',
-    margin: '4px 6px',
-    background: SEPARATOR_COLOR,
-  });
-  return sep;
-}
 
 export class Toolbar {
   readonly element: HTMLElement;
@@ -65,66 +16,37 @@ export class Toolbar {
   }) {
     const bar = document.createElement('div');
     this.element = bar;
-    Object.assign(bar.style, {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '6px 12px',
-      background: TOOLBAR_BG,
-      borderBottom: `1px solid ${SEPARATOR_COLOR}`,
-      height: '44px',
-      boxSizing: 'border-box',
-      userSelect: 'none',
-      flexShrink: '0',
-    });
+    bar.className = 'toolbar';
 
     // Level name
     this.levelNameEl = document.createElement('span');
-    Object.assign(this.levelNameEl.style, {
-      color: '#ffffff',
-      fontSize: '14px',
-      fontWeight: '600',
-      whiteSpace: 'nowrap',
-      marginRight: '4px',
-    });
+    this.levelNameEl.className = 'toolbar-level-name';
     this.levelNameEl.textContent = 'Untitled';
     bar.appendChild(this.levelNameEl);
 
-    bar.appendChild(createSeparator());
+    bar.appendChild(this.createSeparator());
 
     // Undo / Redo
-    this.undoBtn = createButton('Undo', 'Ctrl+Z');
+    this.undoBtn = this.createButton('Undo', 'Ctrl+Z');
     this.undoBtn.addEventListener('click', () => options.onUndo());
     bar.appendChild(this.undoBtn);
 
-    this.redoBtn = createButton('Redo', 'Ctrl+Shift+Z');
+    this.redoBtn = this.createButton('Redo', 'Ctrl+Shift+Z');
     this.redoBtn.addEventListener('click', () => options.onRedo());
     bar.appendChild(this.redoBtn);
 
-    bar.appendChild(createSeparator());
+    bar.appendChild(this.createSeparator());
 
     // Wire color picker
     const colorLabel = document.createElement('span');
-    Object.assign(colorLabel.style, {
-      color: BUTTON_TEXT,
-      fontSize: '11px',
-      marginRight: '2px',
-    });
+    colorLabel.className = 'toolbar-color-label';
     colorLabel.textContent = 'Wire:';
     bar.appendChild(colorLabel);
 
     for (const color of WIRE_COLORS) {
       const swatch = document.createElement('div');
-      Object.assign(swatch.style, {
-        width: '18px',
-        height: '18px',
-        borderRadius: '3px',
-        background: color,
-        cursor: 'pointer',
-        border: '2px solid transparent',
-        boxSizing: 'border-box',
-        transition: 'border-color 0.15s',
-      });
+      swatch.className = 'toolbar-swatch';
+      swatch.style.background = color;
       swatch.title = 'Wire color (E to apply, Shift+E for all connected)';
       swatch.addEventListener('click', () => options.onColorChange(color));
       this.colorSwatches.push(swatch);
@@ -133,13 +55,27 @@ export class Toolbar {
 
     // Spacer
     const spacer = document.createElement('div');
-    spacer.style.flex = '1';
+    spacer.className = 'toolbar-spacer';
     bar.appendChild(spacer);
   }
 
+  private createButton(label: string, title?: string): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.className = 'toolbar-btn';
+    if (title) btn.title = title;
+    return btn;
+  }
+
+  private createSeparator(): HTMLElement {
+    const sep = document.createElement('div');
+    sep.className = 'toolbar-separator';
+    return sep;
+  }
+
   update(state: EditorState): void {
-    setDisabled(this.undoBtn, false);
-    setDisabled(this.redoBtn, false);
+    this.undoBtn.disabled = false;
+    this.redoBtn.disabled = false;
 
     for (let i = 0; i < WIRE_COLORS.length; i++) {
       const isActive = state.wireColor === WIRE_COLORS[i];
