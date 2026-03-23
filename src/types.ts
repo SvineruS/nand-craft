@@ -102,8 +102,6 @@ export interface Component {
   evaluateFn?: (inputs: (number | null)[]) => (number | null)[];
 }
 
-export type ComponentLibrary = Map<ComponentId, Component>;
-
 // Testing types
 export interface TestCase {
   inputs: Record<string, number>;

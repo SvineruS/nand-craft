@@ -4,7 +4,7 @@ import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
 import type { WireEndpoint } from './geometry.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds } from './geometry.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds, getAllPinIds } from './geometry.ts';
 import {
   CommandHistory,
   AddGateCommand,
@@ -1173,7 +1173,7 @@ export class InputHandler {
     for (const gateId of gateIds) {
       const gate = state.circuit.gates.get(gateId);
       if (!gate) continue;
-      for (const p of [...gate.inputPins, ...gate.outputPins]) pinIds.add(p as string);
+      for (const p of getAllPinIds(gate)) pinIds.add(p as string);
     }
     const detached: { nodeId: WireNodeId; pinId: PinId }[] = [];
     for (const node of state.circuit.wireNodes.values()) {
@@ -1326,7 +1326,7 @@ export class InputHandler {
       if (!g) continue;
       const d = getGateDims(g);
       gateIdxMap.set(gid as string, gates.length);
-      const allPids = [...g.inputPins, ...g.outputPins];
+      const allPids = getAllPinIds(g);
       const pinBitWidths = allPids.map(pid => state.circuit.pins.get(pid)?.bitWidth ?? 1);
       const pinValues = allPids.map(pid => state.circuit.pins.get(pid)?.value ?? null);
       gates.push({ type: g.type, dx: g.x + d.w / 2 - cx, dy: g.y + d.h / 2 - cy, rotation: g.rotation, pinBitWidths, pinValues });
@@ -1365,7 +1365,7 @@ export class InputHandler {
           gateIdx = gateIdxMap.get(pin.gateId as string);
           const gate = state.circuit.gates.get(pin.gateId);
           if (gate) {
-            const allPins = [...gate.inputPins, ...gate.outputPins];
+            const allPins = getAllPinIds(gate);
             pinIdx = allPins.indexOf(n.pinId);
           }
         }
@@ -1409,7 +1409,7 @@ export class InputHandler {
 
       // Collect pin IDs and restore properties
       const gate = state.circuit.gates.get(cmd.getGateId());
-      const allPins = gate ? [...gate.inputPins, ...gate.outputPins] : [];
+      const allPins = gate ? getAllPinIds(gate) : [];
       newAllPinIds.push(allPins);
       for (let p = 0; p < allPins.length; p++) {
         const pin = state.circuit.pins.get(allPins[p]);

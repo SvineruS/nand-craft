@@ -157,23 +157,6 @@ export class Editor {
     this.state.dirty = true;
   }
 
-  toggleSimulation(): void {
-    if (this.state.simulationRunning) {
-      // Stop
-      if (this.simulationInterval !== null) {
-        clearInterval(this.simulationInterval);
-        this.simulationInterval = null;
-      }
-      this.state.simulationRunning = false;
-    } else {
-      // Start
-      this.state.simulationRunning = true;
-      this.simulationInterval = setInterval(() => {
-        this.stepTick();
-      }, 100);
-    }
-    this.state.dirty = true;
-  }
 
   hasShortCircuit(): boolean {
     return this.state.shortCircuitGates.length > 0;

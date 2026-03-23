@@ -135,7 +135,7 @@ export function buildNets(circuit: Circuit): void {
  * All null = high-Z (null). One active = net value.
  * Sets all connected input pins to the resolved value.
  */
-export function resolveNets(circuit: Circuit): NetId[] {
+function resolveNets(circuit: Circuit): NetId[] {
   const contentionNets: NetId[] = [];
 
   for (const net of circuit.nets.values()) {
@@ -201,7 +201,7 @@ export function resolveNets(circuit: Circuit): NetId[] {
  * Treats delay gate outputs and input-type gates as fixed sources.
  * Returns sorted gate IDs.
  */
-export function topologicalSort(circuit: Circuit): GateId[] {
+function topologicalSort(circuit: Circuit): GateId[] {
   // Build adjacency: for combinational gates, find which gates feed into which
   // A gate A feeds gate B if A has an output pin connected (via net) to an input pin of B
   const combGateIds = new Set<GateId>();
@@ -423,7 +423,7 @@ function evaluateUnaryGate(
 /**
  * Evaluate a single gate based on its type.
  */
-export function evaluateGate(gate: Gate, pins: Map<PinId, Pin>): void {
+function evaluateGate(gate: Gate, pins: Map<PinId, Pin>): void {
   switch (gate.type) {
     case 'nand':
       evaluateBinaryGate(gate, pins, (a, b, mask) => (~(a & b) & mask) >>> 0);

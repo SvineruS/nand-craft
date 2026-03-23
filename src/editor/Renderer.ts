@@ -2,7 +2,7 @@ import type { GateType, PinId } from '../types.ts';
 import type { EditorState, Camera } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid } from './geometry.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, getAllPinIds } from './geometry.ts';
 
 // --- Colors (dark theme) ---
 const COLORS = {
@@ -685,7 +685,7 @@ export class Renderer {
       for (const gateId of shortCircuitGates) {
         const gate = circuit.gates.get(gateId);
         if (!gate) continue;
-        for (const p of [...gate.inputPins, ...gate.outputPins]) errorPinIds.add(p as string);
+        for (const p of getAllPinIds(gate)) errorPinIds.add(p as string);
       }
       for (const net of circuit.nets.values()) {
         let touchesErrorGate = false;

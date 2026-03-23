@@ -12,7 +12,7 @@ import type {
 import { generateId } from '../types.ts';
 import type { EditorState } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { getAnchoredNodeIds, rotateGroup, updateAnchoredNodes } from './geometry.ts';
+import { getAnchoredNodeIds, getAllPinIds, cleanupOrphanNodes, rotateGroup, updateAnchoredNodes } from './geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -160,15 +160,13 @@ export class RemoveGateCommand implements Command {
     // Store gate and pins for undo
     this.gate = { ...gate };
     this.pins = [];
-    for (const pinId of [...gate.inputPins, ...gate.outputPins]) {
+    for (const pinId of getAllPinIds(gate)) {
       const pin = circuit.pins.get(pinId);
       if (pin) this.pins.push({ ...pin });
     }
 
     // Find wire nodes anchored to this gate's pins
-    const pinIdSet = new Set<string>(
-      [...gate.inputPins, ...gate.outputPins] as string[],
-    );
+    const pinIdSet = new Set<string>(getAllPinIds(gate) as string[]);
     this.removedNodes = [];
     this.removedSegments = [];
 
@@ -210,19 +208,7 @@ export class RemoveGateCommand implements Command {
     circuit.gates.delete(this.gateId);
 
     // Clean up orphaned free neighbor nodes
-    this.removedOrphanNodes = [];
-    for (const nid of neighborNodeIds) {
-      const neighbor = circuit.wireNodes.get(nid as WireNodeId);
-      if (!neighbor || neighbor.pinId) continue;
-      let hasSegments = false;
-      for (const s of circuit.wireSegments.values()) {
-        if (s.from === nid || s.to === nid) { hasSegments = true; break; }
-      }
-      if (!hasSegments) {
-        this.removedOrphanNodes.push({ ...neighbor });
-        circuit.wireNodes.delete(nid as WireNodeId);
-      }
-    }
+    this.removedOrphanNodes = cleanupOrphanNodes(circuit, neighborNodeIds as Iterable<WireNodeId>);
 
     this.state.dirty = true;
   }
@@ -440,19 +426,7 @@ export class RemoveWireNodeCommand implements Command {
     circuit.wireNodes.delete(this.nodeId);
 
     // Clean up orphaned free neighbor nodes
-    this.removedOrphanNodes = [];
-    for (const nid of neighborNodeIds) {
-      const neighbor = circuit.wireNodes.get(nid as WireNodeId);
-      if (!neighbor || neighbor.pinId) continue;
-      let hasSegments = false;
-      for (const s of circuit.wireSegments.values()) {
-        if (s.from === nid || s.to === nid) { hasSegments = true; break; }
-      }
-      if (!hasSegments) {
-        this.removedOrphanNodes.push({ ...neighbor });
-        circuit.wireNodes.delete(nid as WireNodeId);
-      }
-    }
+    this.removedOrphanNodes = cleanupOrphanNodes(circuit, neighborNodeIds as Iterable<WireNodeId>);
 
     this.state.dirty = true;
   }
@@ -527,20 +501,8 @@ export class RemoveWireSegmentCommand implements Command {
     circuit.wireSegments.delete(this.segmentId);
 
     // Clean up orphaned free nodes (no remaining segments, not anchored to a pin)
-    this.removedOrphanNodes = [];
-    if (!this.cleanOrphans) { this.state.dirty = true; return; }
-    for (const nodeId of [seg.from, seg.to]) {
-      const node = circuit.wireNodes.get(nodeId);
-      if (!node || node.pinId) continue; // keep pin-anchored nodes
-      let hasSegments = false;
-      for (const s of circuit.wireSegments.values()) {
-        if (s.from === nodeId || s.to === nodeId) { hasSegments = true; break; }
-      }
-      if (!hasSegments) {
-        this.removedOrphanNodes.push({ ...node });
-        circuit.wireNodes.delete(nodeId);
-      }
-    }
+    if (!this.cleanOrphans) { this.removedOrphanNodes = []; this.state.dirty = true; return; }
+    this.removedOrphanNodes = cleanupOrphanNodes(circuit, [seg.from, seg.to]);
 
     this.state.dirty = true;
   }

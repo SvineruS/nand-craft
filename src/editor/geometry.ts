@@ -1,4 +1,4 @@
-import type { Circuit, Gate, GateId, PinId, WireNodeId } from '../types.ts';
+import type { Circuit, Gate, GateId, PinId, WireNode, WireNodeId } from '../types.ts';
 import { GATE_DEFS } from './gateDefs.ts';
 
 export const GRID_SIZE = 20;
@@ -6,6 +6,11 @@ export const GRID_SIZE = 20;
 // ---------------------------------------------------------------------------
 // Gate geometry helpers
 // ---------------------------------------------------------------------------
+
+/** All pin IDs for a gate (inputs then outputs). */
+export function getAllPinIds(gate: Gate): PinId[] {
+  return [...gate.inputPins, ...gate.outputPins];
+}
 
 /** Get gate pixel dimensions from definition. */
 export function getGateDims(gate: Gate): { w: number; h: number } {
@@ -25,7 +30,7 @@ export function getPinPositions(
   const cy = gate.y + h / 2;
 
   const def = GATE_DEFS[gate.type];
-  const allPinIds = [...gate.inputPins, ...gate.outputPins];
+  const allPinIds = getAllPinIds(gate);
   const defPins = def.pins;
 
   // Guard: iterate only up to the lesser count in case the gate instance has
@@ -45,7 +50,7 @@ export function getPinPositions(
 // Rotation + grid helpers
 // ---------------------------------------------------------------------------
 
-export function rotatePoint(
+function rotatePoint(
   px: number, py: number, cx: number, cy: number,
   rotation: 0 | 90 | 180 | 270,
 ): { x: number; y: number } {
@@ -60,7 +65,7 @@ export function rotatePoint(
   }
 }
 
-export function rotateBy(current: 0|90|180|270, degrees: number): 0|90|180|270 {
+function rotateBy(current: 0|90|180|270, degrees: number): 0|90|180|270 {
   return (((current + degrees) % 360 + 360) % 360) as 0|90|180|270;
 }
 
@@ -73,7 +78,7 @@ export function snapToGrid(v: number, offset = 0): number {
  * Non-square gates with odd (width+height) need a half-grid offset at 90°/270°
  * so that rotated pin positions land on grid lines.
  */
-export function gateGridOffset(rotation: 0 | 90 | 180 | 270, w: number, h: number): number {
+function gateGridOffset(rotation: 0 | 90 | 180 | 270, w: number, h: number): number {
   if ((rotation === 90 || rotation === 270) && ((w + h) / GRID_SIZE) % 2 !== 0) {
     return GRID_SIZE / 2;
   }
@@ -191,7 +196,7 @@ export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNod
   for (const gateId of gateIds) {
     const gate = circuit.gates.get(gateId);
     if (gate) {
-      for (const p of [...gate.inputPins, ...gate.outputPins]) pinIdSet.add(p as string);
+      for (const p of getAllPinIds(gate)) pinIdSet.add(p as string);
     }
   }
   const result: WireNodeId[] = [];
@@ -201,4 +206,22 @@ export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNod
     }
   }
   return result;
+}
+
+/** Remove wire nodes that have no remaining segments and aren't anchored to a pin. */
+export function cleanupOrphanNodes(circuit: Circuit, nodeIds: Iterable<WireNodeId>): WireNode[] {
+  const removed: WireNode[] = [];
+  for (const nid of nodeIds) {
+    const node = circuit.wireNodes.get(nid);
+    if (!node || node.pinId) continue;
+    let hasSegments = false;
+    for (const s of circuit.wireSegments.values()) {
+      if (s.from === nid || s.to === nid) { hasSegments = true; break; }
+    }
+    if (!hasSegments) {
+      removed.push({ ...node });
+      circuit.wireNodes.delete(nid);
+    }
+  }
+  return removed;
 }

@@ -1,13 +1,7 @@
 import type { Circuit, GateId, PinId } from '../types.ts';
 import { buildNets, detectCycles, propagate } from './evaluate.ts';
 
-export interface ISimulationEngine {
-  tick(circuit: Circuit, inputs: Map<GateId, number>): Map<GateId, number | null>;
-  run(circuit: Circuit, inputs: Map<GateId, number>, ticks: number): Map<GateId, number | null>;
-  detectShortCircuits(circuit: Circuit): GateId[][];
-}
-
-export class SimulationEngine implements ISimulationEngine {
+export class SimulationEngine {
   /**
    * Execute one simulation tick:
    * 1. Save constant gate values, then reset all pins to null
