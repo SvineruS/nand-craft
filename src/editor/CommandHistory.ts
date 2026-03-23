@@ -1,5 +1,4 @@
 import type {
-  Circuit,
   Gate,
   GateId,
   GateType,
@@ -13,7 +12,7 @@ import type {
 import { generateId } from '../types.ts';
 import type { EditorState } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { GRID_SIZE, getGateDims, getPinPositions, getAnchoredNodeIds, rotateBy } from './geometry.ts';
+import { getAnchoredNodeIds, rotateGroup, updateAnchoredNodes } from './geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -343,11 +342,13 @@ export class RotateGatesCommand implements Command {
   }
 
   execute(): void {
-    this.rotateGroup(RotateGatesCommand.ROTATION_STEP);
+    const saved = rotateGroup(this.state.circuit, this.gateIds, this.extraNodeIds, RotateGatesCommand.ROTATION_STEP);
+    this.savedGatePositions = saved.gates;
+    this.savedNodePositions = saved.nodes;
+    this.state.dirty = true;
   }
 
   undo(): void {
-    // Restore saved positions
     const { circuit } = this.state;
     for (const saved of this.savedGatePositions) {
       const gate = circuit.gates.get(saved.id);
@@ -361,95 +362,11 @@ export class RotateGatesCommand implements Command {
       const node = circuit.wireNodes.get(saved.id);
       if (node) { node.x = saved.x; node.y = saved.y; }
     }
-    // Update anchored wire nodes to match gate positions
     for (const gateId of this.gateIds) {
       const gate = circuit.gates.get(gateId);
-      if (!gate) continue;
-      this.updateAnchoredNodes(gate, circuit);
+      if (gate) updateAnchoredNodes(gate, circuit);
     }
     this.state.dirty = true;
-  }
-
-  private rotateGroup(degrees: number): void {
-    const { circuit } = this.state;
-
-    this.savedGatePositions = [];
-    this.savedNodePositions = [];
-
-    // Single gate, no extra nodes: just rotate in place
-    if (this.gateIds.length <= 1 && this.extraNodeIds.length === 0) {
-      for (const gateId of this.gateIds) {
-        const gate = circuit.gates.get(gateId);
-        if (!gate) continue;
-        this.savedGatePositions.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
-        gate.rotation = rotateBy(gate.rotation, degrees);
-        this.updateAnchoredNodes(gate, circuit);
-      }
-      this.state.dirty = true;
-      return;
-    }
-
-    // Multiple items: compute group center, rotate positions around it
-    let cx = 0, cy = 0, count = 0;
-    for (const gateId of this.gateIds) {
-      const gate = circuit.gates.get(gateId);
-      if (!gate) continue;
-      const dims = getGateDims(gate);
-      cx += gate.x + dims.w / 2; cy += gate.y + dims.h / 2; count++;
-    }
-    for (const nodeId of this.extraNodeIds) {
-      const node = circuit.wireNodes.get(nodeId);
-      if (node) { cx += node.x; cy += node.y; count++; }
-    }
-    if (count === 0) return;
-    cx /= count; cy /= count;
-
-    const rad = (degrees * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const snap = (v: number) => Math.round(v / GRID_SIZE) * GRID_SIZE;
-
-    // Rotate gates
-    for (const gateId of this.gateIds) {
-      const gate = circuit.gates.get(gateId);
-      if (!gate) continue;
-      this.savedGatePositions.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
-
-      const dims = getGateDims(gate);
-      const dx = gate.x + dims.w / 2 - cx;
-      const dy = gate.y + dims.h / 2 - cy;
-      const newCx = cx + dx * cos - dy * sin;
-      const newCy = cy + dx * sin + dy * cos;
-      gate.x = snap(newCx - dims.w / 2);
-      gate.y = snap(newCy - dims.h / 2);
-      gate.rotation = rotateBy(gate.rotation, degrees);
-
-      this.updateAnchoredNodes(gate, circuit);
-    }
-
-    // Rotate free wire nodes
-    for (const nodeId of this.extraNodeIds) {
-      const node = circuit.wireNodes.get(nodeId);
-      if (!node) continue;
-      this.savedNodePositions.push({ id: nodeId, x: node.x, y: node.y });
-      const dx = node.x - cx;
-      const dy = node.y - cy;
-      node.x = snap(cx + dx * cos - dy * sin);
-      node.y = snap(cy + dx * sin + dy * cos);
-    }
-
-    this.state.dirty = true;
-  }
-
-  private updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
-    const positions = getPinPositions(gate);
-    for (const [pinId, pos] of positions) {
-      for (const node of circuit.wireNodes.values()) {
-        if (node.pinId === (pinId as unknown as PinId)) {
-          node.x = pos.x; node.y = pos.y;
-        }
-      }
-    }
   }
 }
 

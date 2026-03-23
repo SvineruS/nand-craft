@@ -83,6 +83,90 @@ export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | nul
   return null;
 }
 
+/** Sync anchored wire-node positions to their gate's current pin positions. */
+export function updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
+  const positions = getPinPositions(gate);
+  for (const [pinId, pos] of positions) {
+    for (const node of circuit.wireNodes.values()) {
+      if (node.pinId === (pinId as unknown as PinId)) {
+        node.x = pos.x; node.y = pos.y;
+      }
+    }
+  }
+}
+
+/** Rotate gates + free wire nodes around group center by `degrees`. Returns saved positions for undo. */
+export function rotateGroup(
+  circuit: Circuit,
+  gateIds: GateId[],
+  extraNodeIds: WireNodeId[],
+  degrees: number,
+): {
+  gates: { id: GateId; x: number; y: number; rotation: number }[];
+  nodes: { id: WireNodeId; x: number; y: number }[];
+} {
+  const savedGates: { id: GateId; x: number; y: number; rotation: number }[] = [];
+  const savedNodes: { id: WireNodeId; x: number; y: number }[] = [];
+
+  // Single gate, no extra nodes: just rotate in place
+  if (gateIds.length <= 1 && extraNodeIds.length === 0) {
+    for (const gateId of gateIds) {
+      const gate = circuit.gates.get(gateId);
+      if (!gate) continue;
+      savedGates.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
+      gate.rotation = rotateBy(gate.rotation, degrees);
+      updateAnchoredNodes(gate, circuit);
+    }
+    return { gates: savedGates, nodes: savedNodes };
+  }
+
+  // Multiple items: compute group center, rotate positions around it
+  let cx = 0, cy = 0, count = 0;
+  for (const gateId of gateIds) {
+    const gate = circuit.gates.get(gateId);
+    if (!gate) continue;
+    const dims = getGateDims(gate);
+    cx += gate.x + dims.w / 2; cy += gate.y + dims.h / 2; count++;
+  }
+  for (const nodeId of extraNodeIds) {
+    const node = circuit.wireNodes.get(nodeId);
+    if (node) { cx += node.x; cy += node.y; count++; }
+  }
+  if (count === 0) return { gates: savedGates, nodes: savedNodes };
+  cx /= count; cy /= count;
+
+  const rad = (degrees * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  for (const gateId of gateIds) {
+    const gate = circuit.gates.get(gateId);
+    if (!gate) continue;
+    savedGates.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
+    const dims = getGateDims(gate);
+    const dx = gate.x + dims.w / 2 - cx;
+    const dy = gate.y + dims.h / 2 - cy;
+    const newCx = cx + dx * cos - dy * sin;
+    const newCy = cy + dx * sin + dy * cos;
+    gate.x = snapToGrid(newCx - dims.w / 2);
+    gate.y = snapToGrid(newCy - dims.h / 2);
+    gate.rotation = rotateBy(gate.rotation, degrees);
+    updateAnchoredNodes(gate, circuit);
+  }
+
+  for (const nodeId of extraNodeIds) {
+    const node = circuit.wireNodes.get(nodeId);
+    if (!node) continue;
+    savedNodes.push({ id: nodeId, x: node.x, y: node.y });
+    const dx = node.x - cx;
+    const dy = node.y - cy;
+    node.x = snapToGrid(cx + dx * cos - dy * sin);
+    node.y = snapToGrid(cy + dx * sin + dy * cos);
+  }
+
+  return { gates: savedGates, nodes: savedNodes };
+}
+
 export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
   const pinIdSet = new Set<string>();
   for (const gateId of gateIds) {
