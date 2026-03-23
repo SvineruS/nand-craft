@@ -64,8 +64,20 @@ export function rotateBy(current: 0|90|180|270, degrees: number): 0|90|180|270 {
   return (((current + degrees) % 360 + 360) % 360) as 0|90|180|270;
 }
 
-export function snapToGrid(v: number): number {
-  return Math.round(v / GRID_SIZE) * GRID_SIZE;
+export function snapToGrid(v: number, offset = 0): number {
+  return Math.round((v - offset) / GRID_SIZE) * GRID_SIZE + offset;
+}
+
+/**
+ * Grid offset needed for a gate at the given rotation.
+ * Non-square gates with odd (width+height) need a half-grid offset at 90°/270°
+ * so that rotated pin positions land on grid lines.
+ */
+export function gateGridOffset(rotation: 0 | 90 | 180 | 270, w: number, h: number): number {
+  if ((rotation === 90 || rotation === 270) && ((w + h) / GRID_SIZE) % 2 !== 0) {
+    return GRID_SIZE / 2;
+  }
+  return 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +126,13 @@ export function rotateGroup(
       const gate = circuit.gates.get(gateId);
       if (!gate) continue;
       savedGates.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
+      const { w, h } = getGateDims(gate);
+      const oldOffset = gateGridOffset(gate.rotation, w, h);
       gate.rotation = rotateBy(gate.rotation, degrees);
+      const newOffset = gateGridOffset(gate.rotation, w, h);
+      const delta = newOffset - oldOffset;
+      gate.x += delta;
+      gate.y += delta;
       updateAnchoredNodes(gate, circuit);
     }
     return { gates: savedGates, nodes: savedNodes };
@@ -148,9 +166,10 @@ export function rotateGroup(
     const dy = gate.y + dims.h / 2 - cy;
     const newCx = cx + dx * cos - dy * sin;
     const newCy = cy + dx * sin + dy * cos;
-    gate.x = snapToGrid(newCx - dims.w / 2);
-    gate.y = snapToGrid(newCy - dims.h / 2);
     gate.rotation = rotateBy(gate.rotation, degrees);
+    const offset = gateGridOffset(gate.rotation, dims.w, dims.h);
+    gate.x = snapToGrid(newCx - dims.w / 2, offset);
+    gate.y = snapToGrid(newCy - dims.h / 2, offset);
     updateAnchoredNodes(gate, circuit);
   }
 
