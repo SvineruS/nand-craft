@@ -39,8 +39,15 @@ export class Editor {
     this.engine = new SimulationEngine();
     this.renderer = new Renderer(this.canvas);
 
-    // InputHandler needs getState/setState callbacks
-    this.input = this.rebuildInputHandler();
+    // InputHandler uses getters so it always sees current state/history
+  this.input = new InputHandler(
+      this.canvas,
+      () => this.state,
+      (fn) => { fn(this.state); },
+      () => this.history,
+      this.renderer,
+    );
+    this.input.attach();
 
     // Start render loop
     this.renderer.startLoop(() => this.state);
@@ -58,9 +65,6 @@ export class Editor {
 
     // Reset history by creating a new one
     this.history = this.createHistory();
-
-    // Rebuild input handler with new history
-    this.input = this.rebuildInputHandler();
 
     // Stop simulation if running
     if (this.simulationInterval !== null) {
@@ -97,7 +101,6 @@ export class Editor {
 
     // Reset history again so the input/output gate placements aren't undoable
     this.history = this.createHistory();
-    this.input = this.rebuildInputHandler();
 
     this.state.dirty = true;
   }
@@ -112,11 +115,21 @@ export class Editor {
 
   undo(): void {
     this.history.undo();
+    // Note: history.onChange fires onCircuitChange which triggers resimulation
     this.state.dirty = true;
   }
 
   redo(): void {
     this.history.redo();
+    this.state.dirty = true;
+  }
+
+  /** Force a simulation tick with current input pin values (useful after state mutations that bypass commands). */
+  resimulate(): void {
+    this.stepTick();
+    const cycles = this.engine.detectShortCircuits(this.state.circuit);
+    this.state.shortCircuitGates = cycles.flat();
+    this.state.contentionNets = this.detectContention();
     this.state.dirty = true;
   }
 
@@ -249,21 +262,6 @@ export class Editor {
       clearInterval(this.simulationInterval);
       this.simulationInterval = null;
     }
-  }
-
-  private rebuildInputHandler(): InputHandler {
-    if (this.input) {
-      this.input.detach();
-    }
-    const handler = new InputHandler(
-      this.canvas,
-      () => this.state,
-      (fn) => { fn(this.state); },
-      this.history,
-      this.renderer,
-    );
-    handler.attach();
-    return handler;
   }
 
   private createHistory(): CommandHistory {

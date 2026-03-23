@@ -25,7 +25,6 @@ import '../style.css';
 export function App() {
   const editorRef = useRef<Editor | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const resimScheduled = useRef(false);
   const runAllInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // -----------------------------------------------------------------------
@@ -231,14 +230,8 @@ export function App() {
     setStateGetter(() => editor.getState());
 
     editor.onCircuitChange = () => {
-      if (!resimScheduled.current) {
-        resimScheduled.current = true;
-        requestAnimationFrame(() => {
-          resimScheduled.current = false;
-          simulateFirstCase();
-          notifyStateChange();
-        });
-      }
+      simulateFirstCase();
+      notifyStateChange();
     };
 
     let animating = true;

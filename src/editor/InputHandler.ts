@@ -144,13 +144,14 @@ export class InputHandler {
   private canvas: HTMLCanvasElement;
   private getState: () => EditorState;
   private setState: (fn: (s: EditorState) => void) => void;
-  private history: CommandHistory;
+  private getHistory: () => CommandHistory;
   private renderer: Renderer;
 
   private dragAccDx = 0;
   private dragAccDy = 0;
   private isDraggingGates = false;
   private isDraggingDisconnected = false;
+  private _lastDetachedPins: { nodeId: WireNodeId; pinId: PinId }[] = [];
   private didDragMove = false;
   private nodeFromSplit = false;
   private isWiring = false;
@@ -175,13 +176,13 @@ export class InputHandler {
     canvas: HTMLCanvasElement,
     getState: () => EditorState,
     setState: (fn: (s: EditorState) => void) => void,
-    history: CommandHistory,
+    getHistory: () => CommandHistory,
     renderer: Renderer,
   ) {
     this.canvas = canvas;
     this.getState = getState;
     this.setState = setState;
-    this.history = history;
+    this.getHistory = getHistory;
     this.renderer = renderer;
 
     this.onMouseDown = this.handleMouseDown.bind(this);
@@ -250,7 +251,7 @@ export class InputHandler {
     const cx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
     const cy = snapToGrid(world.y - def.height * GRID_SIZE / 2);
     const cmd = new AddGateCommand(state, gateType, cx, cy);
-    this.history.execute(cmd);
+    this.getHistory().execute(cmd);
     this.reconnectPinNodes(state, [cmd.getGateId()]);
     this.setState((s) => { s.dropPreview = null; s.dirty = true; });
   }
@@ -277,7 +278,7 @@ export class InputHandler {
     // Wire node?
     const ep = hitTestEndpoint(world.x, world.y, state);
     if (ep && ep.kind === 'node') {
-      this.history.execute(new RemoveWireNodeCommand(state, ep.nodeId));
+      this.getHistory().execute(new RemoveWireNodeCommand(state, ep.nodeId));
       this.setState((s) => { s.dirty = true; });
       return;
     }
@@ -305,7 +306,7 @@ export class InputHandler {
           if (seg) { nodeIds.add(seg.from as string); nodeIds.add(seg.to as string); }
         }
         for (const sid of allSegs) {
-          this.history.execute(new RemoveWireSegmentCommand(state, sid));
+          this.getHistory().execute(new RemoveWireSegmentCommand(state, sid));
         }
         // Remove orphaned free nodes (no remaining segments, not anchored)
         for (const nid of nodeIds) {
@@ -420,7 +421,7 @@ export class InputHandler {
       const sx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
       const sy = snapToGrid(world.y - def.height * GRID_SIZE / 2);
       const cmd = new AddGateCommand(state, state.stampGateType, sx, sy);
-      this.history.execute(cmd);
+      this.getHistory().execute(cmd);
       this.reconnectPinNodes(state, [cmd.getGateId()]);
       return;
     }
@@ -496,7 +497,7 @@ export class InputHandler {
               const mask = ((1 << pin.bitWidth) >>> 0) - 1;
               pin.value = pin.value === null ? 1 : ((pin.value + 1) & mask) >>> 0;
               if (pin.value > mask) pin.value = 0;
-              this.history.onChange?.();
+              this.getHistory().onChange?.();
               this.setState((s) => { s.dirty = true; });
               return;
             }
@@ -573,7 +574,7 @@ export class InputHandler {
       const sx = snapToGrid(world.x);
       const sy = snapToGrid(world.y);
       const cmd = new AddWireNodeCommand(state, sx, sy);
-      this.history.execute(cmd);
+      this.getHistory().execute(cmd);
       const newNodeId = cmd.getNodeId();
       this.isWiring = true;
       this.wireStartWorldX = world.x;
@@ -811,7 +812,7 @@ export class InputHandler {
           const sx = snapToGrid(world.x);
           const sy = snapToGrid(world.y);
           const nodeCmd = new AddWireNodeCommand(state, sx, sy);
-          this.history.execute(nodeCmd);
+          this.getHistory().execute(nodeCmd);
           const fromNode = this.ensureWireNode(state, wireStart);
           if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
         }
@@ -827,39 +828,42 @@ export class InputHandler {
       const snapDx = snapToGrid(this.dragAccDx);
       const snapDy = snapToGrid(this.dragAccDy);
 
-      if (snapDx !== 0 || snapDy !== 0) {
-        const gateIds = state.selection
-          .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
-          .map((s) => s.id);
-        const selectedNodeIds = state.selection
-          .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
-          .map((s) => s.id);
+      const gateIds = state.selection
+        .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
+        .map((s) => s.id);
+      const selectedNodeIds = state.selection
+        .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
+        .map((s) => s.id);
+      const isDisconnect = this.isDraggingDisconnected;
 
-        // Undo live move
-        for (const gateId of gateIds) {
-          const gate = state.circuit.gates.get(gateId);
-          if (gate) { gate.x -= snapDx; gate.y -= snapDy; }
-        }
-        const anchored = getAnchoredNodeIds(state.circuit, gateIds);
-        const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
-        for (const nid of allNodeIds) {
-          const node = state.circuit.wireNodes.get(nid);
-          if (node) { node.x -= snapDx; node.y -= snapDy; }
+      // Create command if moved, or if disconnect drag (to track detach for undo)
+      if (snapDx !== 0 || snapDy !== 0 || isDisconnect) {
+        // Undo live move before creating command
+        if (snapDx !== 0 || snapDy !== 0) {
+          for (const gateId of gateIds) {
+            const gate = state.circuit.gates.get(gateId);
+            if (gate) { gate.x -= snapDx; gate.y -= snapDy; }
+          }
+          const anchored = isDisconnect ? [] : getAnchoredNodeIds(state.circuit, gateIds);
+          const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
+          for (const nid of allNodeIds) {
+            const node = state.circuit.wireNodes.get(nid);
+            if (node) { node.x -= snapDx; node.y -= snapDy; }
+          }
         }
 
-        this.history.execute(new MoveGatesCommand(state, gateIds, snapDx, snapDy, selectedNodeIds));
+        const cmd = new MoveGatesCommand(state, gateIds, snapDx, snapDy, selectedNodeIds, isDisconnect);
+        if (isDisconnect) {
+          cmd.saveDetachedPins(this._lastDetachedPins);
+        }
+        this.getHistory().execute(cmd);
       }
 
       // Always try to reconnect pins to nearby wire nodes after move
-      {
-        const gateIds = state.selection
-          .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
-          .map((s) => s.id);
-        this.reconnectPinNodes(state, gateIds);
-      }
-      // Trigger resimulation (especially needed for disconnect drag with no movement)
-      this.history.onChange?.();
+      this.reconnectPinNodes(state, gateIds);
+      this.getHistory().onChange?.();
       this.isDraggingDisconnected = false;
+      this._lastDetachedPins = [];
 
       this.dragAccDx = 0;
       this.dragAccDy = 0;
@@ -928,13 +932,13 @@ export class InputHandler {
 
     if (ctrl && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
-      this.history.undo();
+      this.getHistory().undo();
       this.setState((s) => { s.dirty = true; });
       return;
     }
     if (ctrl && (e.key === 'Z' || e.key === 'y')) {
       e.preventDefault();
-      this.history.redo();
+      this.getHistory().redo();
       this.setState((s) => { s.dirty = true; });
       return;
     }
@@ -963,7 +967,7 @@ export class InputHandler {
         .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
         .map((s) => s.id);
       if (gateIds.length > 0 || nodeIds.length > 0) {
-        this.history.execute(new RotateGatesCommand(state, gateIds, nodeIds));
+        this.getHistory().execute(new RotateGatesCommand(state, gateIds, nodeIds));
       }
       return;
     }
@@ -1073,7 +1077,7 @@ export class InputHandler {
     if (existing) return existing;
 
     const cmd = new AddWireNodeCommand(state, ep.x, ep.y, ep.pinId);
-    this.history.execute(cmd);
+    this.getHistory().execute(cmd);
     return cmd.getNodeId();
   }
 
@@ -1088,7 +1092,7 @@ export class InputHandler {
   /** Add a wire segment between two nodes unless one already exists. */
   private addSegmentIfNew(state: EditorState, from: WireNodeId, to: WireNodeId, color?: string): void {
     if (from === to || this.segmentExists(state, from, to)) return;
-    this.history.execute(new AddWireSegmentCommand(state, from, to, color));
+    this.getHistory().execute(new AddWireSegmentCommand(state, from, to, color));
   }
 
   /** Get the active wire color, or undefined for default. */
@@ -1104,12 +1108,12 @@ export class InputHandler {
     const toId = seg.to;
     const color = seg.color;
 
-    this.history.execute(new RemoveWireSegmentCommand(state, segId, false));
+    this.getHistory().execute(new RemoveWireSegmentCommand(state, segId, false));
     const addNode = new AddWireNodeCommand(state, x, y);
-    this.history.execute(addNode);
+    this.getHistory().execute(addNode);
     const midId = addNode.getNodeId();
-    this.history.execute(new AddWireSegmentCommand(state, fromId, midId, color));
-    this.history.execute(new AddWireSegmentCommand(state, midId, toId, color));
+    this.getHistory().execute(new AddWireSegmentCommand(state, fromId, midId, color));
+    this.getHistory().execute(new AddWireSegmentCommand(state, midId, toId, color));
     this.setState((s) => { s.dirty = true; });
     return midId;
   }
@@ -1120,12 +1124,12 @@ export class InputHandler {
     const nodeIds = state.selection
       .filter((s): s is { type: 'wireNode'; id: WireNodeId } => s.type === 'wireNode')
       .map((s) => s.id);
-    for (const nodeId of nodeIds) this.history.execute(new RemoveWireNodeCommand(state, nodeId));
+    for (const nodeId of nodeIds) this.getHistory().execute(new RemoveWireNodeCommand(state, nodeId));
 
     const segIds = state.selection
       .filter((s): s is { type: 'wireSegment'; id: WireSegmentId } => s.type === 'wireSegment')
       .map((s) => s.id);
-    for (const segId of segIds) this.history.execute(new RemoveWireSegmentCommand(state, segId));
+    for (const segId of segIds) this.getHistory().execute(new RemoveWireSegmentCommand(state, segId));
 
     const gateIds = state.selection
       .filter((s): s is { type: 'gate'; id: GateId } => s.type === 'gate')
@@ -1134,7 +1138,7 @@ export class InputHandler {
         const g = state.circuit.gates.get(gid);
         return g?.canRemove !== false;
       });
-    for (const gateId of gateIds) this.history.execute(new RemoveGateCommand(state, gateId));
+    for (const gateId of gateIds) this.getHistory().execute(new RemoveGateCommand(state, gateId));
 
     this.setState((s) => { s.selection = []; s.dirty = true; });
   }
@@ -1171,7 +1175,7 @@ export class InputHandler {
 
     // Create a new segment connecting the two remaining endpoints
     const cmd = new AddWireSegmentCommand(state, otherId0, otherId1, color);
-    this.history.execute(cmd);
+    this.getHistory().execute(cmd);
     if (label) {
       const newSeg = state.circuit.wireSegments.get(cmd.getSegmentId());
       if (newSeg) newSeg.label = label;
@@ -1185,7 +1189,8 @@ export class InputHandler {
     const gate = state.circuit.gates.get(gateId);
     if (gate?.canMove === false) return;
     this.setState((s) => { s.selection = [{ type: 'gate', id: gateId }]; });
-    this.detachPinNodes(state, [gateId]);
+    // Detach pins for visual feedback; save mappings for command undo
+    this._lastDetachedPins = this.detachPinNodes(state, [gateId]);
     this.isDraggingGates = true;
     this.isDraggingDisconnected = true;
     this.dragAccDx = 0;
@@ -1194,16 +1199,18 @@ export class InputHandler {
     this.lastWorldY = wy;
   }
 
-  /** Detach all wire nodes anchored to pins of the given gates. Also clears pin values to prevent stale display. */
-  private detachPinNodes(state: EditorState, gateIds: GateId[]): void {
+  /** Detach all wire nodes anchored to pins of the given gates. Returns detached mappings for undo. */
+  private detachPinNodes(state: EditorState, gateIds: GateId[]): { nodeId: WireNodeId; pinId: PinId }[] {
     const pinIds = new Set<string>();
     for (const gateId of gateIds) {
       const gate = state.circuit.gates.get(gateId);
       if (!gate) continue;
       for (const p of [...gate.inputPins, ...gate.outputPins]) pinIds.add(p as string);
     }
+    const detached: { nodeId: WireNodeId; pinId: PinId }[] = [];
     for (const node of state.circuit.wireNodes.values()) {
       if (node.pinId && pinIds.has(node.pinId as string)) {
+        detached.push({ nodeId: node.id, pinId: node.pinId });
         node.pinId = undefined;
       }
     }
@@ -1213,6 +1220,7 @@ export class InputHandler {
         pin.value = null;
       }
     }
+    return detached;
   }
 
   /** Reconnect: for each pin of the given gates, find a wire node at the pin position and anchor it. */
@@ -1430,7 +1438,7 @@ export class InputHandler {
       const gx = snapToGrid(cx + cg.dx - def.width * GRID_SIZE / 2);
       const gy = snapToGrid(cy + cg.dy - def.height * GRID_SIZE / 2);
       const cmd = new AddGateCommand(state, cg.type, gx, gy, cg.rotation, cg.pinBitWidths[0] ?? 1);
-      this.history.execute(cmd);
+      this.getHistory().execute(cmd);
       newGateIds.push(cmd.getGateId());
 
       // Collect pin IDs and restore properties
@@ -1459,7 +1467,7 @@ export class InputHandler {
       }
 
       const cmd = new AddWireNodeCommand(state, nx, ny, pinId);
-      this.history.execute(cmd);
+      this.getHistory().execute(cmd);
       newNodeIds.push(cmd.getNodeId());
     }
 
@@ -1469,7 +1477,7 @@ export class InputHandler {
       const toId = newNodeIds[cw.toNodeIdx];
       if (fromId && toId) {
         const cmd = new AddWireSegmentCommand(state, fromId, toId, cw.color);
-        this.history.execute(cmd);
+        this.getHistory().execute(cmd);
         // Apply label
         if (cw.label) {
           const seg = state.circuit.wireSegments.get(cmd.getSegmentId());

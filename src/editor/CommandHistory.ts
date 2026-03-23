@@ -255,16 +255,25 @@ export class MoveGatesCommand implements Command {
   private extraNodeIds: WireNodeId[];
   private dx: number;
   private dy: number;
+  private disconnected: boolean;
 
   /** Wire nodes that moved along with the gates (anchored to pins + extra). */
   private movedNodeIds: WireNodeId[] = [];
+  /** Saved pinId mappings for disconnect drag undo. */
+  private detachedPins: { nodeId: WireNodeId; pinId: PinId }[] = [];
 
-  constructor(state: EditorState, gateIds: GateId[], dx: number, dy: number, extraNodeIds: WireNodeId[] = []) {
+  constructor(state: EditorState, gateIds: GateId[], dx: number, dy: number, extraNodeIds: WireNodeId[] = [], disconnected = false) {
     this.state = state;
     this.gateIds = gateIds;
     this.extraNodeIds = extraNodeIds;
     this.dx = dx;
     this.dy = dy;
+    this.disconnected = disconnected;
+  }
+
+  /** Store detached pin mappings (set by InputHandler before execute, for undo support). */
+  saveDetachedPins(detached: { nodeId: WireNodeId; pinId: PinId }[]): void {
+    this.detachedPins = detached;
   }
 
   execute(): void {
@@ -277,8 +286,7 @@ export class MoveGatesCommand implements Command {
       gate.y += this.dy;
     }
 
-    // Anchored nodes + explicitly selected free nodes (deduplicated)
-    const anchored = getAnchoredNodeIds(circuit, this.gateIds);
+    const anchored = this.disconnected ? [] : getAnchoredNodeIds(circuit, this.gateIds);
     const allIds = new Set<WireNodeId>([...anchored, ...this.extraNodeIds]);
     this.movedNodeIds = [...allIds];
     for (const nodeId of this.movedNodeIds) {
@@ -305,6 +313,12 @@ export class MoveGatesCommand implements Command {
         node.x -= this.dx;
         node.y -= this.dy;
       }
+    }
+
+    // Restore detached pin connections
+    for (const { nodeId, pinId } of this.detachedPins) {
+      const node = circuit.wireNodes.get(nodeId);
+      if (node) node.pinId = pinId;
     }
 
     this.state.dirty = true;
