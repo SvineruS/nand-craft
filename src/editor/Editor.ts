@@ -43,7 +43,6 @@ export class Editor {
   this.input = new InputHandler(
       this.canvas,
       () => this.state,
-      (fn) => { fn(this.state); },
       () => this.history,
       this.renderer,
     );

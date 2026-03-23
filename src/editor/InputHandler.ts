@@ -143,7 +143,6 @@ function rectContainsGate(
 export class InputHandler {
   private canvas: HTMLCanvasElement;
   private getState: () => EditorState;
-  private setState: (fn: (s: EditorState) => void) => void;
   private getHistory: () => CommandHistory;
   private renderer: Renderer;
 
@@ -175,13 +174,11 @@ export class InputHandler {
   constructor(
     canvas: HTMLCanvasElement,
     getState: () => EditorState,
-    setState: (fn: (s: EditorState) => void) => void,
     getHistory: () => CommandHistory,
     renderer: Renderer,
   ) {
     this.canvas = canvas;
     this.getState = getState;
-    this.setState = setState;
     this.getHistory = getHistory;
     this.renderer = renderer;
 
@@ -234,10 +231,8 @@ export class InputHandler {
     const def = GATE_DEFS[previewType];
     const cx = snapToGrid(world.x - def.width * GRID_SIZE / 2);
     const cy = snapToGrid(world.y - def.height * GRID_SIZE / 2);
-    this.setState((s) => {
-      s.dropPreview = { type: previewType, x: cx, y: cy };
-      s.dirty = true;
-    });
+    state.dropPreview = { type: previewType, x: cx, y: cy };
+    state.dirty = true;
   }
 
   private handleDrop(e: DragEvent): void {
@@ -253,11 +248,12 @@ export class InputHandler {
     const cmd = new AddGateCommand(state, gateType, cx, cy);
     this.getHistory().execute(cmd);
     this.reconnectPinNodes(state, [cmd.getGateId()]);
-    this.setState((s) => { s.dropPreview = null; s.dirty = true; });
+    state.dropPreview = null; state.dirty = true;
   }
 
   private handleDragLeave(_e: DragEvent): void {
-    this.setState((s) => { s.dropPreview = null; s.dirty = true; });
+    const state = this.getState();
+    state.dropPreview = null; state.dirty = true;
   }
 
   // ---------------------------------------------------------------------------
@@ -271,7 +267,7 @@ export class InputHandler {
 
     // Cancel stamp/paste mode
     if (state.stampGateType || state.pasteMode) {
-      this.setState((s) => { s.stampGateType = null; s.pasteMode = false; s.dropPreview = null; s.dirty = true; });
+      state.stampGateType = null; state.pasteMode = false; state.dropPreview = null; state.dirty = true;
       return;
     }
 
@@ -279,7 +275,7 @@ export class InputHandler {
     const ep = hitTestEndpoint(world.x, world.y, state);
     if (ep && ep.kind === 'node') {
       this.getHistory().execute(new RemoveWireNodeCommand(state, ep.nodeId));
-      this.setState((s) => { s.dirty = true; });
+      state.dirty = true;
       return;
     }
 
@@ -288,7 +284,7 @@ export class InputHandler {
     if (gateHit) {
       const gateObj = state.circuit.gates.get(gateHit);
       if (gateObj?.canRemove === false) return;
-      this.setState((s) => { s.selection = [{ type: 'gate', id: gateHit }]; });
+      state.selection = [{ type: 'gate', id: gateHit }];
       this.deleteSelected(state);
       return;
     }
@@ -318,16 +314,16 @@ export class InputHandler {
           }
           if (!hasSegs) state.circuit.wireNodes.delete(nid as WireNodeId);
         }
-        this.setState((s) => { s.dirty = true; });
+        state.dirty = true;
       } else {
-        this.setState((s) => { s.selection = [{ type: 'wireSegment', id: segHit }]; });
+        state.selection = [{ type: 'wireSegment', id: segHit }];
         this.deleteSelected(state);
       }
       return;
     }
 
     // Empty space → clear selection
-    this.setState((s) => { s.selection = []; s.dirty = true; });
+    state.selection = []; state.dirty = true;
   }
 
   // ---------------------------------------------------------------------------
@@ -354,7 +350,7 @@ export class InputHandler {
           this.lastWorldY = world.y;
           this.dragAccDx = 0;
           this.dragAccDy = 0;
-          this.setState((s) => { s.dirty = true; });
+          state.dirty = true;
           return;
         }
         // Pin: detach anchored wire node and drag it
@@ -369,7 +365,7 @@ export class InputHandler {
             this.isDraggingNode = anchoredNode;
             this.lastWorldX = world.x;
             this.lastWorldY = world.y;
-            this.setState((s) => { s.wireStart = null; s.dirty = true; });
+            state.wireStart = null; state.dirty = true;
             return;
           }
         }
@@ -387,7 +383,7 @@ export class InputHandler {
         return;
       }
       // Otherwise pan
-      this.setState((s) => { s.isDragging = true; s.dragStart = { x: e.offsetX, y: e.offsetY }; });
+      state.isDragging = true; state.dragStart = { x: e.offsetX, y: e.offsetY };
       return;
     }
 
@@ -400,7 +396,7 @@ export class InputHandler {
         this.lastWorldY = world.y;
         this.dragAccDx = 0;
         this.dragAccDy = 0;
-        this.setState((s) => { s.dirty = true; });
+        state.dirty = true;
         return;
       }
 
@@ -409,7 +405,7 @@ export class InputHandler {
         this.startDisconnectDrag(state, gateHit, world.x, world.y);
         return;
       }
-      this.setState((s) => { s.isDragging = true; s.dragStart = { x: e.offsetX, y: e.offsetY }; });
+      state.isDragging = true; state.dragStart = { x: e.offsetX, y: e.offsetY };
       return;
     }
 
@@ -445,7 +441,7 @@ export class InputHandler {
           this.isDraggingNode = ep.nodeId;
           this.lastWorldX = world.x;
           this.lastWorldY = world.y;
-          this.setState((s) => { s.wireStart = null; s.dirty = true; });
+          state.wireStart = null; state.dirty = true;
         } else {
           // Pin: detach anchored wire node and drag it
           const anchoredNode = this.findAnchoredNode(ep.pinId, state);
@@ -458,7 +454,7 @@ export class InputHandler {
               this.isDraggingNode = anchoredNode;
               this.lastWorldX = world.x;
               this.lastWorldY = world.y;
-              this.setState((s) => { s.wireStart = null; s.dirty = true; });
+              state.wireStart = null; state.dirty = true;
             }
           }
         }
@@ -479,7 +475,7 @@ export class InputHandler {
       this.isWiring = true;
       this.wireStartWorldX = world.x;
       this.wireStartWorldY = world.y;
-      this.setState((s) => { s.wireStart = ep; s.dirty = true; });
+      state.wireStart = ep; state.dirty = true;
       return;
     }
 
@@ -498,7 +494,7 @@ export class InputHandler {
               pin.value = pin.value === null ? 1 : ((pin.value + 1) & mask) >>> 0;
               if (pin.value > mask) pin.value = 0;
               this.getHistory().onChange?.();
-              this.setState((s) => { s.dirty = true; });
+              state.dirty = true;
               return;
             }
           }
@@ -509,15 +505,13 @@ export class InputHandler {
         (s) => s.type === 'gate' && s.id === gateHit,
       );
       if (e.ctrlKey || e.metaKey) {
-        this.setState((s) => {
-          if (alreadySelected) {
-            s.selection = s.selection.filter(item => !(item.type === 'gate' && item.id === gateHit));
-          } else {
-            s.selection = [...s.selection, { type: 'gate', id: gateHit }];
-          }
-        });
+        if (alreadySelected) {
+          state.selection = state.selection.filter(item => !(item.type === 'gate' && item.id === gateHit));
+        } else {
+          state.selection = [...state.selection, { type: 'gate', id: gateHit }];
+        }
       } else if (!alreadySelected) {
-        this.setState((s) => { s.selection = [{ type: 'gate', id: gateHit }]; });
+        state.selection = [{ type: 'gate', id: gateHit }];
       }
       // Only start drag if at least one selected gate is movable
       const updatedState = this.getState();
@@ -554,15 +548,13 @@ export class InputHandler {
       }
       if (e.ctrlKey || e.metaKey) {
         const alreadySel = state.selection.some(s => s.type === 'wireSegment' && s.id === segHit);
-        this.setState((s) => {
-          if (alreadySel) {
-            s.selection = s.selection.filter(item => !(item.type === 'wireSegment' && item.id === segHit));
-          } else {
-            s.selection = [...s.selection, { type: 'wireSegment', id: segHit }];
-          }
-        });
+        if (alreadySel) {
+          state.selection = state.selection.filter(item => !(item.type === 'wireSegment' && item.id === segHit));
+        } else {
+          state.selection = [...state.selection, { type: 'wireSegment', id: segHit }];
+        }
       } else {
-        this.setState((s) => { s.selection = [{ type: 'wireSegment', id: segHit }]; });
+        state.selection = [{ type: 'wireSegment', id: segHit }];
       }
       return;
     }
@@ -579,22 +571,18 @@ export class InputHandler {
       this.isWiring = true;
       this.wireStartWorldX = world.x;
       this.wireStartWorldY = world.y;
-      this.setState((s) => {
-        s.wireStart = { kind: 'node', nodeId: newNodeId, x: sx, y: sy };
-        s.dirty = true;
-      });
+      state.wireStart = { kind: 'node', nodeId: newNodeId, x: sx, y: sy };
+      state.dirty = true;
       return;
     }
 
     // Single click empty → start selection rect
     if (!(e.ctrlKey || e.metaKey)) {
-      this.setState((s) => { s.selection = []; });
+      state.selection = [];
     }
-    this.setState((s) => {
-      s.selectionRect = { x: world.x, y: world.y, w: 0, h: 0 };
-      s.isDragging = false;
-      s.dragStart = { x: world.x, y: world.y };
-    });
+    state.selectionRect = { x: world.x, y: world.y, w: 0, h: 0 };
+    state.isDragging = false;
+    state.dragStart = { x: world.x, y: world.y };
   }
 
   // ---------------------------------------------------------------------------
@@ -609,32 +597,26 @@ export class InputHandler {
     // Stamp/paste preview
     if (state.stampGateType && !state.pasteMode) {
       const def = GATE_DEFS[state.stampGateType];
-      this.setState((s) => {
-        s.dropPreview = {
-          type: state.stampGateType!,
-          x: snapToGrid(world.x - def.width * GRID_SIZE / 2),
-          y: snapToGrid(world.y - def.height * GRID_SIZE / 2),
-        };
-        s.hoveredGate = hitTestGate(world.x, world.y, s);
-        s.dirty = true;
-      });
+      state.dropPreview = {
+        type: state.stampGateType!,
+        x: snapToGrid(world.x - def.width * GRID_SIZE / 2),
+        y: snapToGrid(world.y - def.height * GRID_SIZE / 2),
+      };
+      state.hoveredGate = hitTestGate(world.x, world.y, state);
+      state.dirty = true;
     } else if (state.pasteMode) {
-      this.setState((s) => {
-        s.pasteCursor = { x: snapToGrid(world.x), y: snapToGrid(world.y) };
-        s.dirty = true;
-      });
+      state.pasteCursor = { x: snapToGrid(world.x), y: snapToGrid(world.y) };
+      state.dirty = true;
     }
 
     // Pan
     if (state.isDragging && state.dragStart) {
       const dx = e.offsetX - state.dragStart.x;
       const dy = e.offsetY - state.dragStart.y;
-      this.setState((s) => {
-        s.camera.x -= dx / s.camera.zoom;
-        s.camera.y -= dy / s.camera.zoom;
-        s.dragStart = { x: e.offsetX, y: e.offsetY };
-        s.dirty = true;
-      });
+      state.camera.x -= dx / state.camera.zoom;
+      state.camera.y -= dy / state.camera.zoom;
+      state.dragStart = { x: e.offsetX, y: e.offsetY };
+      state.dirty = true;
       return;
     }
 
@@ -649,19 +631,15 @@ export class InputHandler {
         node.x = newX;
         node.y = newY;
       }
-      this.setState((s) => {
-        s.hoveredEndpoint = hitTestEndpoint(world.x, world.y, s, dragId);
-        s.dirty = true;
-      });
+      state.hoveredEndpoint = hitTestEndpoint(world.x, world.y, state, dragId);
+      state.dirty = true;
       return;
     }
 
     // Wiring in progress
     if (this.isWiring) {
-      this.setState((s) => {
-        s.hoveredEndpoint = hitTestEndpoint(world.x, world.y, s);
-        s.dirty = true;
-      });
+      state.hoveredEndpoint = hitTestEndpoint(world.x, world.y, state);
+      state.dirty = true;
       return;
     }
 
@@ -697,28 +675,24 @@ export class InputHandler {
           if (node) { node.x += snappedDx; node.y += snappedDy; }
         }
       }
-      this.setState((s) => { s.dirty = true; });
+      state.dirty = true;
       return;
     }
 
     // Selection rect
     if (state.selectionRect && state.dragStart) {
-      this.setState((s) => {
-        if (s.selectionRect && s.dragStart) {
-          s.selectionRect.w = world.x - s.dragStart.x;
-          s.selectionRect.h = world.y - s.dragStart.y;
-          s.dirty = true;
-        }
-      });
+      if (state.selectionRect && state.dragStart) {
+        state.selectionRect.w = world.x - state.dragStart.x;
+        state.selectionRect.h = world.y - state.dragStart.y;
+        state.dirty = true;
+      }
       return;
     }
 
     // Hover
-    this.setState((s) => {
-      s.hoveredEndpoint = hitTestEndpoint(world.x, world.y, s);
-      s.hoveredGate = hitTestGate(world.x, world.y, s);
-      s.dirty = true;
-    });
+    state.hoveredEndpoint = hitTestEndpoint(world.x, world.y, state);
+    state.hoveredGate = hitTestGate(world.x, world.y, state);
+    state.dirty = true;
   }
 
   // ---------------------------------------------------------------------------
@@ -770,7 +744,7 @@ export class InputHandler {
         const node = state.circuit.wireNodes.get(draggedNodeId);
         if (node) { node.x = snapToGrid(node.x); node.y = snapToGrid(node.y); }
       }
-      this.setState((s) => { s.selection = []; s.dirty = true; });
+      state.selection = []; state.dirty = true;
       return;
     }
 
@@ -782,7 +756,7 @@ export class InputHandler {
       // No drag? Cancel (allows double-click to work)
       const dragDist = Math.hypot(world.x - this.wireStartWorldX, world.y - this.wireStartWorldY);
       if (dragDist < MIN_WIRE_DRAG) {
-        this.setState((s) => { s.wireStart = null; s.dirty = true; });
+        state.wireStart = null; state.dirty = true;
         return;
       }
 
@@ -818,7 +792,7 @@ export class InputHandler {
         }
       }
 
-      this.setState((s) => { s.wireStart = null; s.dirty = true; });
+      state.wireStart = null; state.dirty = true;
       return;
     }
 
@@ -873,33 +847,31 @@ export class InputHandler {
     // Finalise selection rect
     if (state.selectionRect) {
       const rect = state.selectionRect;
-      this.setState((s) => {
-        const selected: typeof s.selection = [];
-        for (const gate of s.circuit.gates.values()) {
-          if (rectContainsGate(rect.x, rect.y, rect.w, rect.h, gate)) {
-            selected.push({ type: 'gate', id: gate.id });
-          }
+      const selected: typeof state.selection = [];
+      for (const gate of state.circuit.gates.values()) {
+        if (rectContainsGate(rect.x, rect.y, rect.w, rect.h, gate)) {
+          selected.push({ type: 'gate', id: gate.id });
         }
-        // Include free wire nodes in area selection
-        const left = rect.w >= 0 ? rect.x : rect.x + rect.w;
-        const top = rect.h >= 0 ? rect.y : rect.y + rect.h;
-        const right = left + Math.abs(rect.w);
-        const bottom = top + Math.abs(rect.h);
-        for (const node of s.circuit.wireNodes.values()) {
-          if (node.pinId) continue; // skip anchored nodes
-          if (node.x >= left && node.x <= right && node.y >= top && node.y <= bottom) {
-            selected.push({ type: 'wireNode', id: node.id });
-          }
+      }
+      // Include free wire nodes in area selection
+      const left = rect.w >= 0 ? rect.x : rect.x + rect.w;
+      const top = rect.h >= 0 ? rect.y : rect.y + rect.h;
+      const right = left + Math.abs(rect.w);
+      const bottom = top + Math.abs(rect.h);
+      for (const node of state.circuit.wireNodes.values()) {
+        if (node.pinId) continue; // skip anchored nodes
+        if (node.x >= left && node.x <= right && node.y >= top && node.y <= bottom) {
+          selected.push({ type: 'wireNode', id: node.id });
         }
-        s.selection = selected;
-        s.selectionRect = null;
-        s.dirty = true;
-      });
+      }
+      state.selection = selected;
+      state.selectionRect = null;
+      state.dirty = true;
       return;
     }
 
     // Clear pan
-    this.setState((s) => { s.isDragging = false; s.dragStart = null; });
+    state.isDragging = false; state.dragStart = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -911,13 +883,11 @@ export class InputHandler {
     const state = this.getState();
     const worldBefore = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
     const zoomFactor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-    this.setState((s) => {
-      s.camera.zoom = Math.min(4, Math.max(0.25, s.camera.zoom * zoomFactor));
-      const worldAfter = this.renderer.screenToWorld(e.offsetX, e.offsetY, s.camera);
-      s.camera.x += worldBefore.x - worldAfter.x;
-      s.camera.y += worldBefore.y - worldAfter.y;
-      s.dirty = true;
-    });
+    state.camera.zoom = Math.min(4, Math.max(0.25, state.camera.zoom * zoomFactor));
+    const worldAfter = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    state.camera.x += worldBefore.x - worldAfter.x;
+    state.camera.y += worldBefore.y - worldAfter.y;
+    state.dirty = true;
   }
 
   // ---------------------------------------------------------------------------
@@ -933,13 +903,13 @@ export class InputHandler {
     if (ctrl && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       this.getHistory().undo();
-      this.setState((s) => { s.dirty = true; });
+      state.dirty = true;
       return;
     }
     if (ctrl && (e.key === 'Z' || e.key === 'y')) {
       e.preventDefault();
       this.getHistory().redo();
-      this.setState((s) => { s.dirty = true; });
+      state.dirty = true;
       return;
     }
 
@@ -997,7 +967,7 @@ export class InputHandler {
           if (seg) seg.color = colorValue;
         }
       }
-      this.setState((s) => { s.dirty = true; });
+      state.dirty = true;
       return;
     }
 
@@ -1020,7 +990,7 @@ export class InputHandler {
     if (ctrl && (e.key === 'v' || e.key === 'V')) {
       e.preventDefault();
       if (state.clipboard) {
-        this.setState((s) => { s.pasteMode = true; s.stampGateType = null; s.dirty = true; });
+        state.pasteMode = true; state.stampGateType = null; state.dirty = true;
       }
       return;
     }
@@ -1030,7 +1000,7 @@ export class InputHandler {
       if (state.hoveredGate) {
         const gate = state.circuit.gates.get(state.hoveredGate);
         if (gate) {
-          this.setState((s) => { s.stampGateType = gate.type; s.pasteMode = false; s.dirty = true; });
+          state.stampGateType = gate.type; state.pasteMode = false; state.dirty = true;
           return;
         }
       }
@@ -1041,7 +1011,7 @@ export class InputHandler {
       if (segHit) {
         const seg = state.circuit.wireSegments.get(segHit);
         if (seg) {
-          this.setState((s) => { s.wireColor = seg.color ?? WIRE_COLORS[0]; s.dirty = true; });
+          state.wireColor = seg.color ?? WIRE_COLORS[0]; state.dirty = true;
           return;
         }
       }
@@ -1052,15 +1022,13 @@ export class InputHandler {
       this.isWiring = false;
       this.isDraggingNode = null;
       this.isDraggingDisconnected = false;
-      this.setState((s) => {
-        s.selection = [];
-        s.wireStart = null;
-        s.selectionRect = null;
-        s.stampGateType = null;
-        s.pasteMode = false;
-        s.dropPreview = null;
-        s.dirty = true;
-      });
+      state.selection = [];
+      state.wireStart = null;
+      state.selectionRect = null;
+      state.stampGateType = null;
+      state.pasteMode = false;
+      state.dropPreview = null;
+      state.dirty = true;
       return;
     }
   }
@@ -1114,7 +1082,7 @@ export class InputHandler {
     const midId = addNode.getNodeId();
     this.getHistory().execute(new AddWireSegmentCommand(state, fromId, midId, color));
     this.getHistory().execute(new AddWireSegmentCommand(state, midId, toId, color));
-    this.setState((s) => { s.dirty = true; });
+    state.dirty = true;
     return midId;
   }
 
@@ -1140,7 +1108,7 @@ export class InputHandler {
       });
     for (const gateId of gateIds) this.getHistory().execute(new RemoveGateCommand(state, gateId));
 
-    this.setState((s) => { s.selection = []; s.dirty = true; });
+    state.selection = []; state.dirty = true;
   }
 
   /** Find a wire node anchored to this pin that has connected segments. */
@@ -1180,7 +1148,7 @@ export class InputHandler {
       const newSeg = state.circuit.wireSegments.get(cmd.getSegmentId());
       if (newSeg) newSeg.label = label;
     }
-    this.setState((s) => { s.dirty = true; });
+    state.dirty = true;
     return true;
   }
 
@@ -1188,7 +1156,7 @@ export class InputHandler {
   private startDisconnectDrag(state: EditorState, gateId: GateId, wx: number, wy: number): void {
     const gate = state.circuit.gates.get(gateId);
     if (gate?.canMove === false) return;
-    this.setState((s) => { s.selection = [{ type: 'gate', id: gateId }]; });
+    state.selection = [{ type: 'gate', id: gateId }];
     // Detach pins for visual feedback; save mappings for command undo
     this._lastDetachedPins = this.detachPinNodes(state, [gateId]);
     this.isDraggingGates = true;
@@ -1242,7 +1210,7 @@ export class InputHandler {
         }
       }
     }
-    this.setState((s) => { s.dirty = true; });
+    state.dirty = true;
   }
 
   private findAnchoredNode(pinId: PinId, state: EditorState): WireNodeId | null {
@@ -1314,7 +1282,7 @@ export class InputHandler {
       cn.dy = dx;
     }
 
-    this.setState((s) => { s.dirty = true; });
+    state.dirty = true;
   }
 
   // ---------------------------------------------------------------------------
@@ -1418,9 +1386,7 @@ export class InputHandler {
       }
     }
 
-    this.setState((s) => {
-      s.clipboard = { gates, nodes, wires };
-    });
+    state.clipboard = { gates, nodes, wires };
   }
 
   private pasteClipboard(state: EditorState, wx: number, wy: number): void {
@@ -1486,6 +1452,6 @@ export class InputHandler {
       }
     }
 
-    this.setState((s) => { s.dirty = true; });
+    state.dirty = true;
   }
 }
