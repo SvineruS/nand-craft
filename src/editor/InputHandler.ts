@@ -1346,6 +1346,7 @@ export class InputHandler {
 
     const cx = snapToGrid(wx);
     const cy = snapToGrid(wy);
+    this.getHistory().beginBatch('Paste');
 
     // Create gates and collect new pin IDs
     const newGateIds: GateId[] = [];
@@ -1406,6 +1407,7 @@ export class InputHandler {
       }
     }
 
+    this.getHistory().endBatch();
     state.renderDirty = true;
   }
 }

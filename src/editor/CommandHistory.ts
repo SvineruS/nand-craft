@@ -25,13 +25,52 @@ export interface Command {
   description: string;
 }
 
+class BatchCommand implements Command {
+  readonly description: string;
+  private commands: Command[] = [];
+
+  constructor(description: string) {
+    this.description = description;
+  }
+
+  add(cmd: Command): void {
+    cmd.execute();
+    this.commands.push(cmd);
+  }
+
+  execute(): void {
+    for (const cmd of this.commands) cmd.execute();
+  }
+
+  undo(): void {
+    for (let i = this.commands.length - 1; i >= 0; i--) this.commands[i].undo();
+  }
+}
+
 export class CommandHistory {
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
+  private batch: BatchCommand | null = null;
 
   execute(cmd: Command): void {
+    if (this.batch) {
+      this.batch.add(cmd);
+      return;
+    }
     cmd.execute();
     this.undoStack.push(cmd);
+    this.redoStack = [];
+  }
+
+  beginBatch(description: string): void {
+    this.batch = new BatchCommand(description);
+  }
+
+  endBatch(): void {
+    if (!this.batch) return;
+    const batch = this.batch;
+    this.batch = null;
+    this.undoStack.push(batch);
     this.redoStack = [];
   }
 
