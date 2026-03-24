@@ -12,7 +12,8 @@ import type {
 import { generateId } from '../types.ts';
 import type { EditorState } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { getAnchoredNodeIds, getAllPinIds, cleanupOrphanNodes, rotateGroup, updateAnchoredNodes } from './geometry.ts';
+import { getAnchoredNodeIds, getAllPinIds, cleanupOrphanNodes, rotateGroup, updateAnchoredNodes, reconnectPinNodes, undoReconnectPinNodes } from './geometry.ts';
+import type { ReconnectedNode } from './geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -71,6 +72,7 @@ export class AddGateCommand implements Command {
   private gateId: GateId;
   private gate: Gate;
   private pins: Pin[] = [];
+  private reconnectedNodes: ReconnectedNode[] = [];
 
   constructor(
     state: EditorState,
@@ -119,16 +121,18 @@ export class AddGateCommand implements Command {
     for (const pin of this.pins) {
       circuit.pins.set(pin.id, pin);
     }
-    this.state.dirty = true;
+    this.reconnectedNodes = reconnectPinNodes(circuit, [this.gateId]);
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
     const { circuit } = this.state;
+    undoReconnectPinNodes(circuit, this.reconnectedNodes);
     for (const pin of this.pins) {
       circuit.pins.delete(pin.id);
     }
     circuit.gates.delete(this.gateId);
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   getGateId(): GateId {
@@ -210,7 +214,7 @@ export class RemoveGateCommand implements Command {
     // Clean up orphaned free neighbor nodes
     this.removedOrphanNodes = cleanupOrphanNodes(circuit, neighborNodeIds as Iterable<WireNodeId>);
 
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
@@ -229,7 +233,7 @@ export class RemoveGateCommand implements Command {
     for (const seg of this.removedSegments) {
       circuit.wireSegments.set(seg.id, seg);
     }
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 }
 
@@ -246,6 +250,8 @@ export class MoveGatesCommand implements Command {
   private movedNodeIds: WireNodeId[] = [];
   /** Saved pinId mappings for disconnect drag undo. */
   private detachedPins: { nodeId: WireNodeId; pinId: PinId }[] = [];
+  /** Wire nodes reconnected to pins after move. */
+  private reconnectedNodes: ReconnectedNode[] = [];
 
   constructor(state: EditorState, gateIds: GateId[], dx: number, dy: number, extraNodeIds: WireNodeId[] = [], disconnected = false) {
     this.state = state;
@@ -279,11 +285,14 @@ export class MoveGatesCommand implements Command {
       if (node) { node.x += this.dx; node.y += this.dy; }
     }
 
-    this.state.dirty = true;
+    this.reconnectedNodes = reconnectPinNodes(circuit, this.gateIds);
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
     const { circuit } = this.state;
+
+    undoReconnectPinNodes(circuit, this.reconnectedNodes);
 
     for (const gateId of this.gateIds) {
       const gate = circuit.gates.get(gateId);
@@ -306,7 +315,7 @@ export class MoveGatesCommand implements Command {
       if (node) node.pinId = pinId;
     }
 
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 }
 
@@ -331,7 +340,7 @@ export class RotateGatesCommand implements Command {
     const saved = rotateGroup(this.state.circuit, this.gateIds, this.extraNodeIds, RotateGatesCommand.ROTATION_STEP);
     this.savedGatePositions = saved.gates;
     this.savedNodePositions = saved.nodes;
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
@@ -352,7 +361,7 @@ export class RotateGatesCommand implements Command {
       const gate = circuit.gates.get(gateId);
       if (gate) updateAnchoredNodes(gate, circuit);
     }
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 }
 
@@ -376,12 +385,12 @@ export class AddWireNodeCommand implements Command {
     const node: WireNode = { id: this.nodeId, x: this.x, y: this.y };
     if (this.pinId) node.pinId = this.pinId;
     this.state.circuit.wireNodes.set(this.nodeId, node);
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
     this.state.circuit.wireNodes.delete(this.nodeId);
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   getNodeId(): WireNodeId {
@@ -428,7 +437,7 @@ export class RemoveWireNodeCommand implements Command {
     // Clean up orphaned free neighbor nodes
     this.removedOrphanNodes = cleanupOrphanNodes(circuit, neighborNodeIds as Iterable<WireNodeId>);
 
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
@@ -441,7 +450,7 @@ export class RemoveWireNodeCommand implements Command {
     for (const seg of this.removedSegments) {
       circuit.wireSegments.set(seg.id, seg);
     }
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 }
 
@@ -466,12 +475,12 @@ export class AddWireSegmentCommand implements Command {
     const seg: WireSegment = { id: this.segmentId, from: this.from, to: this.to };
     if (this.color) seg.color = this.color;
     this.state.circuit.wireSegments.set(this.segmentId, seg);
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
     this.state.circuit.wireSegments.delete(this.segmentId);
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   getSegmentId(): WireSegmentId {
@@ -501,10 +510,10 @@ export class RemoveWireSegmentCommand implements Command {
     circuit.wireSegments.delete(this.segmentId);
 
     // Clean up orphaned free nodes (no remaining segments, not anchored to a pin)
-    if (!this.cleanOrphans) { this.removedOrphanNodes = []; this.state.dirty = true; return; }
+    if (!this.cleanOrphans) { this.removedOrphanNodes = []; this.state.circuitDirty = true; return; }
     this.removedOrphanNodes = cleanupOrphanNodes(circuit, [seg.from, seg.to]);
 
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
@@ -515,6 +524,6 @@ export class RemoveWireSegmentCommand implements Command {
     if (this.segment) {
       this.state.circuit.wireSegments.set(this.segmentId, this.segment);
     }
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 }

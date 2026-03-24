@@ -112,6 +112,42 @@ export function updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
   }
 }
 
+export interface ReconnectedNode { nodeId: WireNodeId; pinId: PinId; prevX: number; prevY: number }
+
+/** Anchor free wire nodes that are near gate pins. Returns what changed (for undo). */
+export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): ReconnectedNode[] {
+  const result: ReconnectedNode[] = [];
+  for (const gateId of gateIds) {
+    const gate = circuit.gates.get(gateId);
+    if (!gate) continue;
+    const positions = getPinPositions(gate);
+    for (const [pinId, pos] of positions) {
+      for (const node of circuit.wireNodes.values()) {
+        if (node.pinId) continue;
+        if (Math.abs(node.x - pos.x) < 2 && Math.abs(node.y - pos.y) < 2) {
+          result.push({ nodeId: node.id, pinId, prevX: node.x, prevY: node.y });
+          node.pinId = pinId;
+          node.x = pos.x;
+          node.y = pos.y;
+          break;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/** Undo reconnectPinNodes: clear pinId and restore original positions. */
+export function undoReconnectPinNodes(circuit: Circuit, reconnected: ReconnectedNode[]): void {
+  for (const r of reconnected) {
+    const node = circuit.wireNodes.get(r.nodeId);
+    if (!node) continue;
+    node.pinId = undefined;
+    node.x = r.prevX;
+    node.y = r.prevY;
+  }
+}
+
 /** Rotate gates + free wire nodes around group center by `degrees`. Returns saved positions for undo. */
 export function rotateGroup(
   circuit: Circuit,

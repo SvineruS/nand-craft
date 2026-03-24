@@ -56,7 +56,8 @@ export interface EditorState {
   shortCircuitGates: GateId[];
   contentionNets: string[];
   wireColor: string;
-  dirty: boolean;
+  renderDirty: boolean;
+  circuitDirty: boolean;
 }
 
 export const WIRE_COLORS = [
@@ -91,6 +92,7 @@ export function createEditorState(): EditorState {
     shortCircuitGates: [],
     contentionNets: [],
     wireColor: WIRE_COLORS[0],
-    dirty: true,
+    renderDirty: true,
+    circuitDirty: true,
   };
 }

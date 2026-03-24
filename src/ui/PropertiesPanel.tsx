@@ -112,12 +112,12 @@ export function PropertiesPanel({ onPropChange }: PropertiesPanelProps) {
                 onChange={(e) => {
                   const v = (e.target as HTMLInputElement).value;
                   seg.label = v || undefined;
-                  state.dirty = true;
+                  state.circuitDirty = true;
                 }}
                 onInput={(e) => {
                   const v = (e.target as HTMLInputElement).value;
                   seg.label = v || undefined;
-                  state.dirty = true;
+                  state.circuitDirty = true;
                 }}
               />
             </div>

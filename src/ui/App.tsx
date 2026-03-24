@@ -204,7 +204,7 @@ export function App() {
     const state = editor.getState();
     state.stampGateType = type;
     state.pasteMode = false;
-    state.dirty = true;
+    state.renderDirty = true;
   }, []);
 
   const handleDragStart = useCallback((type: GateType) => {
@@ -234,18 +234,9 @@ export function App() {
       notifyStateChange();
     };
 
-    let animating = true;
-    function updateUI(): void {
-      if (!animating) return;
-      notifyStateChange();
-      requestAnimationFrame(updateUI);
-    }
-    requestAnimationFrame(updateUI);
-
     loadLevel(0);
 
     return () => {
-      animating = false;
       cancelRunAll();
       editor.destroy();
     };

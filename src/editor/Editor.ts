@@ -53,7 +53,7 @@ export class Editor {
 
     // Handle resize
     this.resizeHandler = () => {
-      this.state.dirty = true;
+      this.state.renderDirty = true;
     };
     window.addEventListener('resize', this.resizeHandler);
   }
@@ -101,7 +101,7 @@ export class Editor {
     // Reset history again so the input/output gate placements aren't undoable
     this.history = this.createHistory();
 
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   getCircuit(): Circuit {
@@ -115,12 +115,12 @@ export class Editor {
   undo(): void {
     this.history.undo();
     // Note: history.onChange fires onCircuitChange which triggers resimulation
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   redo(): void {
     this.history.redo();
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   /** Force a simulation tick with current input pin values (useful after state mutations that bypass commands). */
@@ -129,7 +129,7 @@ export class Editor {
     const cycles = this.engine.detectShortCircuits(this.state.circuit);
     this.state.shortCircuitGates = cycles.flat();
     this.state.contentionNets = this.detectContention();
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   canUndo(): boolean {
@@ -154,7 +154,7 @@ export class Editor {
     }
 
     this.engine.tick(this.state.circuit, inputs);
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
 
@@ -192,7 +192,7 @@ export class Editor {
       pin.value = null;
     }
     this.state.circuit.delayState.clear();
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   /** Tick the live circuit with given input values. Updates pins, detects errors. */
@@ -204,7 +204,7 @@ export class Editor {
     const cycles = this.engine.detectShortCircuits(this.state.circuit);
     this.state.shortCircuitGates = cycles.flat();
     this.state.contentionNets = this.detectContention();
-    this.state.dirty = true;
+    this.state.circuitDirty = true;
   }
 
   /** Get ordered input gate IDs (matched by insertion order). */

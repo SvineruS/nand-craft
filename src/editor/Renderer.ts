@@ -141,8 +141,11 @@ export class Renderer {
 
       const state = getState();
       this.handleResize();
-      this.render(state);
-      state.dirty = false;
+      if (state.renderDirty || state.circuitDirty) {
+        this.render(state);
+        state.renderDirty = false;
+        state.circuitDirty = false;
+      }
       this.animationId = requestAnimationFrame(tick);
     };
     this.animationId = requestAnimationFrame(tick);
