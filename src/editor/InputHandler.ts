@@ -491,7 +491,6 @@ export class InputHandler {
               const mask = ((1 << pin.bitWidth) >>> 0) - 1;
               pin.value = pin.value === null ? 1 : ((pin.value + 1) & mask) >>> 0;
               if (pin.value > mask) pin.value = 0;
-              this.getHistory().onChange?.();
               state.circuitDirty = true;
               return;
             }

@@ -48,8 +48,8 @@ export class Editor {
     );
     this.input.attach();
 
-    // Start render loop
-    this.renderer.startLoop(() => this.state);
+    // Start render loop — onCircuitDirty triggers simulation + UI updates
+    this.renderer.startLoop(() => this.state, () => this.onCircuitChange?.());
 
     // Handle resize
     this.resizeHandler = () => {
@@ -114,13 +114,10 @@ export class Editor {
 
   undo(): void {
     this.history.undo();
-    // Note: history.onChange fires onCircuitChange which triggers resimulation
-    this.state.circuitDirty = true;
   }
 
   redo(): void {
     this.history.redo();
-    this.state.circuitDirty = true;
   }
 
   /** Force a simulation tick with current input pin values (useful after state mutations that bypass commands). */
@@ -247,9 +244,7 @@ export class Editor {
   }
 
   private createHistory(): CommandHistory {
-    const h = new CommandHistory();
-    h.onChange = () => this.onCircuitChange?.();
-    return h;
+    return new CommandHistory();
   }
 
 }

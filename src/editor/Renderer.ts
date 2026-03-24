@@ -132,7 +132,7 @@ export class Renderer {
     ctx.restore();
   }
 
-  startLoop(getState: () => EditorState): void {
+  startLoop(getState: () => EditorState, onCircuitDirty?: () => void): void {
     this.lastTime = performance.now();
     const tick = (time: number) => {
       const dt = (time - this.lastTime) / 1000;
@@ -141,6 +141,9 @@ export class Renderer {
 
       const state = getState();
       this.handleResize();
+      if (state.circuitDirty) {
+        onCircuitDirty?.();
+      }
       if (state.renderDirty || state.circuitDirty) {
         this.render(state);
         state.renderDirty = false;

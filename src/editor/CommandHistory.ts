@@ -28,13 +28,11 @@ export interface Command {
 export class CommandHistory {
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
-  onChange: (() => void) | null = null;
 
   execute(cmd: Command): void {
     cmd.execute();
     this.undoStack.push(cmd);
     this.redoStack = [];
-    this.onChange?.();
   }
 
   undo(): void {
@@ -42,7 +40,6 @@ export class CommandHistory {
     if (!cmd) return;
     cmd.undo();
     this.redoStack.push(cmd);
-    this.onChange?.();
   }
 
   redo(): void {
@@ -50,7 +47,6 @@ export class CommandHistory {
     if (!cmd) return;
     cmd.execute();
     this.undoStack.push(cmd);
-    this.onChange?.();
   }
 
   canUndo(): boolean {
