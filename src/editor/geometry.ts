@@ -38,7 +38,7 @@ export function getPinPositions(gate: Gate): Map<PinId, Vec2> {
 
   for (let i = 0; i < Math.min(allPinIds.length, defPins.length); i++) {
     const pinWorld = Vec2.add(gate.pos, Vec2.scale(defPins[i], GRID_SIZE));
-    const rotated = rotatePoint(pinWorld.x, pinWorld.y, center.x, center.y, gate.rotation);
+    const rotated = rotatePoint(pinWorld, center, gate.rotation);
     result.set(allPinIds[i], rotated);
   }
 
@@ -50,17 +50,17 @@ export function getPinPositions(gate: Gate): Map<PinId, Vec2> {
 // ---------------------------------------------------------------------------
 
 function rotatePoint(
-  px: number, py: number, cx: number, cy: number,
+  p: Vec2, c: Vec2,
   rotation: 0 | 90 | 180 | 270,
 ): Vec2 {
-  const dx = px - cx;
-  const dy = py - cy;
+  const dx = p.x - c.x;
+  const dy = p.y - c.y;
   switch (rotation) {
-    case 0: return { x: px, y: py };
-    case 90: return { x: cx - dy, y: cy + dx };
-    case 180: return { x: cx - dx, y: cy - dy };
-    case 270: return { x: cx + dy, y: cy - dx };
-    default: return { x: px, y: py };
+    case 0: return { x: p.x, y: p.y };
+    case 90: return { x: c.x - dy, y: c.y + dx };
+    case 180: return { x: c.x - dx, y: c.y - dy };
+    case 270: return { x: c.x + dy, y: c.y - dx };
+    default: return { x: p.x, y: p.y };
   }
 }
 

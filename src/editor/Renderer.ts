@@ -2,7 +2,7 @@ import type { GateType, PinId } from '../types.ts';
 import type { EditorState, Camera } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, getAllPinIds, gateGridOffset, gateCenter } from './geometry.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, getAllPinIds, gateGridOffset, gateCenter } from './geometry.ts';
 import { Vec2 } from './vec2.ts';
 
 // --- Colors (dark theme) ---
@@ -158,17 +158,17 @@ export class Renderer {
     }
   }
 
-  screenToWorld(sx: number, sy: number, camera: Camera): Vec2 {
+  screenToWorld(screen: Vec2, camera: Camera): Vec2 {
     return {
-      x: (sx - this.canvas.clientWidth / 2) / camera.zoom + camera.pos.x,
-      y: (sy - this.canvas.clientHeight / 2) / camera.zoom + camera.pos.y,
+      x: (screen.x - this.canvas.clientWidth / 2) / camera.zoom + camera.pos.x,
+      y: (screen.y - this.canvas.clientHeight / 2) / camera.zoom + camera.pos.y,
     };
   }
 
-  worldToScreen(wx: number, wy: number, camera: Camera): Vec2 {
+  worldToScreen(world: Vec2, camera: Camera): Vec2 {
     return {
-      x: (wx - camera.pos.x) * camera.zoom + this.canvas.clientWidth / 2,
-      y: (wy - camera.pos.y) * camera.zoom + this.canvas.clientHeight / 2,
+      x: (world.x - camera.pos.x) * camera.zoom + this.canvas.clientWidth / 2,
+      y: (world.y - camera.pos.y) * camera.zoom + this.canvas.clientHeight / 2,
     };
   }
 
@@ -231,15 +231,15 @@ export class Renderer {
    *  - Otherwise: go vertical first, then diagonal.
    * This produces clean two-segment paths (cardinal + 45° diagonal).
    */
-  private traceRoutedPath(ctx: CanvasRenderingContext2D, ax: number, ay: number, bx: number, by: number): void {
-    ctx.moveTo(ax, ay);
+  private traceRoutedPath(ctx: CanvasRenderingContext2D, a: Vec2, b: Vec2): void {
+    ctx.moveTo(a.x, a.y);
 
-    const dx = bx - ax;
-    const dy = by - ay;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
 
     // Already aligned on one axis — straight line
     if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
-      ctx.lineTo(bx, by);
+      ctx.lineTo(b.x, b.y);
       return;
     }
 
@@ -251,15 +251,13 @@ export class Renderer {
     if (adx > ady) {
       // Go horizontal first, then diagonal
       const hLen = adx - ady;
-      const midX = ax + hLen * sx;
-      ctx.lineTo(midX, ay);
-      ctx.lineTo(bx, by);
+      ctx.lineTo(a.x + hLen * sx, a.y);
+      ctx.lineTo(b.x, b.y);
     } else {
       // Go vertical first, then diagonal
       const vLen = ady - adx;
-      const midY = ay + vLen * sy;
-      ctx.lineTo(ax, midY);
-      ctx.lineTo(bx, by);
+      ctx.lineTo(a.x, a.y + vLen * sy);
+      ctx.lineTo(b.x, b.y);
     }
   }
 
@@ -269,12 +267,12 @@ export class Renderer {
    * segment's length, then walks exactly half the total distance to place labels
    * and markers at the visual center of the wire.
    */
-  private routedMidpoint(ax: number, ay: number, bx: number, by: number): Vec2 {
-    const dx = bx - ax;
-    const dy = by - ay;
+  private routedMidpoint(a: Vec2, b: Vec2): Vec2 {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
 
     if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
-      return { x: (ax + bx) / 2, y: (ay + by) / 2 };
+      return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     }
 
     const adx = Math.abs(dx);
@@ -283,71 +281,62 @@ export class Renderer {
     const sy = Math.sign(dy);
 
     // Build the 2 or 3 points of the routed path
-    let midX: number, midY: number;
-    if (adx > ady) {
-      midX = ax + (adx - ady) * sx;
-      midY = ay;
-    } else {
-      midX = ax;
-      midY = ay + (ady - adx) * sy;
-    }
+    const mid: Vec2 = adx > ady
+      ? { x: a.x + (adx - ady) * sx, y: a.y }
+      : { x: a.x, y: a.y + (ady - adx) * sy };
 
     // Points: A → mid → B. Find midpoint along total path length.
-    const seg1 = Math.hypot(midX - ax, midY - ay);
-    const seg2 = Math.hypot(bx - midX, by - midY);
+    const seg1 = Vec2.dist(a, mid);
+    const seg2 = Vec2.dist(mid, b);
     const total = seg1 + seg2;
     const half = total / 2;
 
     if (half <= seg1) {
       const t = seg1 > 0 ? half / seg1 : 0;
-      return { x: ax + (midX - ax) * t, y: ay + (midY - ay) * t };
+      return { x: a.x + (mid.x - a.x) * t, y: a.y + (mid.y - a.y) * t };
     } else {
       const t = seg2 > 0 ? (half - seg1) / seg2 : 0;
-      return { x: midX + (bx - midX) * t, y: midY + (by - midY) * t };
+      return { x: mid.x + (b.x - mid.x) * t, y: mid.y + (b.y - mid.y) * t };
     }
   }
 
   /** Total length of the routed path from A to B. */
-  private routedPathLength(ax: number, ay: number, bx: number, by: number): number {
-    const dx = bx - ax;
-    const dy = by - ay;
+  private routedPathLength(a: Vec2, b: Vec2): number {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
     if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
       return Math.hypot(dx, dy);
     }
     const adx = Math.abs(dx);
     const ady = Math.abs(dy);
-    const sx = Math.sign(dx);
-    const sy = Math.sign(dy);
-    let midX: number, midY: number;
-    if (adx > ady) { midX = ax + (adx - ady) * sx; midY = ay; }
-    else { midX = ax; midY = ay + (ady - adx) * sy; }
-    return Math.hypot(midX - ax, midY - ay) + Math.hypot(bx - midX, by - midY);
+    const mid: Vec2 = adx > ady
+      ? { x: a.x + (adx - ady) * Math.sign(dx), y: a.y }
+      : { x: a.x, y: a.y + (ady - adx) * Math.sign(dy) };
+    return Vec2.dist(a, mid) + Vec2.dist(mid, b);
   }
 
   /** Point at fraction t (0..1) along the routed path. */
-  private routedPointAt(ax: number, ay: number, bx: number, by: number, t: number): Vec2 {
-    const dx = bx - ax;
-    const dy = by - ay;
+  private routedPointAt(a: Vec2, b: Vec2, t: number): Vec2 {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
     if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
-      return { x: ax + dx * t, y: ay + dy * t };
+      return { x: a.x + dx * t, y: a.y + dy * t };
     }
     const adx = Math.abs(dx);
     const ady = Math.abs(dy);
-    const sx = Math.sign(dx);
-    const sy = Math.sign(dy);
-    let midX: number, midY: number;
-    if (adx > ady) { midX = ax + (adx - ady) * sx; midY = ay; }
-    else { midX = ax; midY = ay + (ady - adx) * sy; }
-    const seg1 = Math.hypot(midX - ax, midY - ay);
-    const seg2 = Math.hypot(bx - midX, by - midY);
+    const mid: Vec2 = adx > ady
+      ? { x: a.x + (adx - ady) * Math.sign(dx), y: a.y }
+      : { x: a.x, y: a.y + (ady - adx) * Math.sign(dy) };
+    const seg1 = Vec2.dist(a, mid);
+    const seg2 = Vec2.dist(mid, b);
     const total = seg1 + seg2;
     const dist = t * total;
     if (dist <= seg1) {
       const s = seg1 > 0 ? dist / seg1 : 0;
-      return { x: ax + (midX - ax) * s, y: ay + (midY - ay) * s };
+      return { x: a.x + (mid.x - a.x) * s, y: a.y + (mid.y - a.y) * s };
     } else {
       const s = seg2 > 0 ? (dist - seg1) / seg2 : 0;
-      return { x: midX + (bx - midX) * s, y: midY + (by - midY) * s };
+      return { x: mid.x + (b.x - mid.x) * s, y: mid.y + (b.y - mid.y) * s };
     }
   }
 
@@ -397,7 +386,7 @@ export class Renderer {
       ctx.lineJoin = 'round';
       ctx.setLineDash([]);
       ctx.beginPath();
-      this.traceRoutedPath(ctx, fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y);
+      this.traceRoutedPath(ctx, fromNode.pos, toNode.pos);
       ctx.stroke();
     }
 
@@ -424,7 +413,7 @@ export class Renderer {
       ctx.setLineDash([dashSize, dashSize]);
       ctx.lineDashOffset = -offset;
       ctx.beginPath();
-      this.traceRoutedPath(ctx, fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y);
+      this.traceRoutedPath(ctx, fromNode.pos, toNode.pos);
       ctx.stroke();
 
       // Value labels spaced along the routed path
@@ -439,11 +428,11 @@ export class Renderer {
 
         // Compute routed path total length and place labels every ~80px
         const labelSpacing = 80;
-        const pathLen = this.routedPathLength(fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y);
+        const pathLen = this.routedPathLength(fromNode.pos, toNode.pos);
         const labelCount = Math.max(1, Math.floor(pathLen / labelSpacing));
         for (let li = 0; li < labelCount; li++) {
           const t = labelCount === 1 ? 0.5 : (li + 0.5) / labelCount;
-          const pt = this.routedPointAt(fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y, t);
+          const pt = this.routedPointAt(fromNode.pos, toNode.pos, t);
 
           ctx.fillStyle = COLORS.background;
           ctx.globalAlpha = 0.8;
@@ -468,7 +457,7 @@ export class Renderer {
       if (!fromNode || !toNode) continue;
 
       // Position label slightly above midpoint of routed path
-      const mid = this.routedMidpoint(fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y);
+      const mid = this.routedMidpoint(fromNode.pos, toNode.pos);
       const mx = mid.x;
       const my = mid.y;
 
@@ -730,7 +719,7 @@ export class Renderer {
       const to = circuit.wireNodes.get(seg.to);
       if (!from || !to) continue;
       ctx.beginPath();
-      this.traceRoutedPath(ctx, from.pos.x, from.pos.y, to.pos.x, to.pos.y);
+      this.traceRoutedPath(ctx, from.pos, to.pos);
       ctx.stroke();
     }
 
@@ -747,7 +736,7 @@ export class Renderer {
       const segLen = Vec2.dist(from.pos, to.pos);
       if (segLen < 20) continue;
 
-      const mid = this.routedMidpoint(from.pos.x, from.pos.y, to.pos.x, to.pos.y);
+      const mid = this.routedMidpoint(from.pos, to.pos);
       const mx = mid.x;
       const my = mid.y;
 
@@ -805,7 +794,7 @@ export class Renderer {
           const to = circuit.wireNodes.get(seg.to);
           if (!from || !to) break;
           ctx.beginPath();
-          this.traceRoutedPath(ctx, from.pos.x, from.pos.y, to.pos.x, to.pos.y);
+          this.traceRoutedPath(ctx, from.pos, to.pos);
           ctx.stroke();
           break;
         }
@@ -818,13 +807,13 @@ export class Renderer {
   private drawSelectionRect(state: EditorState): void {
     if (!state.selectionRect) return;
     const { ctx } = this;
-    const { x, y, w, h } = state.selectionRect;
+    const { pos, w, h } = state.selectionRect;
 
     ctx.fillStyle = COLORS.selectionRectFill;
-    ctx.fillRect(x, y, w, h);
+    ctx.fillRect(pos.x, pos.y, w, h);
     ctx.strokeStyle = COLORS.selectionRectStroke;
     ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, w, h);
+    ctx.strokeRect(pos.x, pos.y, w, h);
   }
 
   private drawWireInProgress(state: EditorState): void {
@@ -833,8 +822,7 @@ export class Renderer {
     const { ctx } = this;
     const wireStart = state.mode.start;
     const wireColor = state.wireColor === WIRE_COLORS[0] ? COLORS.wireDefault : state.wireColor;
-    const tx = snapToGrid(this.mouseWorld.x);
-    const ty = snapToGrid(this.mouseWorld.y);
+    const target = Vec2.snap(this.mouseWorld);
 
     ctx.strokeStyle = wireColor;
     ctx.lineWidth = 6;
@@ -842,7 +830,7 @@ export class Renderer {
     ctx.lineJoin = 'round';
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
-    this.traceRoutedPath(ctx, wireStart.pos.x, wireStart.pos.y, tx, ty);
+    this.traceRoutedPath(ctx, wireStart.pos, target);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -912,10 +900,9 @@ export class Renderer {
       const gw = def.width * GRID_SIZE;
       const gh = def.height * GRID_SIZE;
       const offset = gateGridOffset(cg.rotation, gw, gh);
-      const gx = snapToGrid(cursor.x + cg.dx - gw / 2, offset);
-      const gy = snapToGrid(cursor.y + cg.dy - gh / 2, offset);
-      const gcx = gx + gw / 2;
-      const gcy = gy + gh / 2;
+      const gatePos = Vec2.snap({ x: cursor.x + cg.delta.x - gw / 2, y: cursor.y + cg.delta.y - gh / 2 }, offset);
+      const gcx = gatePos.x + gw / 2;
+      const gcy = gatePos.y + gh / 2;
 
       ctx.save();
       ctx.translate(gcx, gcy);
@@ -966,25 +953,22 @@ export class Renderer {
       const fromNode = clip.nodes[cw.fromNodeIdx];
       const toNode = clip.nodes[cw.toNodeIdx];
       if (!fromNode || !toNode) continue;
-      const fx = snapToGrid(cursor.x + fromNode.dx);
-      const fy = snapToGrid(cursor.y + fromNode.dy);
-      const tx = snapToGrid(cursor.x + toNode.dx);
-      const ty = snapToGrid(cursor.y + toNode.dy);
+      const from = Vec2.snap(Vec2.add(cursor, fromNode.delta));
+      const to = Vec2.snap(Vec2.add(cursor, toNode.delta));
       ctx.beginPath();
-      this.traceRoutedPath(ctx, fx, fy, tx, ty);
+      this.traceRoutedPath(ctx, from, to);
       ctx.stroke();
     }
 
     // Draw ghost wire nodes (free only)
     for (const cn of clip.nodes) {
       if (cn.gateIdx !== undefined) continue; // anchored nodes shown via gate pins
-      const nx = snapToGrid(cursor.x + cn.dx);
-      const ny = snapToGrid(cursor.y + cn.dy);
+      const nodePos = Vec2.snap(Vec2.add(cursor, cn.delta));
       ctx.fillStyle = COLORS.wireNodeFill;
       ctx.strokeStyle = COLORS.selection;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+      ctx.arc(nodePos.x, nodePos.y, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }

@@ -45,10 +45,10 @@ function getSelectedSegmentIds(state: EditorState): WireSegmentId[] {
     .map(s => s.id);
 }
 
-function snapGateCenter(wx: number, wy: number, width: number, height: number): { x: number; y: number } {
+function snapGateCenter(pos: Vec2, width: number, height: number): Vec2 {
   return {
-    x: snapToGrid(wx - width * GRID_SIZE / 2),
-    y: snapToGrid(wy - height * GRID_SIZE / 2),
+    x: snapToGrid(pos.x - width * GRID_SIZE / 2),
+    y: snapToGrid(pos.y - height * GRID_SIZE / 2),
   };
 }
 
@@ -56,10 +56,10 @@ function snapGateCenter(wx: number, wy: number, width: number, height: number): 
 // Hit testing
 // ---------------------------------------------------------------------------
 
-function hitTestGate(wx: number, wy: number, state: EditorState): GateId | null {
+function hitTestGate(pos: Vec2, state: EditorState): GateId | null {
   for (const gate of state.circuit.gates.values()) {
     const { w, h } = getGateDims(gate);
-    if (wx >= gate.pos.x && wx <= gate.pos.x + w && wy >= gate.pos.y && wy <= gate.pos.y + h) {
+    if (pos.x >= gate.pos.x && pos.x <= gate.pos.x + w && pos.y >= gate.pos.y && pos.y <= gate.pos.y + h) {
       return gate.id;
     }
   }
@@ -67,16 +67,15 @@ function hitTestGate(wx: number, wy: number, state: EditorState): GateId | null 
 }
 
 /** Unified hit test — finds the closest pin or free wire node within radius. */
-function hitTestEndpoint(wx: number, wy: number, state: EditorState, excludeNode?: WireNodeId): WireEndpoint | null {
+function hitTestEndpoint(pos: Vec2, state: EditorState, excludeNode?: WireNodeId): WireEndpoint | null {
   let best: WireEndpoint | null = null;
   let bestDist = HIT_RADIUS;
 
   // Check free wire nodes
-  const pt: Vec2 = { x: wx, y: wy };
   for (const node of state.circuit.wireNodes.values()) {
     if (node.pinId) continue; // anchored nodes are hit via their pin
     if (excludeNode && node.id === excludeNode) continue;
-    const d = Vec2.dist(pt, node.pos);
+    const d = Vec2.dist(pos, node.pos);
     if (d < bestDist) {
       bestDist = d;
       best = { kind: 'node', nodeId: node.id, pos: node.pos };
@@ -86,11 +85,11 @@ function hitTestEndpoint(wx: number, wy: number, state: EditorState, excludeNode
   // Check pins (computed positions)
   for (const gate of state.circuit.gates.values()) {
     const positions = getPinPositions(gate);
-    for (const [pinId, pos] of positions) {
-      const d = Vec2.dist(pt, pos);
+    for (const [pinId, pinPos] of positions) {
+      const d = Vec2.dist(pos, pinPos);
       if (d < bestDist) {
         bestDist = d;
-        best = { kind: 'pin', pinId, pos: { x: pos.x, y: pos.y } };
+        best = { kind: 'pin', pinId, pos: Vec2.copy(pinPos) };
       }
     }
   }
@@ -98,14 +97,14 @@ function hitTestEndpoint(wx: number, wy: number, state: EditorState, excludeNode
   return best;
 }
 
-function hitTestWireSegment(wx: number, wy: number, state: EditorState): WireSegmentId | null {
+function hitTestWireSegment(pos: Vec2, state: EditorState): WireSegmentId | null {
   let closest: WireSegmentId | null = null;
   let closestDist = WIRE_HIT_DIST;
   for (const seg of state.circuit.wireSegments.values()) {
     const a = state.circuit.wireNodes.get(seg.from);
     const b = state.circuit.wireNodes.get(seg.to);
     if (!a || !b) continue;
-    const dist = distToRoutedPath(wx, wy, a.pos.x, a.pos.y, b.pos.x, b.pos.y);
+    const dist = distToRoutedPath(pos, a.pos, b.pos);
     if (dist < closestDist) {
       closestDist = dist;
       closest = seg.id;
@@ -114,54 +113,42 @@ function hitTestWireSegment(wx: number, wy: number, state: EditorState): WireSeg
   return closest;
 }
 
-function pointToSegmentDist(
-  px: number, py: number, ax: number, ay: number, bx: number, by: number,
-): number {
-  const dx = bx - ax;
-  const dy = by - ay;
+function pointToSegmentDist(p: Vec2, a: Vec2, b: Vec2): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
   const lenSq = dx * dx + dy * dy;
-  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
-  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  if (lenSq === 0) return Vec2.dist(p, a);
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
 
 /** Distance from point to routed path (H/V + diagonal). */
-function distToRoutedPath(
-  px: number, py: number, ax: number, ay: number, bx: number, by: number,
-): number {
-  const dx = bx - ax;
-  const dy = by - ay;
+function distToRoutedPath(p: Vec2, a: Vec2, b: Vec2): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
 
   if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
-    return pointToSegmentDist(px, py, ax, ay, bx, by);
+    return pointToSegmentDist(p, a, b);
   }
 
   const adx = Math.abs(dx);
   const ady = Math.abs(dy);
-  const sx = Math.sign(dx);
-  const sy = Math.sign(dy);
-
-  let midX: number, midY: number;
-  if (adx > ady) {
-    midX = ax + (adx - ady) * sx;
-    midY = ay;
-  } else {
-    midX = ax;
-    midY = ay + (ady - adx) * sy;
-  }
+  const mid: Vec2 = adx > ady
+    ? { x: a.x + (adx - ady) * Math.sign(dx), y: a.y }
+    : { x: a.x, y: a.y + (ady - adx) * Math.sign(dy) };
 
   return Math.min(
-    pointToSegmentDist(px, py, ax, ay, midX, midY),
-    pointToSegmentDist(px, py, midX, midY, bx, by),
+    pointToSegmentDist(p, a, mid),
+    pointToSegmentDist(p, mid, b),
   );
 }
 
 function rectContainsGate(
-  rx: number, ry: number, rw: number, rh: number, gate: Gate,
+  rectPos: Vec2, rw: number, rh: number, gate: Gate,
 ): boolean {
   const { w, h } = getGateDims(gate);
-  const left = rw >= 0 ? rx : rx + rw;
-  const top = rh >= 0 ? ry : ry + rh;
+  const left = rw >= 0 ? rectPos.x : rectPos.x + rw;
+  const top = rh >= 0 ? rectPos.y : rectPos.y + rh;
   const right = left + Math.abs(rw);
   const bottom = top + Math.abs(rh);
   return gate.pos.x >= left && gate.pos.y >= top && gate.pos.x + w <= right && gate.pos.y + h <= bottom;
@@ -177,19 +164,16 @@ export class InputHandler {
   private getHistory: () => CommandHistory;
   private renderer: Renderer;
 
-  private dragAccDx = 0;
-  private dragAccDy = 0;
+  private dragAcc: Vec2 = { x: 0, y: 0 };
   private isDraggingGates = false;
   private isDraggingDisconnected = false;
   private _lastDetachedPins: { nodeId: WireNodeId; pinId: PinId }[] = [];
   private didDragMove = false;
   private nodeFromSplit = false;
 
-  private wireStartWorldX = 0;
-  private wireStartWorldY = 0;
+  private wireStartWorld: Vec2 = { x: 0, y: 0 };
   private isDraggingNode: WireNodeId | null = null;
-  private lastWorldX = 0;
-  private lastWorldY = 0;
+  private lastWorld: Vec2 = { x: 0, y: 0 };
 
   // Bound listeners
   private onMouseDown: (e: MouseEvent) => void;
@@ -257,11 +241,10 @@ export class InputHandler {
     if (!e.dataTransfer) return;
     e.dataTransfer.dropEffect = 'copy';
     const state = this.getState();
-    const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
     const previewType = (state.mode.kind === 'stamping' ? state.mode.gateType : 'nand') as PlaceableType;
     const def = GATE_DEFS[previewType];
-    const { x: cx, y: cy } = snapGateCenter(world.x, world.y, def.width, def.height);
-    state.dropPreview = { type: previewType, pos: { x: cx, y: cy } };
+    state.dropPreview = { type: previewType, pos: snapGateCenter(world, def.width, def.height) };
     state.renderDirty = true;
   }
 
@@ -271,9 +254,9 @@ export class InputHandler {
     const gateType = e.dataTransfer.getData('text/plain') as PlaceableType;
     if (!gateType || !GATE_DEFS[gateType]) return;
     const state = this.getState();
-    const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
     const def = GATE_DEFS[gateType];
-    const cmd = new AddGateCommand(state, gateType, snapGateCenter(world.x, world.y, def.width, def.height));
+    const cmd = new AddGateCommand(state, gateType, snapGateCenter(world, def.width, def.height));
     this.getHistory().execute(cmd);
     state.dropPreview = null; state.renderDirty = true;
   }
@@ -290,7 +273,7 @@ export class InputHandler {
   private handleContextMenu(e: MouseEvent): void {
     e.preventDefault();
     const state = this.getState();
-    const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
 
     // Cancel stamp/paste mode
     if (state.mode.kind !== 'normal') {
@@ -299,7 +282,7 @@ export class InputHandler {
     }
 
     // Wire node?
-    const ep = hitTestEndpoint(world.x, world.y, state);
+    const ep = hitTestEndpoint(world, state);
     if (ep && ep.kind === 'node') {
       this.getHistory().execute(new RemoveWireNodeCommand(state, ep.nodeId));
       state.renderDirty = true;
@@ -307,7 +290,7 @@ export class InputHandler {
     }
 
     // Gate?
-    const gateHit = hitTestGate(world.x, world.y, state);
+    const gateHit = hitTestGate(world, state);
     if (gateHit) {
       const gateObj = state.circuit.gates.get(gateHit);
       if (gateObj?.canRemove === false) return;
@@ -317,7 +300,7 @@ export class InputHandler {
     }
 
     // Wire segment?
-    const segHit = hitTestWireSegment(world.x, world.y, state);
+    const segHit = hitTestWireSegment(world, state);
     if (segHit) {
       if (e.shiftKey) {
         // Shift+right-click: delete all connected wires
@@ -359,7 +342,7 @@ export class InputHandler {
 
   private handleMouseDown(e: MouseEvent): void {
     const state = this.getState();
-    const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
 
     if (e.button === 1) { this.handleMiddleMouseDown(state, world, e); return; }
     if (e.button === 0 && e.shiftKey) { this.handleShiftMouseDown(state, world, e); return; }
@@ -370,35 +353,33 @@ export class InputHandler {
 
     const isDblClick = e.detail >= 2;
 
-    const ep = hitTestEndpoint(world.x, world.y, state);
+    const ep = hitTestEndpoint(world, state);
     if (ep) { this.handleEndpointMouseDown(state, world, ep, isDblClick); return; }
 
-    const gateHit = hitTestGate(world.x, world.y, state);
+    const gateHit = hitTestGate(world, state);
     if (gateHit) { this.handleGateMouseDown(state, world, gateHit, isDblClick, e); return; }
 
-    const segHit = hitTestWireSegment(world.x, world.y, state);
+    const segHit = hitTestWireSegment(world, state);
     if (segHit) { this.handleWireSegmentMouseDown(state, world, segHit, isDblClick, e); return; }
 
     this.handleEmptyMouseDown(state, world, isDblClick, e);
   }
 
-  private handleMiddleMouseDown(state: EditorState, world: { x: number; y: number }, e: MouseEvent): void {
+  private handleMiddleMouseDown(state: EditorState, world: Vec2, e: MouseEvent): void {
     // Disconnect drag if over gate
-    const gateHit = hitTestGate(world.x, world.y, state);
+    const gateHit = hitTestGate(world, state);
     if (gateHit) {
-      this.startDisconnectDrag(state, gateHit, world.x, world.y);
+      this.startDisconnectDrag(state, gateHit, world);
       return;
     }
 
     // Wire node or pin → start dragging (merge on mouseup if no movement)
-    const ep = hitTestEndpoint(world.x, world.y, state);
+    const ep = hitTestEndpoint(world, state);
     if (ep) {
       if (ep.kind === 'node') {
         this.isDraggingNode = ep.nodeId;
-        this.lastWorldX = world.x;
-        this.lastWorldY = world.y;
-        this.dragAccDx = 0;
-        this.dragAccDy = 0;
+        this.lastWorld = Vec2.copy(world);
+        this.dragAcc = { x: 0, y: 0 };
         state.renderDirty = true;
         return;
       }
@@ -411,21 +392,19 @@ export class InputHandler {
       if (pin) pin.value = null;
       node.pinId = undefined;
       this.isDraggingNode = anchoredNode;
-      this.lastWorldX = world.x;
-      this.lastWorldY = world.y;
+      this.lastWorld = Vec2.copy(world);
       state.mode = { kind: 'normal' }; state.renderDirty = true;
       return;
     }
 
     // Wire segment → split and drag new node
-    const segHit = hitTestWireSegment(world.x, world.y, state);
+    const segHit = hitTestWireSegment(world, state);
     if (segHit) {
-      const newNodeId = this.splitWireSegment(state, segHit, snapToGrid(world.x), snapToGrid(world.y));
+      const newNodeId = this.splitWireSegment(state, segHit, Vec2.snap(world));
       if (newNodeId) {
         this.isDraggingNode = newNodeId;
         this.nodeFromSplit = true;
-        this.lastWorldX = world.x;
-        this.lastWorldY = world.y;
+        this.lastWorld = Vec2.copy(world);
       }
       return;
     }
@@ -434,44 +413,41 @@ export class InputHandler {
     state.isDragging = true; state.dragStart = { x: e.offsetX, y: e.offsetY };
   }
 
-  private handleShiftMouseDown(state: EditorState, world: { x: number; y: number }, e: MouseEvent): void {
-    const ep = hitTestEndpoint(world.x, world.y, state);
+  private handleShiftMouseDown(state: EditorState, world: Vec2, e: MouseEvent): void {
+    const ep = hitTestEndpoint(world, state);
     if (ep && ep.kind === 'node') {
       this.isDraggingNode = ep.nodeId;
-      this.lastWorldX = world.x;
-      this.lastWorldY = world.y;
-      this.dragAccDx = 0;
-      this.dragAccDy = 0;
+      this.lastWorld = Vec2.copy(world);
+      this.dragAcc = { x: 0, y: 0 };
       state.renderDirty = true;
       return;
     }
 
-    const gateHit = hitTestGate(world.x, world.y, state);
+    const gateHit = hitTestGate(world, state);
     if (gateHit) {
-      this.startDisconnectDrag(state, gateHit, world.x, world.y);
+      this.startDisconnectDrag(state, gateHit, world);
       return;
     }
 
     state.isDragging = true; state.dragStart = { x: e.offsetX, y: e.offsetY };
   }
 
-  private handleStampClick(state: EditorState, world: { x: number; y: number }): void {
+  private handleStampClick(state: EditorState, world: Vec2): void {
     if (state.mode.kind !== 'stamping') return;
     const def = GATE_DEFS[state.mode.gateType];
-    const cmd = new AddGateCommand(state, state.mode.gateType, snapGateCenter(world.x, world.y, def.width, def.height));
+    const cmd = new AddGateCommand(state, state.mode.gateType, snapGateCenter(world, def.width, def.height));
     this.getHistory().execute(cmd);
   }
 
-  private handlePasteClick(state: EditorState, world: { x: number; y: number }): void {
-    this.pasteClipboard(state, world.x, world.y);
+  private handlePasteClick(state: EditorState, world: Vec2): void {
+    this.pasteClipboard(state, world);
   }
 
-  private handleEndpointMouseDown(state: EditorState, world: { x: number; y: number }, ep: WireEndpoint, isDblClick: boolean): void {
+  private handleEndpointMouseDown(state: EditorState, world: Vec2, ep: WireEndpoint, isDblClick: boolean): void {
     if (isDblClick) {
       if (ep.kind === 'node') {
         this.isDraggingNode = ep.nodeId;
-        this.lastWorldX = world.x;
-        this.lastWorldY = world.y;
+        this.lastWorld = Vec2.copy(world);
         state.mode = { kind: 'normal' }; state.renderDirty = true;
         return;
       }
@@ -484,8 +460,7 @@ export class InputHandler {
       if (pin) pin.value = null;
       node.pinId = undefined;
       this.isDraggingNode = anchoredNode;
-      this.lastWorldX = world.x;
-      this.lastWorldY = world.y;
+      this.lastWorld = Vec2.copy(world);
       state.mode = { kind: 'normal' }; state.renderDirty = true;
       return;
     }
@@ -493,20 +468,17 @@ export class InputHandler {
     // Single click: if node is already selected (area select), start dragging selection
     if (ep.kind === 'node' && state.selection.some(s => s.type === 'wireNode' && s.id === ep.nodeId)) {
       this.isDraggingGates = true;
-      this.dragAccDx = 0;
-      this.dragAccDy = 0;
-      this.lastWorldX = world.x;
-      this.lastWorldY = world.y;
+      this.dragAcc = { x: 0, y: 0 };
+      this.lastWorld = Vec2.copy(world);
       return;
     }
 
     // Single click → start wiring
-    this.wireStartWorldX = world.x;
-    this.wireStartWorldY = world.y;
+    this.wireStartWorld = Vec2.copy(world);
     state.mode = { kind: 'wiring', start: ep }; state.renderDirty = true;
   }
 
-  private handleGateMouseDown(state: EditorState, world: { x: number; y: number }, gateHit: GateId, isDblClick: boolean, e: MouseEvent): void {
+  private handleGateMouseDown(state: EditorState, world: Vec2, gateHit: GateId, isDblClick: boolean, e: MouseEvent): void {
     // Double-click constant gate → toggle value
     if (isDblClick) {
       const gate = state.circuit.gates.get(gateHit);
@@ -545,23 +517,20 @@ export class InputHandler {
       });
     if (hasMovable) {
       this.isDraggingGates = true;
-      this.dragAccDx = 0;
-      this.dragAccDy = 0;
-      this.lastWorldX = world.x;
-      this.lastWorldY = world.y;
+      this.dragAcc = { x: 0, y: 0 };
+      this.lastWorld = Vec2.copy(world);
     }
   }
 
-  private handleWireSegmentMouseDown(state: EditorState, world: { x: number; y: number }, segHit: WireSegmentId, isDblClick: boolean, e: MouseEvent): void {
+  private handleWireSegmentMouseDown(state: EditorState, world: Vec2, segHit: WireSegmentId, isDblClick: boolean, e: MouseEvent): void {
     if (isDblClick) {
       // Double-click wire → split and start dragging new node
       state.mode = { kind: 'normal' };
-      const newNodeId = this.splitWireSegment(state, segHit, snapToGrid(world.x), snapToGrid(world.y));
+      const newNodeId = this.splitWireSegment(state, segHit, Vec2.snap(world));
       if (newNodeId) {
         this.isDraggingNode = newNodeId;
         this.nodeFromSplit = true;
-        this.lastWorldX = world.x;
-        this.lastWorldY = world.y;
+        this.lastWorld = Vec2.copy(world);
       }
       return;
     }
@@ -577,17 +546,15 @@ export class InputHandler {
     }
   }
 
-  private handleEmptyMouseDown(state: EditorState, world: { x: number; y: number }, isDblClick: boolean, e: MouseEvent): void {
+  private handleEmptyMouseDown(state: EditorState, world: Vec2, isDblClick: boolean, e: MouseEvent): void {
     if (isDblClick) {
       // Double-click empty → create wire node and start wiring from it
-      const sx = snapToGrid(world.x);
-      const sy = snapToGrid(world.y);
-      const cmd = new AddWireNodeCommand(state, sx, sy);
+      const snapPos = Vec2.snap(world);
+      const cmd = new AddWireNodeCommand(state, snapPos);
       this.getHistory().execute(cmd);
       const newNodeId = cmd.getNodeId();
-      this.wireStartWorldX = world.x;
-      this.wireStartWorldY = world.y;
-      state.mode = { kind: 'wiring', start: { kind: 'node', nodeId: newNodeId, pos: { x: sx, y: sy } } };
+      this.wireStartWorld = Vec2.copy(world);
+      state.mode = { kind: 'wiring', start: { kind: 'node', nodeId: newNodeId, pos: snapPos } };
       state.renderDirty = true;
       return;
     }
@@ -596,9 +563,9 @@ export class InputHandler {
     if (!(e.ctrlKey || e.metaKey)) {
       state.selection = [];
     }
-    state.selectionRect = { x: world.x, y: world.y, w: 0, h: 0 };
+    state.selectionRect = { pos: Vec2.copy(world), w: 0, h: 0 };
     state.isDragging = false;
-    state.dragStart = { x: world.x, y: world.y };
+    state.dragStart = Vec2.copy(world);
   }
 
   // ---------------------------------------------------------------------------
@@ -607,18 +574,17 @@ export class InputHandler {
 
   private handleMouseMove(e: MouseEvent): void {
     const state = this.getState();
-    const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
     this.renderer.setMouseWorld(world);
 
     // Stamp/paste preview
     if (state.mode.kind === 'stamping') {
       const def = GATE_DEFS[state.mode.gateType];
-      const { x: px, y: py } = snapGateCenter(world.x, world.y, def.width, def.height);
-      state.dropPreview = { type: state.mode.gateType, pos: { x: px, y: py } };
-      state.hoveredGate = hitTestGate(world.x, world.y, state);
+      state.dropPreview = { type: state.mode.gateType, pos: snapGateCenter(world, def.width, def.height) };
+      state.hoveredGate = hitTestGate(world, state);
       state.renderDirty = true;
     } else if (state.mode.kind === 'pasting') {
-      state.mode = { kind: 'pasting', cursor: { x: snapToGrid(world.x), y: snapToGrid(world.y) } };
+      state.mode = { kind: 'pasting', cursor: Vec2.snap(world) };
       state.renderDirty = true;
     }
 
@@ -637,19 +603,18 @@ export class InputHandler {
       const dragId = this.isDraggingNode;
       const node = state.circuit.wireNodes.get(dragId);
       if (node) {
-        const newX = snapToGrid(world.x);
-        const newY = snapToGrid(world.y);
-        if (newX !== node.pos.x || newY !== node.pos.y) this.didDragMove = true;
-        node.pos = { x: newX, y: newY };
+        const snapped = Vec2.snap(world);
+        if (snapped.x !== node.pos.x || snapped.y !== node.pos.y) this.didDragMove = true;
+        node.pos = snapped;
       }
-      state.hoveredEndpoint = hitTestEndpoint(world.x, world.y, state, dragId);
+      state.hoveredEndpoint = hitTestEndpoint(world, state, dragId);
       state.renderDirty = true;
       return;
     }
 
     // Wiring in progress
     if (state.mode.kind === 'wiring') {
-      state.hoveredEndpoint = hitTestEndpoint(world.x, world.y, state);
+      state.hoveredEndpoint = hitTestEndpoint(world, state);
       state.renderDirty = true;
       return;
     }
@@ -657,14 +622,11 @@ export class InputHandler {
     // Gate + selected node dragging (snapped to grid)
     if (this.isDraggingGates) {
       // Compute snapped delta from drag start
-      const rawDx = world.x - this.lastWorldX + this.dragAccDx;
-      const rawDy = world.y - this.lastWorldY + this.dragAccDy;
-      const snappedDx = snapToGrid(rawDx) - snapToGrid(this.dragAccDx);
-      const snappedDy = snapToGrid(rawDy) - snapToGrid(this.dragAccDy);
-      this.dragAccDx = rawDx;
-      this.dragAccDy = rawDy;
-      this.lastWorldX = world.x;
-      this.lastWorldY = world.y;
+      const raw = Vec2.add(Vec2.sub(world, this.lastWorld), this.dragAcc);
+      const snappedDx = snapToGrid(raw.x) - snapToGrid(this.dragAcc.x);
+      const snappedDy = snapToGrid(raw.y) - snapToGrid(this.dragAcc.y);
+      this.dragAcc = raw;
+      this.lastWorld = Vec2.copy(world);
 
       if (snappedDx !== 0 || snappedDy !== 0) {
         const gateIds = getSelectedGateIds(state);
@@ -695,8 +657,8 @@ export class InputHandler {
     }
 
     // Hover
-    state.hoveredEndpoint = hitTestEndpoint(world.x, world.y, state);
-    state.hoveredGate = hitTestGate(world.x, world.y, state);
+    state.hoveredEndpoint = hitTestEndpoint(world, state);
+    state.hoveredGate = hitTestGate(world, state);
     state.renderDirty = true;
   }
 
@@ -717,7 +679,7 @@ export class InputHandler {
   }
 
   private completeNodeDrag(state: EditorState, e: MouseEvent): void {
-    const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
     const draggedNodeId = this.isDraggingNode!;
     const didMove = this.didDragMove;
     const fromSplit = this.nodeFromSplit;
@@ -728,7 +690,7 @@ export class InputHandler {
     // No drag movement? Try merge (2-segment node removal) — but not if just created by split
     if (!didMove && !fromSplit && this.tryMergeWireNode(state, draggedNodeId)) return;
 
-    const targetPin = hitTestEndpoint(world.x, world.y, state, draggedNodeId);
+    const targetPin = hitTestEndpoint(world, state, draggedNodeId);
 
     if (targetPin) {
       // Dropped on pin or wire node → merge: repoint all segments, remove dragged node
@@ -759,16 +721,16 @@ export class InputHandler {
   private completeWiring(state: EditorState, e: MouseEvent): void {
     if (state.mode.kind !== 'wiring') return;
     const wireStart = state.mode.start;
-    const world = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
 
     // No drag? Cancel (allows double-click to work)
-    const dragDist = Vec2.dist(world, { x: this.wireStartWorldX, y: this.wireStartWorldY });
+    const dragDist = Vec2.dist(world, this.wireStartWorld);
     if (dragDist < MIN_WIRE_DRAG) {
       state.mode = { kind: 'normal' }; state.renderDirty = true;
       return;
     }
 
-    const target = hitTestEndpoint(world.x, world.y, state);
+    const target = hitTestEndpoint(world, state);
     const wireColor = this.getActiveWireColor(state);
 
     if (target) {
@@ -778,20 +740,18 @@ export class InputHandler {
       if (fromNode && toNode) this.addSegmentIfNew(state, fromNode, toNode, wireColor);
     } else {
       // Check if dropped on a wire segment → split it and connect
-      const segHit = hitTestWireSegment(world.x, world.y, state);
+      const segHit = hitTestWireSegment(world, state);
       if (segHit) {
-        const sx = snapToGrid(world.x);
-        const sy = snapToGrid(world.y);
-        const midId = this.splitWireSegment(state, segHit, sx, sy);
+        const snapPos = Vec2.snap(world);
+        const midId = this.splitWireSegment(state, segHit, snapPos);
         if (midId) {
           const fromNode = this.ensureWireNode(state, wireStart);
           if (fromNode) this.addSegmentIfNew(state, fromNode, midId, wireColor);
         }
       } else {
         // Endpoint → empty space: create free node and connect
-        const sx = snapToGrid(world.x);
-        const sy = snapToGrid(world.y);
-        const nodeCmd = new AddWireNodeCommand(state, sx, sy);
+        const snapPos = Vec2.snap(world);
+        const nodeCmd = new AddWireNodeCommand(state, snapPos);
         this.getHistory().execute(nodeCmd);
         const fromNode = this.ensureWireNode(state, wireStart);
         if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
@@ -803,30 +763,29 @@ export class InputHandler {
 
   private completeGateDrag(state: EditorState): void {
     this.isDraggingGates = false;
-    const snapDx = snapToGrid(this.dragAccDx);
-    const snapDy = snapToGrid(this.dragAccDy);
+    const snapDelta = Vec2.snap(this.dragAcc);
 
     const gateIds = getSelectedGateIds(state);
     const selectedNodeIds = getSelectedNodeIds(state);
     const isDisconnect = this.isDraggingDisconnected;
 
     // Create command if moved, or if disconnect drag (to track detach for undo)
-    if (snapDx !== 0 || snapDy !== 0 || isDisconnect) {
+    if (snapDelta.x !== 0 || snapDelta.y !== 0 || isDisconnect) {
       // Undo live move before creating command
-      if (snapDx !== 0 || snapDy !== 0) {
+      if (snapDelta.x !== 0 || snapDelta.y !== 0) {
         for (const gateId of gateIds) {
           const gate = state.circuit.gates.get(gateId);
-          if (gate) gate.pos = Vec2.sub(gate.pos, { x: snapDx, y: snapDy });
+          if (gate) gate.pos = Vec2.sub(gate.pos, snapDelta);
         }
         const anchored = isDisconnect ? [] : getAnchoredNodeIds(state.circuit, gateIds);
         const allNodeIds = new Set<WireNodeId>([...anchored, ...selectedNodeIds]);
         for (const nid of allNodeIds) {
           const node = state.circuit.wireNodes.get(nid);
-          if (node) node.pos = Vec2.sub(node.pos, { x: snapDx, y: snapDy });
+          if (node) node.pos = Vec2.sub(node.pos, snapDelta);
         }
       }
 
-      const cmd = new MoveGatesCommand(state, gateIds, { x: snapDx, y: snapDy }, selectedNodeIds, isDisconnect);
+      const cmd = new MoveGatesCommand(state, gateIds, snapDelta, selectedNodeIds, isDisconnect);
       if (isDisconnect) {
         cmd.saveDetachedPins(this._lastDetachedPins);
       }
@@ -835,21 +794,20 @@ export class InputHandler {
 
     this.isDraggingDisconnected = false;
     this._lastDetachedPins = [];
-    this.dragAccDx = 0;
-    this.dragAccDy = 0;
+    this.dragAcc = { x: 0, y: 0 };
   }
 
   private completeSelectionRect(state: EditorState): void {
     const rect = state.selectionRect!;
     const selected: typeof state.selection = [];
     for (const gate of state.circuit.gates.values()) {
-      if (rectContainsGate(rect.x, rect.y, rect.w, rect.h, gate)) {
+      if (rectContainsGate(rect.pos, rect.w, rect.h, gate)) {
         selected.push({ type: 'gate', id: gate.id });
       }
     }
     // Include free wire nodes in area selection
-    const left = rect.w >= 0 ? rect.x : rect.x + rect.w;
-    const top = rect.h >= 0 ? rect.y : rect.y + rect.h;
+    const left = rect.w >= 0 ? rect.pos.x : rect.pos.x + rect.w;
+    const top = rect.h >= 0 ? rect.pos.y : rect.pos.y + rect.h;
     const right = left + Math.abs(rect.w);
     const bottom = top + Math.abs(rect.h);
     for (const node of state.circuit.wireNodes.values()) {
@@ -870,10 +828,10 @@ export class InputHandler {
   private handleWheel(e: WheelEvent): void {
     e.preventDefault();
     const state = this.getState();
-    const worldBefore = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const worldBefore = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
     const zoomFactor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
     state.camera.zoom = Math.min(4, Math.max(0.25, state.camera.zoom * zoomFactor));
-    const worldAfter = this.renderer.screenToWorld(e.offsetX, e.offsetY, state.camera);
+    const worldAfter = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
     state.camera.pos = Vec2.add(state.camera.pos, Vec2.sub(worldBefore, worldAfter));
     state.renderDirty = true;
   }
@@ -1003,7 +961,7 @@ export class InputHandler {
       }
     }
     const mw = this.renderer.getMouseWorld();
-    const segHit = hitTestWireSegment(mw.x, mw.y, state);
+    const segHit = hitTestWireSegment(mw, state);
     if (segHit) {
       const seg = state.circuit.wireSegments.get(segHit);
       if (seg) {
@@ -1037,7 +995,7 @@ export class InputHandler {
     const existing = findNodeForPin(state.circuit, ep.pinId);
     if (existing) return existing;
 
-    const cmd = new AddWireNodeCommand(state, ep.pos.x, ep.pos.y, ep.pinId);
+    const cmd = new AddWireNodeCommand(state, ep.pos, ep.pinId);
     this.getHistory().execute(cmd);
     return cmd.getNodeId();
   }
@@ -1061,8 +1019,8 @@ export class InputHandler {
     return state.wireColor === WIRE_COLORS[0] ? undefined : state.wireColor;
   }
 
-  /** Split a wire segment at (x,y). Returns the new node ID. */
-  private splitWireSegment(state: EditorState, segId: WireSegmentId, x: number, y: number): WireNodeId | null {
+  /** Split a wire segment at pos. Returns the new node ID. */
+  private splitWireSegment(state: EditorState, segId: WireSegmentId, pos: Vec2): WireNodeId | null {
     const seg = state.circuit.wireSegments.get(segId);
     if (!seg) return null;
     const fromId = seg.from;
@@ -1070,7 +1028,7 @@ export class InputHandler {
     const color = seg.color;
 
     this.getHistory().execute(new RemoveWireSegmentCommand(state, segId, false));
-    const addNode = new AddWireNodeCommand(state, x, y);
+    const addNode = new AddWireNodeCommand(state, pos);
     this.getHistory().execute(addNode);
     const midId = addNode.getNodeId();
     this.getHistory().execute(new AddWireSegmentCommand(state, fromId, midId, color));
@@ -1133,7 +1091,7 @@ export class InputHandler {
   }
 
   /** Start a disconnect drag: select gate, detach pin nodes, begin dragging. */
-  private startDisconnectDrag(state: EditorState, gateId: GateId, wx: number, wy: number): void {
+  private startDisconnectDrag(state: EditorState, gateId: GateId, pos: Vec2): void {
     const gate = state.circuit.gates.get(gateId);
     if (gate?.canMove === false) return;
     state.selection = [{ type: 'gate', id: gateId }];
@@ -1141,10 +1099,8 @@ export class InputHandler {
     this._lastDetachedPins = this.detachPinNodes(state, [gateId]);
     this.isDraggingGates = true;
     this.isDraggingDisconnected = true;
-    this.dragAccDx = 0;
-    this.dragAccDy = 0;
-    this.lastWorldX = wx;
-    this.lastWorldY = wy;
+    this.dragAcc = { x: 0, y: 0 };
+    this.lastWorld = Vec2.copy(pos);
   }
 
   /** Detach all wire nodes anchored to pins of the given gates. Returns detached mappings for undo. */
@@ -1225,17 +1181,13 @@ export class InputHandler {
     const clip = state.clipboard;
     if (!clip) return;
 
-    // Rotate all dx/dy by 90° CW around origin (0,0)
+    // Rotate all deltas by 90° CW around origin (0,0)
     for (const cg of clip.gates) {
-      const r = Vec2.rotateCW({ x: cg.dx, y: cg.dy });
-      cg.dx = r.x;
-      cg.dy = r.y;
+      cg.delta = Vec2.rotateCW(cg.delta);
       cg.rotation = (((cg.rotation + 90) % 360) as 0 | 90 | 180 | 270);
     }
     for (const cn of clip.nodes) {
-      const r = Vec2.rotateCW({ x: cn.dx, y: cn.dy });
-      cn.dx = r.x;
-      cn.dy = r.y;
+      cn.delta = Vec2.rotateCW(cn.delta);
     }
 
     state.renderDirty = true;
@@ -1253,16 +1205,16 @@ export class InputHandler {
     if (selectedGateIds.length === 0 && selectedSegIds.size === 0 && selectedNodeIds.size === 0) return;
 
     // Compute center of selected items
-    let cx = 0, cy = 0, count = 0;
+    const points: Vec2[] = [];
     for (const gid of selectedGateIds) {
       const g = state.circuit.gates.get(gid);
-      if (g) { const c = gateCenter(g); cx += c.x; cy += c.y; count++; }
+      if (g) points.push(gateCenter(g));
     }
     for (const nid of selectedNodeIds) {
       const n = state.circuit.wireNodes.get(nid as WireNodeId);
-      if (n) { cx += n.pos.x; cy += n.pos.y; count++; }
+      if (n) points.push(n.pos);
     }
-    if (count > 0) { cx /= count; cy /= count; }
+    const center = points.length > 0 ? Vec2.avg(points) : { x: 0, y: 0 };
 
     // Build gate index map
     const gateIdxMap = new Map<string, number>();
@@ -1275,7 +1227,7 @@ export class InputHandler {
       const allPids = getAllPinIds(g);
       const pinBitWidths = allPids.map(pid => state.circuit.pins.get(pid)?.bitWidth ?? 1);
       const pinValues = allPids.map(pid => state.circuit.pins.get(pid)?.value ?? null);
-      gates.push({ type: g.type, dx: c.x - cx, dy: c.y - cy, rotation: g.rotation, pinBitWidths, pinValues });
+      gates.push({ type: g.type, delta: Vec2.sub(c, center), rotation: g.rotation, pinBitWidths, pinValues });
     }
 
     // Collect relevant wire nodes (anchored to selected gates or explicitly selected free nodes)
@@ -1316,7 +1268,7 @@ export class InputHandler {
           }
         }
       }
-      nodes.push({ dx: n.pos.x - cx, dy: n.pos.y - cy, gateIdx, pinIdx });
+      nodes.push({ delta: Vec2.sub(n.pos, center), gateIdx, pinIdx });
     }
 
     // Collect wire segments between relevant nodes (or explicitly selected)
@@ -1335,12 +1287,11 @@ export class InputHandler {
     state.clipboard = { gates, nodes, wires };
   }
 
-  private pasteClipboard(state: EditorState, wx: number, wy: number): void {
+  private pasteClipboard(state: EditorState, pos: Vec2): void {
     const clip = state.clipboard;
     if (!clip) return;
 
-    const cx = snapToGrid(wx);
-    const cy = snapToGrid(wy);
+    const center = Vec2.snap(pos);
     this.getHistory().beginBatch('Paste');
 
     // Create gates and collect new pin IDs
@@ -1351,7 +1302,7 @@ export class InputHandler {
       const gw = def.width * GRID_SIZE;
       const gh = def.height * GRID_SIZE;
       const offset = gateGridOffset(cg.rotation, gw, gh);
-      const gatePos = Vec2.snap({ x: cx + cg.dx - gw / 2, y: cy + cg.dy - gh / 2 }, offset);
+      const gatePos = Vec2.snap({ x: center.x + cg.delta.x - gw / 2, y: center.y + cg.delta.y - gh / 2 }, offset);
       const cmd = new AddGateCommand(state, cg.type, gatePos, cg.rotation, cg.pinBitWidths[0] ?? 1);
       this.getHistory().execute(cmd);
       newGateIds.push(cmd.getGateId());
@@ -1372,8 +1323,7 @@ export class InputHandler {
     // Create wire nodes
     const newNodeIds: WireNodeId[] = [];
     for (const cn of clip.nodes) {
-      const nx = snapToGrid(cx + cn.dx);
-      const ny = snapToGrid(cy + cn.dy);
+      const nodePos = Vec2.snap(Vec2.add(center, cn.delta));
 
       // If anchored to a gate pin, find the new pin ID
       let pinId: PinId | undefined;
@@ -1381,7 +1331,7 @@ export class InputHandler {
         pinId = newAllPinIds[cn.gateIdx]?.[cn.pinIdx];
       }
 
-      const cmd = new AddWireNodeCommand(state, nx, ny, pinId);
+      const cmd = new AddWireNodeCommand(state, nodePos, pinId);
       this.getHistory().execute(cmd);
       newNodeIds.push(cmd.getNodeId());
     }

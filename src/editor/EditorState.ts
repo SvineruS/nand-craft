@@ -23,13 +23,13 @@ export type SelectionItem =
 
 export interface ClipboardGate {
   type: GateType;
-  dx: number; dy: number;
+  delta: Vec2;
   rotation: 0 | 90 | 180 | 270;
   pinBitWidths: number[];
   pinValues: (number | null)[];
 }
 export interface ClipboardNode {
-  dx: number; dy: number;
+  delta: Vec2;
   gateIdx?: number; pinIdx?: number;
 }
 export interface ClipboardWire {
@@ -52,7 +52,7 @@ export interface EditorState {
   mode: InteractionMode;
   isDragging: boolean;
   dragStart: Vec2 | null;
-  selectionRect: { x: number; y: number; w: number; h: number } | null;
+  selectionRect: { pos: Vec2; w: number; h: number } | null;
   dropPreview: { type: PlaceableType; pos: Vec2 } | null;
   clipboard: ClipboardData | null;
   simulationRunning: boolean;

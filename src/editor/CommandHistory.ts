@@ -393,20 +393,18 @@ export class AddWireNodeCommand implements Command {
   readonly description = 'Add wire node';
   private state: EditorState;
   private nodeId: WireNodeId;
-  private x: number;
-  private y: number;
+  private pos: Vec2;
   private pinId: PinId | undefined;
 
-  constructor(state: EditorState, x: number, y: number, pinId?: PinId) {
+  constructor(state: EditorState, pos: Vec2, pinId?: PinId) {
     this.state = state;
-    this.x = x;
-    this.y = y;
+    this.pos = pos;
     this.pinId = pinId;
     this.nodeId = generateId('wn') as WireNodeId;
   }
 
   execute(): void {
-    const node: WireNode = { id: this.nodeId, pos: { x: this.x, y: this.y } };
+    const node: WireNode = { id: this.nodeId, pos: Vec2.copy(this.pos) };
     if (this.pinId) node.pinId = this.pinId;
     this.state.circuit.wireNodes.set(this.nodeId, node);
     this.state.circuitDirty = true;
