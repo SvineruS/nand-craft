@@ -4,6 +4,12 @@ import type { WireEndpoint } from './geometry.ts';
 
 export type PlaceableType = GateType;
 
+export type InteractionMode =
+  | { kind: 'normal' }
+  | { kind: 'stamping'; gateType: GateType }
+  | { kind: 'wiring'; start: WireEndpoint }
+  | { kind: 'pasting'; cursor: { x: number; y: number } | null };
+
 export interface Camera {
   x: number;
   y: number;
@@ -43,15 +49,12 @@ export interface EditorState {
   selection: SelectionItem[];
   hoveredGate: GateId | null;
   hoveredEndpoint: WireEndpoint | null;
-  wireStart: WireEndpoint | null;
+  mode: InteractionMode;
   isDragging: boolean;
   dragStart: { x: number; y: number } | null;
   selectionRect: { x: number; y: number; w: number; h: number } | null;
   dropPreview: { type: PlaceableType; x: number; y: number } | null;
-  stampGateType: GateType | null;
   clipboard: ClipboardData | null;
-  pasteMode: boolean;
-  pasteCursor: { x: number; y: number } | null;
   simulationRunning: boolean;
   shortCircuitGates: GateId[];
   contentionNets: string[];
@@ -79,15 +82,12 @@ export function createEditorState(): EditorState {
     selection: [],
     hoveredGate: null,
     hoveredEndpoint: null,
-    wireStart: null,
+    mode: { kind: 'normal' },
     isDragging: false,
     dragStart: null,
     selectionRect: null,
     dropPreview: null,
-    stampGateType: null,
     clipboard: null,
-    pasteMode: false,
-    pasteCursor: null,
     simulationRunning: false,
     shortCircuitGates: [],
     contentionNets: [],

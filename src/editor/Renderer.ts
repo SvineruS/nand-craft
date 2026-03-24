@@ -834,9 +834,10 @@ export class Renderer {
   }
 
   private drawWireInProgress(state: EditorState): void {
-    if (!state.wireStart) return;
+    if (state.mode.kind !== 'wiring') return;
 
     const { ctx } = this;
+    const wireStart = state.mode.start;
     const wireColor = state.wireColor === WIRE_COLORS[0] ? COLORS.wireDefault : state.wireColor;
     const tx = snapToGrid(this.mouseWorld.x);
     const ty = snapToGrid(this.mouseWorld.y);
@@ -847,7 +848,7 @@ export class Renderer {
     ctx.lineJoin = 'round';
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
-    this.traceRoutedPath(ctx, state.wireStart.x, state.wireStart.y, tx, ty);
+    this.traceRoutedPath(ctx, wireStart.x, wireStart.y, tx, ty);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -903,10 +904,11 @@ export class Renderer {
   }
 
   private drawPastePreview(state: EditorState): void {
-    if (!state.pasteMode || !state.clipboard || !state.pasteCursor) return;
+    if (state.mode.kind !== 'pasting' || !state.clipboard || !state.mode.cursor) return;
 
     const { ctx } = this;
-    const { pasteCursor: cursor, clipboard: clip } = state;
+    const cursor = state.mode.cursor;
+    const clip = state.clipboard;
 
     ctx.globalAlpha = 0.4;
 

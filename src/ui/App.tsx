@@ -202,19 +202,18 @@ export function App() {
     const editor = editorRef.current;
     if (!editor) return;
     const state = editor.getState();
-    state.stampGateType = type;
-    state.pasteMode = false;
+    state.mode = { kind: 'stamping', gateType: type };
     state.renderDirty = true;
   }, []);
 
   const handleDragStart = useCallback((type: GateType) => {
     const editor = editorRef.current;
-    if (editor) editor.getState().stampGateType = type;
+    if (editor) editor.getState().mode = { kind: 'stamping', gateType: type };
   }, []);
 
   const handleDragEnd = useCallback(() => {
     const editor = editorRef.current;
-    if (editor) editor.getState().stampGateType = null;
+    if (editor) editor.getState().mode = { kind: 'normal' };
   }, []);
 
   const handlePropChange = useCallback(() => { simulateFirstCase(); }, []);

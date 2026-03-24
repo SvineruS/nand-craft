@@ -74,7 +74,7 @@ export class Editor {
 
     // Clear selection and mode state
     this.state.selection = [];
-    this.state.wireStart = null;
+    this.state.mode = { kind: 'normal' };
 
     // Create predefined gates from level spec
     if (level.predefinedGates) {
