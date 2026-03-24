@@ -4,7 +4,7 @@ import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
 import type { WireEndpoint } from './geometry.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds, getAllPinIds } from './geometry.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, findNodeForPin, getAnchoredNodeIds, getAllPinIds, gateGridOffset } from './geometry.ts';
 import {
   CommandHistory,
   AddGateCommand,
@@ -1352,8 +1352,11 @@ export class InputHandler {
     const newAllPinIds: PinId[][] = []; // per gate, all pin IDs in order
     for (const cg of clip.gates) {
       const def = GATE_DEFS[cg.type];
-      const gx = snapToGrid(cx + cg.dx - def.width * GRID_SIZE / 2);
-      const gy = snapToGrid(cy + cg.dy - def.height * GRID_SIZE / 2);
+      const gw = def.width * GRID_SIZE;
+      const gh = def.height * GRID_SIZE;
+      const offset = gateGridOffset(cg.rotation, gw, gh);
+      const gx = snapToGrid(cx + cg.dx - gw / 2, offset);
+      const gy = snapToGrid(cy + cg.dy - gh / 2, offset);
       const cmd = new AddGateCommand(state, cg.type, gx, gy, cg.rotation, cg.pinBitWidths[0] ?? 1);
       this.getHistory().execute(cmd);
       newGateIds.push(cmd.getGateId());

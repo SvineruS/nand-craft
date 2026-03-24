@@ -78,7 +78,7 @@ export function snapToGrid(v: number, offset = 0): number {
  * Non-square gates with odd (width+height) need a half-grid offset at 90°/270°
  * so that rotated pin positions land on grid lines.
  */
-function gateGridOffset(rotation: 0 | 90 | 180 | 270, w: number, h: number): number {
+export function gateGridOffset(rotation: 0 | 90 | 180 | 270, w: number, h: number): number {
   if ((rotation === 90 || rotation === 270) && ((w + h) / GRID_SIZE) % 2 !== 0) {
     return GRID_SIZE / 2;
   }

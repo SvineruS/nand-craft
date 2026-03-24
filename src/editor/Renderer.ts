@@ -2,7 +2,7 @@ import type { GateType, PinId } from '../types.ts';
 import type { EditorState, Camera } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, getAllPinIds } from './geometry.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, getAllPinIds, gateGridOffset } from './geometry.ts';
 
 // --- Colors (dark theme) ---
 const COLORS = {
@@ -912,18 +912,25 @@ export class Renderer {
 
     ctx.globalAlpha = 0.4;
 
-    // Draw ghost gates
+    // Draw ghost gates (matches drawGates transform pattern)
     for (const cg of clip.gates) {
       const def = GATE_DEFS[cg.type];
       const gw = def.width * GRID_SIZE;
       const gh = def.height * GRID_SIZE;
-      const gx = snapToGrid(cursor.x + cg.dx - gw / 2);
-      const gy = snapToGrid(cursor.y + cg.dy - gh / 2);
+      const offset = gateGridOffset(cg.rotation, gw, gh);
+      const gx = snapToGrid(cursor.x + cg.dx - gw / 2, offset);
+      const gy = snapToGrid(cursor.y + cg.dy - gh / 2, offset);
+      const gcx = gx + gw / 2;
+      const gcy = gy + gh / 2;
+
+      ctx.save();
+      ctx.translate(gcx, gcy);
+      ctx.rotate((cg.rotation * Math.PI) / 180);
 
       if (def.svg) {
         const path = this.getGatePath(cg.type);
         ctx.save();
-        ctx.translate(gx, gy);
+        ctx.translate(-gw / 2, -gh / 2);
         ctx.scale(GRID_SIZE, GRID_SIZE);
         ctx.fillStyle = def.color ?? COLORS.gateFill;
         ctx.fill(path);
@@ -935,8 +942,8 @@ export class Renderer {
         ctx.fillStyle = def.color ?? COLORS.gateFill;
         ctx.strokeStyle = def.stroke ?? COLORS.selection;
         ctx.lineWidth = 1.5;
-        ctx.fillRect(gx, gy, gw, gh);
-        ctx.strokeRect(gx, gy, gw, gh);
+        ctx.fillRect(-gw / 2, -gh / 2, gw, gh);
+        ctx.strokeRect(-gw / 2, -gh / 2, gw, gh);
       }
 
       // Label
@@ -944,15 +951,17 @@ export class Renderer {
       ctx.font = 'bold 11px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(def.label, gx + gw / 2 + (def.labelX ?? 0) * GRID_SIZE, gy + gh / 2 + (def.labelY ?? 0) * GRID_SIZE);
+      ctx.fillText(def.label, (def.labelX ?? 0) * GRID_SIZE, (def.labelY ?? 0) * GRID_SIZE);
 
-      // Pins
+      // Pins (drawn relative to center, inside rotation transform)
       for (const pin of def.pins) {
         ctx.fillStyle = COLORS.pinHighZ;
         ctx.beginPath();
-        ctx.arc(gx + pin.x * GRID_SIZE, gy + pin.y * GRID_SIZE, 3.5, 0, Math.PI * 2);
+        ctx.arc(pin.x * GRID_SIZE - gw / 2, pin.y * GRID_SIZE - gh / 2, 3.5, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      ctx.restore();
     }
 
     // Draw ghost wire segments
