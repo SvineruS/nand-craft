@@ -2,7 +2,8 @@ import type { GateType, PinId } from '../types.ts';
 import type { EditorState, Camera } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, getAllPinIds, gateGridOffset } from './geometry.ts';
+import { GRID_SIZE, getGateDims, getPinPositions, snapToGrid, getAllPinIds, gateGridOffset, gateCenter } from './geometry.ts';
+import { Vec2 } from './vec2.ts';
 
 // --- Colors (dark theme) ---
 const COLORS = {
@@ -26,10 +27,6 @@ const COLORS = {
   wireNodeStroke: '#8888bb',
 } as const;
 
-interface Point {
-  x: number;
-  y: number;
-}
 
 function signalColor(value: number | null, bitWidth = 1): string {
   if (value === null) return COLORS.wireHighZ;
@@ -89,7 +86,7 @@ export class Renderer {
   private lastTime = 0;
   private wireAnimProgress = 0;
   private dpr = 1;
-  private mouseWorld: Point = { x: 0, y: 0 };
+  private mouseWorld: Vec2 = { x: 0, y: 0 };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -111,8 +108,8 @@ export class Renderer {
 
     ctx.save();
     ctx.translate(
-      this.canvas.clientWidth / 2 - camera.x * camera.zoom,
-      this.canvas.clientHeight / 2 - camera.y * camera.zoom,
+      this.canvas.clientWidth / 2 - camera.pos.x * camera.zoom,
+      this.canvas.clientHeight / 2 - camera.pos.y * camera.zoom,
     );
     ctx.scale(camera.zoom, camera.zoom);
 
@@ -161,25 +158,25 @@ export class Renderer {
     }
   }
 
-  screenToWorld(sx: number, sy: number, camera: Camera): Point {
+  screenToWorld(sx: number, sy: number, camera: Camera): Vec2 {
     return {
-      x: (sx - this.canvas.clientWidth / 2) / camera.zoom + camera.x,
-      y: (sy - this.canvas.clientHeight / 2) / camera.zoom + camera.y,
+      x: (sx - this.canvas.clientWidth / 2) / camera.zoom + camera.pos.x,
+      y: (sy - this.canvas.clientHeight / 2) / camera.zoom + camera.pos.y,
     };
   }
 
-  worldToScreen(wx: number, wy: number, camera: Camera): Point {
+  worldToScreen(wx: number, wy: number, camera: Camera): Vec2 {
     return {
-      x: (wx - camera.x) * camera.zoom + this.canvas.clientWidth / 2,
-      y: (wy - camera.y) * camera.zoom + this.canvas.clientHeight / 2,
+      x: (wx - camera.pos.x) * camera.zoom + this.canvas.clientWidth / 2,
+      y: (wy - camera.pos.y) * camera.zoom + this.canvas.clientHeight / 2,
     };
   }
 
-  setMouseWorld(p: Point): void {
+  setMouseWorld(p: Vec2): void {
     this.mouseWorld = p;
   }
 
-  getMouseWorld(): Point {
+  getMouseWorld(): Vec2 {
     return this.mouseWorld;
   }
 
@@ -203,10 +200,10 @@ export class Renderer {
     const { camera } = state;
     const vw = this.canvas.clientWidth / camera.zoom;
     const vh = this.canvas.clientHeight / camera.zoom;
-    const left = camera.x - vw / 2;
-    const top = camera.y - vh / 2;
-    const right = camera.x + vw / 2;
-    const bottom = camera.y + vh / 2;
+    const left = camera.pos.x - vw / 2;
+    const top = camera.pos.y - vh / 2;
+    const right = camera.pos.x + vw / 2;
+    const bottom = camera.pos.y + vh / 2;
 
     const startX = Math.floor(left / GRID_SIZE) * GRID_SIZE;
     const startY = Math.floor(top / GRID_SIZE) * GRID_SIZE;
@@ -272,7 +269,7 @@ export class Renderer {
    * segment's length, then walks exactly half the total distance to place labels
    * and markers at the visual center of the wire.
    */
-  private routedMidpoint(ax: number, ay: number, bx: number, by: number): { x: number; y: number } {
+  private routedMidpoint(ax: number, ay: number, bx: number, by: number): Vec2 {
     const dx = bx - ax;
     const dy = by - ay;
 
@@ -328,7 +325,7 @@ export class Renderer {
   }
 
   /** Point at fraction t (0..1) along the routed path. */
-  private routedPointAt(ax: number, ay: number, bx: number, by: number, t: number): { x: number; y: number } {
+  private routedPointAt(ax: number, ay: number, bx: number, by: number, t: number): Vec2 {
     const dx = bx - ax;
     const dy = by - ay;
     if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
@@ -400,7 +397,7 @@ export class Renderer {
       ctx.lineJoin = 'round';
       ctx.setLineDash([]);
       ctx.beginPath();
-      this.traceRoutedPath(ctx, fromNode.x, fromNode.y, toNode.x, toNode.y);
+      this.traceRoutedPath(ctx, fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y);
       ctx.stroke();
     }
 
@@ -416,7 +413,7 @@ export class Renderer {
       const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
       const color = signalColor(value, bitWidth);
       // Animated dash offset creates flowing motion
-      const segLen = Math.hypot(toNode.x - fromNode.x, toNode.y - fromNode.y);
+      const segLen = Vec2.dist(fromNode.pos, toNode.pos);
       const dashSize = 3;
       const offset = this.wireAnimProgress * dashSize * 4;
 
@@ -427,7 +424,7 @@ export class Renderer {
       ctx.setLineDash([dashSize, dashSize]);
       ctx.lineDashOffset = -offset;
       ctx.beginPath();
-      this.traceRoutedPath(ctx, fromNode.x, fromNode.y, toNode.x, toNode.y);
+      this.traceRoutedPath(ctx, fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y);
       ctx.stroke();
 
       // Value labels spaced along the routed path
@@ -442,11 +439,11 @@ export class Renderer {
 
         // Compute routed path total length and place labels every ~80px
         const labelSpacing = 80;
-        const pathLen = this.routedPathLength(fromNode.x, fromNode.y, toNode.x, toNode.y);
+        const pathLen = this.routedPathLength(fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y);
         const labelCount = Math.max(1, Math.floor(pathLen / labelSpacing));
         for (let li = 0; li < labelCount; li++) {
           const t = labelCount === 1 ? 0.5 : (li + 0.5) / labelCount;
-          const pt = this.routedPointAt(fromNode.x, fromNode.y, toNode.x, toNode.y, t);
+          const pt = this.routedPointAt(fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y, t);
 
           ctx.fillStyle = COLORS.background;
           ctx.globalAlpha = 0.8;
@@ -471,7 +468,7 @@ export class Renderer {
       if (!fromNode || !toNode) continue;
 
       // Position label slightly above midpoint of routed path
-      const mid = this.routedMidpoint(fromNode.x, fromNode.y, toNode.x, toNode.y);
+      const mid = this.routedMidpoint(fromNode.pos.x, fromNode.pos.y, toNode.pos.x, toNode.pos.y);
       const mx = mid.x;
       const my = mid.y;
 
@@ -546,7 +543,7 @@ export class Renderer {
       ctx.strokeStyle = isHovered ? COLORS.selection : (customColor ?? COLORS.wireDefault);
       ctx.lineWidth = isHovered ? 3 : 2.5;
       ctx.beginPath();
-      ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+      ctx.arc(node.pos.x, node.pos.y, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
@@ -555,7 +552,7 @@ export class Renderer {
         const bw = pin?.bitWidth ?? nodeNetBitWidth.get(node.id as string) ?? 1;
         ctx.fillStyle = signalColor(value, bw);
         ctx.beginPath();
-        ctx.arc(node.x, node.y, 2.5, 0, Math.PI * 2);
+        ctx.arc(node.pos.x, node.pos.y, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -568,12 +565,10 @@ export class Renderer {
     for (const gate of circuit.gates.values()) {
       const { w, h } = getGateDims(gate);
       const def = GATE_DEFS[gate.type];
-
-      const cx = gate.x + w / 2;
-      const cy = gate.y + h / 2;
+      const center = gateCenter(gate);
 
       ctx.save();
-      ctx.translate(cx, cy);
+      ctx.translate(center.x, center.y);
       ctx.rotate((gate.rotation * Math.PI) / 180);
 
       const gateFill = def.color ?? COLORS.gateFill;
@@ -626,7 +621,7 @@ export class Renderer {
       // Short circuit: red glow border
       if (shortCircuitGates.includes(gate.id)) {
         ctx.save();
-        ctx.translate(cx, cy);
+        ctx.translate(center.x, center.y);
         ctx.rotate((gate.rotation * Math.PI) / 180);
         ctx.strokeStyle = COLORS.error;
         ctx.lineWidth = 2;
@@ -735,7 +730,7 @@ export class Renderer {
       const to = circuit.wireNodes.get(seg.to);
       if (!from || !to) continue;
       ctx.beginPath();
-      this.traceRoutedPath(ctx, from.x, from.y, to.x, to.y);
+      this.traceRoutedPath(ctx, from.pos.x, from.pos.y, to.pos.x, to.pos.y);
       ctx.stroke();
     }
 
@@ -749,10 +744,10 @@ export class Renderer {
       const from = circuit.wireNodes.get(seg.from);
       const to = circuit.wireNodes.get(seg.to);
       if (!from || !to) continue;
-      const segLen = Math.hypot(to.x - from.x, to.y - from.y);
+      const segLen = Vec2.dist(from.pos, to.pos);
       if (segLen < 20) continue;
 
-      const mid = this.routedMidpoint(from.x, from.y, to.x, to.y);
+      const mid = this.routedMidpoint(from.pos.x, from.pos.y, to.pos.x, to.pos.y);
       const mx = mid.x;
       const my = mid.y;
 
@@ -787,10 +782,9 @@ export class Renderer {
           const gate = circuit.gates.get(item.id);
           if (!gate) break;
           const { w, h } = getGateDims(gate);
-          const cx = gate.x + w / 2;
-          const cy = gate.y + h / 2;
+          const center = gateCenter(gate);
           ctx.save();
-          ctx.translate(cx, cy);
+          ctx.translate(center.x, center.y);
           ctx.rotate((gate.rotation * Math.PI) / 180);
           ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
           ctx.restore();
@@ -800,7 +794,7 @@ export class Renderer {
           const node = circuit.wireNodes.get(item.id);
           if (!node) break;
           ctx.beginPath();
-          ctx.arc(node.x, node.y, 8, 0, Math.PI * 2);
+          ctx.arc(node.pos.x, node.pos.y, 8, 0, Math.PI * 2);
           ctx.stroke();
           break;
         }
@@ -811,7 +805,7 @@ export class Renderer {
           const to = circuit.wireNodes.get(seg.to);
           if (!from || !to) break;
           ctx.beginPath();
-          this.traceRoutedPath(ctx, from.x, from.y, to.x, to.y);
+          this.traceRoutedPath(ctx, from.pos.x, from.pos.y, to.pos.x, to.pos.y);
           ctx.stroke();
           break;
         }
@@ -848,7 +842,7 @@ export class Renderer {
     ctx.lineJoin = 'round';
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
-    this.traceRoutedPath(ctx, wireStart.x, wireStart.y, tx, ty);
+    this.traceRoutedPath(ctx, wireStart.pos.x, wireStart.pos.y, tx, ty);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -857,7 +851,7 @@ export class Renderer {
     if (!state.dropPreview) return;
 
     const { ctx } = this;
-    const { type, x, y } = state.dropPreview;
+    const { type, pos: { x, y } } = state.dropPreview;
     const def = GATE_DEFS[type];
     const w = def.width * GRID_SIZE;
     const h = def.height * GRID_SIZE;

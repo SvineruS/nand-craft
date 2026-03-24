@@ -1,5 +1,6 @@
 import type { Circuit, Gate, GateId, PinId, WireNode, WireNodeId } from '../types.ts';
 import { GATE_DEFS } from './gateDefs.ts';
+import { Vec2 } from './vec2.ts';
 
 export const GRID_SIZE = 20;
 
@@ -18,28 +19,26 @@ export function getGateDims(gate: Gate): { w: number; h: number } {
   return { w: def.width * GRID_SIZE, h: def.height * GRID_SIZE };
 }
 
+/** Gate center in world coordinates. */
+export function gateCenter(gate: Gate): Vec2 {
+  const { w, h } = getGateDims(gate);
+  return { x: gate.pos.x + w / 2, y: gate.pos.y + h / 2 };
+}
+
 /**
  * Pin positions for a gate — reads from definition, applies gate position + rotation.
  */
-export function getPinPositions(
-  gate: Gate,
-): Map<PinId, { x: number; y: number }> {
-  const result = new Map<PinId, { x: number; y: number }>();
-  const { w, h } = getGateDims(gate);
-  const cx = gate.x + w / 2;
-  const cy = gate.y + h / 2;
+export function getPinPositions(gate: Gate): Map<PinId, Vec2> {
+  const result = new Map<PinId, Vec2>();
+  const center = gateCenter(gate);
 
   const def = GATE_DEFS[gate.type];
   const allPinIds = getAllPinIds(gate);
   const defPins = def.pins;
 
-  // Guard: iterate only up to the lesser count in case the gate instance has
-  // fewer runtime pins than the definition declares (e.g. dynamically configured components).
   for (let i = 0; i < Math.min(allPinIds.length, defPins.length); i++) {
-    const pinDef = defPins[i];
-    const pinWorldX = gate.x + pinDef.x * GRID_SIZE;
-    const pinWorldY = gate.y + pinDef.y * GRID_SIZE;
-    const rotated = rotatePoint(pinWorldX, pinWorldY, cx, cy, gate.rotation);
+    const pinWorld = Vec2.add(gate.pos, Vec2.scale(defPins[i], GRID_SIZE));
+    const rotated = rotatePoint(pinWorld.x, pinWorld.y, center.x, center.y, gate.rotation);
     result.set(allPinIds[i], rotated);
   }
 
@@ -53,7 +52,7 @@ export function getPinPositions(
 function rotatePoint(
   px: number, py: number, cx: number, cy: number,
   rotation: 0 | 90 | 180 | 270,
-): { x: number; y: number } {
+): Vec2 {
   const dx = px - cx;
   const dy = py - cy;
   switch (rotation) {
@@ -90,8 +89,8 @@ export function gateGridOffset(rotation: 0 | 90 | 180 | 270, w: number, h: numbe
 // ---------------------------------------------------------------------------
 
 export type WireEndpoint =
-  | { kind: 'pin'; pinId: PinId; x: number; y: number }
-  | { kind: 'node'; nodeId: WireNodeId; x: number; y: number };
+  | { kind: 'pin'; pinId: PinId; pos: Vec2 }
+  | { kind: 'node'; nodeId: WireNodeId; pos: Vec2 };
 
 export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | null {
   for (const node of circuit.wireNodes.values()) {
@@ -106,13 +105,13 @@ export function updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
   for (const [pinId, pos] of positions) {
     for (const node of circuit.wireNodes.values()) {
       if (node.pinId === (pinId as unknown as PinId)) {
-        node.x = pos.x; node.y = pos.y;
+        node.pos = pos;
       }
     }
   }
 }
 
-export interface ReconnectedNode { nodeId: WireNodeId; pinId: PinId; prevX: number; prevY: number }
+export interface ReconnectedNode { nodeId: WireNodeId; pinId: PinId; prevPos: Vec2 }
 
 /** Anchor free wire nodes that are near gate pins. Returns what changed (for undo). */
 export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): ReconnectedNode[] {
@@ -124,11 +123,10 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
     for (const [pinId, pos] of positions) {
       for (const node of circuit.wireNodes.values()) {
         if (node.pinId) continue;
-        if (Math.abs(node.x - pos.x) < 2 && Math.abs(node.y - pos.y) < 2) {
-          result.push({ nodeId: node.id, pinId, prevX: node.x, prevY: node.y });
+        if (Vec2.near(node.pos, pos, 2)) {
+          result.push({ nodeId: node.id, pinId, prevPos: Vec2.copy(node.pos) });
           node.pinId = pinId;
-          node.x = pos.x;
-          node.y = pos.y;
+          node.pos = pos;
           break;
         }
       }
@@ -143,9 +141,14 @@ export function undoReconnectPinNodes(circuit: Circuit, reconnected: Reconnected
     const node = circuit.wireNodes.get(r.nodeId);
     if (!node) continue;
     node.pinId = undefined;
-    node.x = r.prevX;
-    node.y = r.prevY;
+    node.pos = Vec2.copy(r.prevPos);
   }
+}
+
+/** Compute gate top-left position from a desired center position. */
+function gatePosFromCenter(gate: Gate, center: Vec2): Vec2 {
+  const { w, h } = getGateDims(gate);
+  return Vec2.sub(center, { x: w / 2, y: h / 2 });
 }
 
 /** Rotate gates + free wire nodes around group center by `degrees`. Returns saved positions for undo. */
@@ -155,74 +158,33 @@ export function rotateGroup(
   extraNodeIds: WireNodeId[],
   degrees: number,
 ): {
-  gates: { id: GateId; x: number; y: number; rotation: number }[];
-  nodes: { id: WireNodeId; x: number; y: number }[];
+  gates: { id: GateId; pos: Vec2; rotation: number }[];
+  nodes: { id: WireNodeId; pos: Vec2 }[];
 } {
-  const savedGates: { id: GateId; x: number; y: number; rotation: number }[] = [];
-  const savedNodes: { id: WireNodeId; x: number; y: number }[] = [];
+  const gates = gateIds.map(id => circuit.gates.get(id)).filter(g => g != null);
+  const nodes = extraNodeIds.map(id => circuit.wireNodes.get(id)).filter(n => n != null);
+  if (gates.length === 0 && nodes.length === 0) return { gates: [], nodes: [] };
 
-  // Single gate, no extra nodes: just rotate in place
-  if (gateIds.length <= 1 && extraNodeIds.length === 0) {
-    for (const gateId of gateIds) {
-      const gate = circuit.gates.get(gateId);
-      if (!gate) continue;
-      savedGates.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
-      const { w, h } = getGateDims(gate);
-      const oldOffset = gateGridOffset(gate.rotation, w, h);
-      gate.rotation = rotateBy(gate.rotation, degrees);
-      const newOffset = gateGridOffset(gate.rotation, w, h);
-      const delta = newOffset - oldOffset;
-      gate.x += delta;
-      gate.y += delta;
-      updateAnchoredNodes(gate, circuit);
-    }
-    return { gates: savedGates, nodes: savedNodes };
-  }
-
-  // Multiple items: compute group center, rotate positions around it
-  let cx = 0, cy = 0, count = 0;
-  for (const gateId of gateIds) {
-    const gate = circuit.gates.get(gateId);
-    if (!gate) continue;
-    const dims = getGateDims(gate);
-    cx += gate.x + dims.w / 2; cy += gate.y + dims.h / 2; count++;
-  }
-  for (const nodeId of extraNodeIds) {
-    const node = circuit.wireNodes.get(nodeId);
-    if (node) { cx += node.x; cy += node.y; count++; }
-  }
-  if (count === 0) return { gates: savedGates, nodes: savedNodes };
-  cx /= count; cy /= count;
-
+  const points: Vec2[] = [...gates.map(g => gateCenter(g)), ...nodes.map(n => n.pos)];
+  const center = Vec2.avg(points);
   const rad = (degrees * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
 
-  for (const gateId of gateIds) {
-    const gate = circuit.gates.get(gateId);
-    if (!gate) continue;
-    savedGates.push({ id: gateId, x: gate.x, y: gate.y, rotation: gate.rotation });
-    const dims = getGateDims(gate);
-    const dx = gate.x + dims.w / 2 - cx;
-    const dy = gate.y + dims.h / 2 - cy;
-    const newCx = cx + dx * cos - dy * sin;
-    const newCy = cy + dx * sin + dy * cos;
+  const savedGates = gates.map(gate => {
+    const saved = { id: gate.id, pos: Vec2.copy(gate.pos), rotation: gate.rotation };
+    const newCenter = Vec2.rotateAround(gateCenter(gate), center, rad);
     gate.rotation = rotateBy(gate.rotation, degrees);
-    const offset = gateGridOffset(gate.rotation, dims.w, dims.h);
-    gate.x = snapToGrid(newCx - dims.w / 2, offset);
-    gate.y = snapToGrid(newCy - dims.h / 2, offset);
+    const { w, h } = getGateDims(gate);
+    const offset = gateGridOffset(gate.rotation, w, h);
+    gate.pos = Vec2.snap(gatePosFromCenter(gate, newCenter), offset);
     updateAnchoredNodes(gate, circuit);
-  }
+    return saved;
+  });
 
-  for (const nodeId of extraNodeIds) {
-    const node = circuit.wireNodes.get(nodeId);
-    if (!node) continue;
-    savedNodes.push({ id: nodeId, x: node.x, y: node.y });
-    const dx = node.x - cx;
-    const dy = node.y - cy;
-    node.x = snapToGrid(cx + dx * cos - dy * sin);
-    node.y = snapToGrid(cy + dx * sin + dy * cos);
-  }
+  const savedNodes = nodes.map(node => {
+    const saved = { id: node.id, pos: Vec2.copy(node.pos) };
+    node.pos = Vec2.snap(Vec2.rotateAround(node.pos, center, rad));
+    return saved;
+  });
 
   return { gates: savedGates, nodes: savedNodes };
 }
@@ -255,7 +217,7 @@ export function cleanupOrphanNodes(circuit: Circuit, nodeIds: Iterable<WireNodeI
       if (s.from === nid || s.to === nid) { hasSegments = true; break; }
     }
     if (!hasSegments) {
-      removed.push({ ...node });
+      removed.push({ ...node, pos: Vec2.copy(node.pos) });
       circuit.wireNodes.delete(nid);
     }
   }

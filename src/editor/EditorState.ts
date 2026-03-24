@@ -1,5 +1,6 @@
 import type { Circuit, GateId, GateType, WireNodeId, WireSegmentId } from '../types.ts';
 import { createCircuit } from '../types.ts';
+import type { Vec2 } from './vec2.ts';
 import type { WireEndpoint } from './geometry.ts';
 
 export type PlaceableType = GateType;
@@ -8,11 +9,10 @@ export type InteractionMode =
   | { kind: 'normal' }
   | { kind: 'stamping'; gateType: GateType }
   | { kind: 'wiring'; start: WireEndpoint }
-  | { kind: 'pasting'; cursor: { x: number; y: number } | null };
+  | { kind: 'pasting'; cursor: Vec2 | null };
 
 export interface Camera {
-  x: number;
-  y: number;
+  pos: Vec2;
   zoom: number;
 }
 
@@ -51,9 +51,9 @@ export interface EditorState {
   hoveredEndpoint: WireEndpoint | null;
   mode: InteractionMode;
   isDragging: boolean;
-  dragStart: { x: number; y: number } | null;
+  dragStart: Vec2 | null;
   selectionRect: { x: number; y: number; w: number; h: number } | null;
-  dropPreview: { type: PlaceableType; x: number; y: number } | null;
+  dropPreview: { type: PlaceableType; pos: Vec2 } | null;
   clipboard: ClipboardData | null;
   simulationRunning: boolean;
   shortCircuitGates: GateId[];
@@ -78,7 +78,7 @@ export const WIRE_COLORS = [
 export function createEditorState(): EditorState {
   return {
     circuit: createCircuit(),
-    camera: { x: 0, y: 0, zoom: 1 },
+    camera: { pos: { x: 0, y: 0 }, zoom: 1 },
     selection: [],
     hoveredGate: null,
     hoveredEndpoint: null,

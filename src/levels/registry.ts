@@ -12,8 +12,8 @@ export const LEVELS: Level[] = [
     inputs: [{ name: 'A', bitWidth: 1 }],
     outputs: [{ name: 'Out', bitWidth: 1 }],
     predefinedGates: [
-      { type: 'input', x: 2, y: 3, label: 'A', canRemove: false, canMove: false },
-      { type: 'output', x: 12, y: 3, label: 'Out', canRemove: false, canMove: false },
+      { type: 'input', pos: { x: 2, y: 3 }, label: 'A', canRemove: false, canMove: false },
+      { type: 'output', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false, canMove: false },
     ],
     mode: 'combinational',
     test: {
@@ -37,9 +37,9 @@ export const LEVELS: Level[] = [
     ],
     outputs: [{ name: 'Out', bitWidth: 1 }],
     predefinedGates: [
-      { type: 'input', x: 2, y: 2, label: 'A', canRemove: false, canMove: false },
-      { type: 'input', x: 2, y: 5, label: 'B', canRemove: false, canMove: false },
-      { type: 'output', x: 12, y: 3, label: 'Out', canRemove: false, canMove: false },
+      { type: 'input', pos: { x: 2, y: 2 }, label: 'A', canRemove: false, canMove: false },
+      { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false, canMove: false },
+      { type: 'output', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false, canMove: false },
     ],
     mode: 'combinational',
     test: {
@@ -65,9 +65,9 @@ export const LEVELS: Level[] = [
     ],
     outputs: [{ name: 'Out', bitWidth: 1 }],
     predefinedGates: [
-      { type: 'input', x: 2, y: 2, label: 'A', canRemove: false, canMove: false },
-      { type: 'input', x: 2, y: 5, label: 'B', canRemove: false, canMove: false },
-      { type: 'output', x: 12, y: 3, label: 'Out', canRemove: false, canMove: false },
+      { type: 'input', pos: { x: 2, y: 2 }, label: 'A', canRemove: false, canMove: false },
+      { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false, canMove: false },
+      { type: 'output', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false, canMove: false },
     ],
     mode: 'combinational',
     test: {

@@ -14,6 +14,7 @@ import type { EditorState } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
 import { getAnchoredNodeIds, getAllPinIds, cleanupOrphanNodes, rotateGroup, updateAnchoredNodes, reconnectPinNodes, undoReconnectPinNodes } from './geometry.ts';
 import type { ReconnectedNode } from './geometry.ts';
+import { Vec2 } from './vec2.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -112,8 +113,7 @@ export class AddGateCommand implements Command {
   constructor(
     state: EditorState,
     gateType: GateType,
-    x: number,
-    y: number,
+    pos: Vec2,
     rotation: 0 | 90 | 180 | 270 = 0,
     bitWidth: number = 1,
   ) {
@@ -142,8 +142,7 @@ export class AddGateCommand implements Command {
     this.gate = {
       id: this.gateId,
       type: gateType,
-      x,
-      y,
+      pos,
       rotation,
       inputPins,
       outputPins,
@@ -277,8 +276,7 @@ export class MoveGatesCommand implements Command {
   private state: EditorState;
   private gateIds: GateId[];
   private extraNodeIds: WireNodeId[];
-  private dx: number;
-  private dy: number;
+  private delta: Vec2;
   private disconnected: boolean;
 
   /** Wire nodes that moved along with the gates (anchored to pins + extra). */
@@ -288,12 +286,11 @@ export class MoveGatesCommand implements Command {
   /** Wire nodes reconnected to pins after move. */
   private reconnectedNodes: ReconnectedNode[] = [];
 
-  constructor(state: EditorState, gateIds: GateId[], dx: number, dy: number, extraNodeIds: WireNodeId[] = [], disconnected = false) {
+  constructor(state: EditorState, gateIds: GateId[], delta: Vec2, extraNodeIds: WireNodeId[] = [], disconnected = false) {
     this.state = state;
     this.gateIds = gateIds;
     this.extraNodeIds = extraNodeIds;
-    this.dx = dx;
-    this.dy = dy;
+    this.delta = delta;
     this.disconnected = disconnected;
   }
 
@@ -307,9 +304,7 @@ export class MoveGatesCommand implements Command {
 
     for (const gateId of this.gateIds) {
       const gate = circuit.gates.get(gateId);
-      if (!gate) continue;
-      gate.x += this.dx;
-      gate.y += this.dy;
+      if (gate) gate.pos = Vec2.add(gate.pos, this.delta);
     }
 
     const anchored = this.disconnected ? [] : getAnchoredNodeIds(circuit, this.gateIds);
@@ -317,7 +312,7 @@ export class MoveGatesCommand implements Command {
     this.movedNodeIds = [...allIds];
     for (const nodeId of this.movedNodeIds) {
       const node = circuit.wireNodes.get(nodeId);
-      if (node) { node.x += this.dx; node.y += this.dy; }
+      if (node) node.pos = Vec2.add(node.pos, this.delta);
     }
 
     this.reconnectedNodes = reconnectPinNodes(circuit, this.gateIds);
@@ -331,17 +326,12 @@ export class MoveGatesCommand implements Command {
 
     for (const gateId of this.gateIds) {
       const gate = circuit.gates.get(gateId);
-      if (!gate) continue;
-      gate.x -= this.dx;
-      gate.y -= this.dy;
+      if (gate) gate.pos = Vec2.sub(gate.pos, this.delta);
     }
 
     for (const nodeId of this.movedNodeIds) {
       const node = circuit.wireNodes.get(nodeId);
-      if (node) {
-        node.x -= this.dx;
-        node.y -= this.dy;
-      }
+      if (node) node.pos = Vec2.sub(node.pos, this.delta);
     }
 
     // Restore detached pin connections
@@ -362,8 +352,8 @@ export class RotateGatesCommand implements Command {
   private static readonly ROTATION_STEP = 90;
 
   /** Stored positions for undo. */
-  private savedGatePositions: { id: GateId; x: number; y: number; rotation: number }[] = [];
-  private savedNodePositions: { id: WireNodeId; x: number; y: number }[] = [];
+  private savedGatePositions: { id: GateId; pos: Vec2; rotation: number }[] = [];
+  private savedNodePositions: { id: WireNodeId; pos: Vec2 }[] = [];
 
   constructor(state: EditorState, gateIds: GateId[], extraNodeIds: WireNodeId[] = []) {
     this.state = state;
@@ -383,14 +373,13 @@ export class RotateGatesCommand implements Command {
     for (const saved of this.savedGatePositions) {
       const gate = circuit.gates.get(saved.id);
       if (gate) {
-        gate.x = saved.x;
-        gate.y = saved.y;
+        gate.pos = saved.pos;
         gate.rotation = saved.rotation as 0 | 90 | 180 | 270;
       }
     }
     for (const saved of this.savedNodePositions) {
       const node = circuit.wireNodes.get(saved.id);
-      if (node) { node.x = saved.x; node.y = saved.y; }
+      if (node) node.pos = saved.pos;
     }
     for (const gateId of this.gateIds) {
       const gate = circuit.gates.get(gateId);
@@ -417,7 +406,7 @@ export class AddWireNodeCommand implements Command {
   }
 
   execute(): void {
-    const node: WireNode = { id: this.nodeId, x: this.x, y: this.y };
+    const node: WireNode = { id: this.nodeId, pos: { x: this.x, y: this.y } };
     if (this.pinId) node.pinId = this.pinId;
     this.state.circuit.wireNodes.set(this.nodeId, node);
     this.state.circuitDirty = true;

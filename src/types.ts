@@ -1,3 +1,5 @@
+export interface Vec2 { x: number; y: number }
+
 // Branded types for type-safe IDs
 export type GateId = string & { __brand: 'GateId' };
 export type PinId = string & { __brand: 'PinId' };
@@ -32,8 +34,7 @@ export type GateType =
 export interface Gate {
   id: GateId;
   type: GateType;
-  x: number;
-  y: number;
+  pos: Vec2;
   rotation: 0 | 90 | 180 | 270;
   inputPins: PinId[];
   outputPins: PinId[];
@@ -54,8 +55,7 @@ export interface Pin {
 
 export interface WireNode {
   id: WireNodeId;
-  x: number;
-  y: number;
+  pos: Vec2;
   pinId?: PinId;
 }
 
@@ -139,7 +139,7 @@ export interface TestResult {
 
 /** Gate spec in a level definition — same fields as Gate minus runtime-only ones (id, pins). */
 export type LevelGate =
-  Pick<Gate, 'type' | 'x' | 'y'> &
+  Pick<Gate, 'type' | 'pos'> &
   Partial<Pick<Gate, 'rotation' | 'label' | 'canRemove' | 'canMove'>> &
   { bitWidth?: number };
 

@@ -11,6 +11,7 @@ import { InputHandler } from './InputHandler.ts';
 import { CommandHistory, AddGateCommand } from './CommandHistory.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
 import { GRID_SIZE } from './geometry.ts';
+import { Vec2 } from './vec2.ts';
 
 export class Editor {
   private state: EditorState;
@@ -82,8 +83,7 @@ export class Editor {
         const cmd = new AddGateCommand(
           this.state,
           pg.type,
-          pg.x * GRID_SIZE,
-          pg.y * GRID_SIZE,
+          Vec2.scale(pg.pos, GRID_SIZE),
           pg.rotation ?? 0,
           pg.bitWidth ?? 1,
         );
