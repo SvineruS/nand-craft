@@ -4,6 +4,7 @@ import type {
   Level,
 } from '../types.ts';
 import { createCircuit } from '../types.ts';
+import { getGate, getPin, getWireNode } from '../circuit.ts';
 import { createEditorState } from './EditorState.ts';
 import type { EditorState } from './EditorState.ts';
 import { Renderer } from './Renderer.ts';
@@ -89,12 +90,10 @@ export class Editor {
         );
         cmd.execute();
 
-        const gate = this.state.circuit.gates.get(cmd.getGateId());
-        if (gate) {
-          if (pg.label !== undefined) gate.label = pg.label;
-          if (pg.canRemove !== undefined) gate.canRemove = pg.canRemove;
-          if (pg.canMove !== undefined) gate.canMove = pg.canMove;
-        }
+        const gate = getGate(this.state.circuit, cmd.getGateId());
+        if (pg.label !== undefined) gate.label = pg.label;
+        if (pg.canRemove !== undefined) gate.canRemove = pg.canRemove;
+        if (pg.canMove !== undefined) gate.canMove = pg.canMove;
       }
     }
 
@@ -143,10 +142,7 @@ export class Editor {
     for (const gate of this.state.circuit.gates.values()) {
       if (gate.type === 'input') {
         // Use existing pin value or default to 0
-        const outputPin = gate.outputPins[0]
-          ? this.state.circuit.pins.get(gate.outputPins[0])
-          : undefined;
-        inputs.set(gate.id, outputPin?.value ?? 0);
+        inputs.set(gate.id, getPin(this.state.circuit, gate.outputPins[0]).value ?? 0);
       }
     }
 
@@ -168,10 +164,10 @@ export class Editor {
     for (const net of this.state.circuit.nets.values()) {
       const drivers: { value: number | null }[] = [];
       for (const nodeId of net.nodeIds) {
-        const node = this.state.circuit.wireNodes.get(nodeId);
-        if (node?.pinId) {
-          const pin = this.state.circuit.pins.get(node.pinId);
-          if (pin && pin.kind === 'output' && pin.value !== null) {
+        const node = getWireNode(this.state.circuit, nodeId);
+        if (node.pinId) {
+          const pin = getPin(this.state.circuit, node.pinId);
+          if (pin.kind === 'output' && pin.value !== null) {
             drivers.push(pin);
           }
         }
@@ -226,9 +222,8 @@ export class Editor {
   readOutputs(outputGateIds: GateId[], outputNames: string[]): Record<string, number | null> {
     const actuals: Record<string, number | null> = {};
     for (let j = 0; j < outputNames.length; j++) {
-      const gate = this.state.circuit.gates.get(outputGateIds[j]);
-      const pin = gate?.inputPins[0] ? this.state.circuit.pins.get(gate.inputPins[0]) : undefined;
-      actuals[outputNames[j]] = pin?.value ?? null;
+      const gate = getGate(this.state.circuit, outputGateIds[j]);
+      actuals[outputNames[j]] = getPin(this.state.circuit, gate.inputPins[0]).value ?? null;
     }
     return actuals;
   }

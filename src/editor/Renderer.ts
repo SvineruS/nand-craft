@@ -1,4 +1,5 @@
-import type { GateType, PinId } from '../types.ts';
+import type { GateType } from '../types.ts';
+import { getGate, getPin, getWireNode } from '../circuit.ts';
 import type { EditorState, Camera } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
@@ -356,13 +357,11 @@ export class Renderer {
       let netValue: number | null = null;
       let netBitWidth = 1;
       for (const nodeId of net.nodeIds) {
-        const node = circuit.wireNodes.get(nodeId);
-        if (node?.pinId) {
-          const pin = circuit.pins.get(node.pinId as PinId);
-          if (pin) {
-            if (pin.value !== null) netValue = pin.value;
-            netBitWidth = pin.bitWidth;
-          }
+        const node = getWireNode(circuit, nodeId);
+        if (node.pinId) {
+          const pin = getPin(circuit, node.pinId);
+          if (pin.value !== null) netValue = pin.value;
+          netBitWidth = pin.bitWidth;
         }
       }
       for (const nodeId of net.nodeIds) {
@@ -373,9 +372,8 @@ export class Renderer {
 
     // Pass 1: draw wire bodies (custom color or neutral default)
     for (const segment of circuit.wireSegments.values()) {
-      const fromNode = circuit.wireNodes.get(segment.from);
-      const toNode = circuit.wireNodes.get(segment.to);
-      if (!fromNode || !toNode) continue;
+      const fromNode = getWireNode(circuit, segment.from);
+      const toNode = getWireNode(circuit, segment.to);
 
       const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
       const thickness = bitWidth > 1 ? 8 : 6;
@@ -392,9 +390,8 @@ export class Renderer {
 
     // Pass 2: draw animated signal overlay (dashed colored line on top)
     for (const segment of circuit.wireSegments.values()) {
-      const fromNode = circuit.wireNodes.get(segment.from);
-      const toNode = circuit.wireNodes.get(segment.to);
-      if (!fromNode || !toNode) continue;
+      const fromNode = getWireNode(circuit, segment.from);
+      const toNode = getWireNode(circuit, segment.to);
 
       const value = nodeValue.get(segment.from as string) ?? nodeValue.get(segment.to as string) ?? null;
       if (value === null) continue;
@@ -452,9 +449,8 @@ export class Renderer {
     // Pass 3: draw wire labels
     for (const segment of circuit.wireSegments.values()) {
       if (!segment.label) continue;
-      const fromNode = circuit.wireNodes.get(segment.from);
-      const toNode = circuit.wireNodes.get(segment.to);
-      if (!fromNode || !toNode) continue;
+      const fromNode = getWireNode(circuit, segment.from);
+      const toNode = getWireNode(circuit, segment.to);
 
       // Position label slightly above midpoint of routed path
       const mid = this.routedMidpoint(fromNode.pos, toNode.pos);
@@ -502,13 +498,11 @@ export class Renderer {
       let netValue: number | null = null;
       let netBw = 1;
       for (const nid of net.nodeIds) {
-        const n = circuit.wireNodes.get(nid);
-        if (n?.pinId) {
-          const p = circuit.pins.get(n.pinId as PinId);
-          if (p) {
-            if (p.value !== null) netValue = p.value;
-            netBw = p.bitWidth;
-          }
+        const n = getWireNode(circuit, nid);
+        if (n.pinId) {
+          const p = getPin(circuit, n.pinId);
+          if (p.value !== null) netValue = p.value;
+          netBw = p.bitWidth;
         }
       }
       for (const nid of net.nodeIds) {
@@ -521,7 +515,7 @@ export class Renderer {
       const count = segmentCount.get(node.id as string) ?? 0;
       if (count === 0 && !node.pinId) continue;
 
-      const pin = node.pinId ? circuit.pins.get(node.pinId as PinId) : null;
+      const pin = node.pinId ? getPin(circuit, node.pinId) : null;
       const value = pin?.value ?? nodeNetValue.get(node.id as string) ?? null;
       const customColor = nodeColor.get(node.id as string);
       const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
@@ -586,8 +580,8 @@ export class Renderer {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       if (gate.type === 'input' || gate.type === 'constant') {
-        const outPin = gate.outputPins[0] ? circuit.pins.get(gate.outputPins[0]) : undefined;
-        const val = outPin?.value;
+        const outPin = getPin(circuit, gate.outputPins[0]);
+        const val = outPin.value;
         const labelX = (def.labelX ?? 0) * GRID_SIZE;
         const labelY = (def.labelY ?? 0) * GRID_SIZE;
         if (gate.label) {
@@ -642,9 +636,7 @@ export class Renderer {
     for (const gate of circuit.gates.values()) {
       const positions = getPinPositions(gate);
       for (const [pinId, pos] of positions) {
-        const pin = circuit.pins.get(pinId);
-        if (!pin) continue;
-
+        const pin = getPin(circuit, pinId);
         const isHovered = state.hoveredEndpoint?.kind === 'pin' && state.hoveredEndpoint.pinId === pin.id;
         const radius = isHovered ? 5 : 3.5;
 
@@ -673,15 +665,14 @@ export class Renderer {
     if (shortCircuitGates.length > 0) {
       const errorPinIds = new Set<string>();
       for (const gateId of shortCircuitGates) {
-        const gate = circuit.gates.get(gateId);
-        if (!gate) continue;
+        const gate = getGate(circuit, gateId);
         for (const p of getAllPinIds(gate)) errorPinIds.add(p as string);
       }
       for (const net of circuit.nets.values()) {
         let touchesErrorGate = false;
         for (const nid of net.nodeIds) {
-          const node = circuit.wireNodes.get(nid);
-          if (node?.pinId && errorPinIds.has(node.pinId as string)) {
+          const node = getWireNode(circuit, nid);
+          if (node.pinId && errorPinIds.has(node.pinId as string)) {
             touchesErrorGate = true;
             break;
           }
@@ -715,9 +706,8 @@ export class Renderer {
 
     for (const seg of circuit.wireSegments.values()) {
       if (!errorSegments.has(seg.id as string)) continue;
-      const from = circuit.wireNodes.get(seg.from);
-      const to = circuit.wireNodes.get(seg.to);
-      if (!from || !to) continue;
+      const from = getWireNode(circuit, seg.from);
+      const to = getWireNode(circuit, seg.to);
       ctx.beginPath();
       this.traceRoutedPath(ctx, from.pos, to.pos);
       ctx.stroke();
@@ -730,9 +720,8 @@ export class Renderer {
     // Draw ! label at midpoint of error segments (same style as wire value labels)
     for (const seg of circuit.wireSegments.values()) {
       if (!errorSegments.has(seg.id as string)) continue;
-      const from = circuit.wireNodes.get(seg.from);
-      const to = circuit.wireNodes.get(seg.to);
-      if (!from || !to) continue;
+      const from = getWireNode(circuit, seg.from);
+      const to = getWireNode(circuit, seg.to);
       const segLen = Vec2.dist(from.pos, to.pos);
       if (segLen < 20) continue;
 
@@ -790,9 +779,8 @@ export class Renderer {
         case 'wireSegment': {
           const seg = circuit.wireSegments.get(item.id);
           if (!seg) break;
-          const from = circuit.wireNodes.get(seg.from);
-          const to = circuit.wireNodes.get(seg.to);
-          if (!from || !to) break;
+          const from = getWireNode(circuit, seg.from);
+          const to = getWireNode(circuit, seg.to);
           ctx.beginPath();
           this.traceRoutedPath(ctx, from.pos, to.pos);
           ctx.stroke();

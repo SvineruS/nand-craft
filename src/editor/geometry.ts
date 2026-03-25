@@ -1,4 +1,5 @@
 import type { Circuit, Gate, GateId, PinId, WireNode, WireNodeId } from '../types.ts';
+import { getGate, getWireNode } from '../circuit.ts';
 import { GATE_DEFS } from './gateDefs.ts';
 import { Vec2 } from './vec2.ts';
 
@@ -117,8 +118,7 @@ export interface ReconnectedNode { nodeId: WireNodeId; pinId: PinId; prevPos: Ve
 export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): ReconnectedNode[] {
   const result: ReconnectedNode[] = [];
   for (const gateId of gateIds) {
-    const gate = circuit.gates.get(gateId);
-    if (!gate) continue;
+    const gate = getGate(circuit, gateId);
     const positions = getPinPositions(gate);
     for (const [pinId, pos] of positions) {
       for (const node of circuit.wireNodes.values()) {
@@ -138,8 +138,7 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
 /** Undo reconnectPinNodes: clear pinId and restore original positions. */
 export function undoReconnectPinNodes(circuit: Circuit, reconnected: ReconnectedNode[]): void {
   for (const r of reconnected) {
-    const node = circuit.wireNodes.get(r.nodeId);
-    if (!node) continue;
+    const node = getWireNode(circuit, r.nodeId);
     node.pinId = undefined;
     node.pos = Vec2.copy(r.prevPos);
   }
@@ -161,8 +160,8 @@ export function rotateGroup(
   gates: { id: GateId; pos: Vec2; rotation: number }[];
   nodes: { id: WireNodeId; pos: Vec2 }[];
 } {
-  const gates = gateIds.map(id => circuit.gates.get(id)).filter(g => g != null);
-  const nodes = extraNodeIds.map(id => circuit.wireNodes.get(id)).filter(n => n != null);
+  const gates = gateIds.map(id => getGate(circuit, id));
+  const nodes = extraNodeIds.map(id => getWireNode(circuit, id));
   if (gates.length === 0 && nodes.length === 0) return { gates: [], nodes: [] };
 
   const points: Vec2[] = [...gates.map(g => gateCenter(g)), ...nodes.map(n => n.pos)];
@@ -192,10 +191,7 @@ export function rotateGroup(
 export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
   const pinIdSet = new Set<string>();
   for (const gateId of gateIds) {
-    const gate = circuit.gates.get(gateId);
-    if (gate) {
-      for (const p of getAllPinIds(gate)) pinIdSet.add(p as string);
-    }
+    for (const p of getAllPinIds(getGate(circuit, gateId))) pinIdSet.add(p as string);
   }
   const result: WireNodeId[] = [];
   for (const node of circuit.wireNodes.values()) {

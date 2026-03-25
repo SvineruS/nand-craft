@@ -1,4 +1,5 @@
-import type { Circuit, GateId, PinId } from '../types.ts';
+import type { Circuit, GateId } from '../types.ts';
+import { getPin } from '../circuit.ts';
 import { buildNets, detectCycles, propagate } from './evaluate.ts';
 
 export class SimulationEngine {
@@ -13,11 +14,11 @@ export class SimulationEngine {
    */
   tick(circuit: Circuit, inputs: Map<GateId, number>): Map<GateId, number | null> {
     // 1. Save constant gate values, then reset all pins to null
-    const constantValues = new Map<PinId, number>();
+    const constantValues = new Map<string, number>();
     for (const gate of circuit.gates.values()) {
       if (gate.type !== 'constant') continue;
-      const outPin = gate.outputPins[0] ? circuit.pins.get(gate.outputPins[0]) : undefined;
-      if (outPin) constantValues.set(outPin.id, outPin.value ?? 0);
+      const outPin = getPin(circuit, gate.outputPins[0]);
+      constantValues.set(outPin.id as string, outPin.value ?? 0);
     }
     for (const pin of circuit.pins.values()) {
       pin.value = null;
@@ -29,17 +30,14 @@ export class SimulationEngine {
       if (!gate || gate.type !== 'input') continue;
 
       for (const outputPinId of gate.outputPins) {
-        const pin = circuit.pins.get(outputPinId);
-        if (pin) {
-          pin.value = value;
-        }
+        getPin(circuit, outputPinId).value = value;
       }
     }
 
     // 3. Restore constant gate values
-    for (const [pinId, value] of constantValues) {
-      const pin = circuit.pins.get(pinId);
-      if (pin) pin.value = value;
+    for (const pin of circuit.pins.values()) {
+      const saved = constantValues.get(pin.id as string);
+      if (saved !== undefined) pin.value = saved;
     }
 
     // 4. Build nets and propagate combinational logic
@@ -50,25 +48,21 @@ export class SimulationEngine {
     for (const gate of circuit.gates.values()) {
       if (gate.type !== 'delay') continue;
 
-      const outputPin = gate.outputPins[0] ? circuit.pins.get(gate.outputPins[0]) : undefined;
-      const inputPin = gate.inputPins[0] ? circuit.pins.get(gate.inputPins[0]) : undefined;
+      const outputPin = getPin(circuit, gate.outputPins[0]);
+      const inputPin = getPin(circuit, gate.inputPins[0]);
 
       // Output gets the previously stored state
-      if (outputPin) {
-        outputPin.value = circuit.delayState.get(gate.id) ?? null;
-      }
+      outputPin.value = circuit.delayState.get(gate.id) ?? null;
 
       // Store current input value for next tick
-      circuit.delayState.set(gate.id, inputPin?.value ?? null);
+      circuit.delayState.set(gate.id, inputPin.value ?? null);
     }
 
     // 6. Collect and return output gate values
     const outputs = new Map<GateId, number | null>();
     for (const gate of circuit.gates.values()) {
       if (gate.type !== 'output') continue;
-
-      const inputPin = gate.inputPins[0] ? circuit.pins.get(gate.inputPins[0]) : undefined;
-      outputs.set(gate.id, inputPin?.value ?? null);
+      outputs.set(gate.id, getPin(circuit, gate.inputPins[0]).value ?? null);
     }
 
     return outputs;

@@ -1,4 +1,5 @@
 import type { GateId, PinId, WireNodeId, WireSegmentId, Gate } from '../types.ts';
+import { getGate, getPin, getWireNode, getWireSegment } from '../circuit.ts';
 import type { EditorState, PlaceableType, ClipboardGate, ClipboardNode, ClipboardWire } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
@@ -101,9 +102,8 @@ function hitTestWireSegment(pos: Vec2, state: EditorState): WireSegmentId | null
   let closest: WireSegmentId | null = null;
   let closestDist = WIRE_HIT_DIST;
   for (const seg of state.circuit.wireSegments.values()) {
-    const a = state.circuit.wireNodes.get(seg.from);
-    const b = state.circuit.wireNodes.get(seg.to);
-    if (!a || !b) continue;
+    const a = getWireNode(state.circuit, seg.from);
+    const b = getWireNode(state.circuit, seg.to);
     const dist = distToRoutedPath(pos, a.pos, b.pos);
     if (dist < closestDist) {
       closestDist = dist;
@@ -1083,8 +1083,7 @@ export class InputHandler {
     const cmd = new AddWireSegmentCommand(state, otherId0, otherId1, color);
     this.getHistory().execute(cmd);
     if (label) {
-      const newSeg = state.circuit.wireSegments.get(cmd.getSegmentId());
-      if (newSeg) newSeg.label = label;
+      getWireSegment(state.circuit, cmd.getSegmentId()).label = label;
     }
     state.renderDirty = true;
     return true;
@@ -1225,8 +1224,8 @@ export class InputHandler {
       gateIdxMap.set(gid as string, gates.length);
       const c = gateCenter(g);
       const allPids = getAllPinIds(g);
-      const pinBitWidths = allPids.map(pid => state.circuit.pins.get(pid)?.bitWidth ?? 1);
-      const pinValues = allPids.map(pid => state.circuit.pins.get(pid)?.value ?? null);
+      const pinBitWidths = allPids.map(pid => getPin(state.circuit, pid).bitWidth);
+      const pinValues = allPids.map(pid => getPin(state.circuit, pid).value);
       gates.push({ type: g.type, delta: Vec2.sub(c, center), rotation: g.rotation, pinBitWidths, pinValues });
     }
 
@@ -1235,8 +1234,8 @@ export class InputHandler {
     const relevantNodeIds = new Set<string>(selectedNodeIds);
     for (const node of state.circuit.wireNodes.values()) {
       if (node.pinId) {
-        const pin = state.circuit.pins.get(node.pinId);
-        if (pin && gateIdxMap.has(pin.gateId as string)) {
+        const pin = getPin(state.circuit, node.pinId);
+        if (gateIdxMap.has(pin.gateId as string)) {
           relevantNodeIds.add(node.id as string);
         }
       }
@@ -1252,20 +1251,17 @@ export class InputHandler {
     const nodeIdxMap = new Map<string, number>();
     const nodes: ClipboardNode[] = [];
     for (const nid of relevantNodeIds) {
-      const n = state.circuit.wireNodes.get(nid as WireNodeId);
-      if (!n) continue;
+      const n = getWireNode(state.circuit, nid as WireNodeId);
       nodeIdxMap.set(nid, nodes.length);
       let gateIdx: number | undefined;
       let pinIdx: number | undefined;
       if (n.pinId) {
-        const pin = state.circuit.pins.get(n.pinId);
-        if (pin && gateIdxMap.has(pin.gateId as string)) {
+        const pin = getPin(state.circuit, n.pinId);
+        if (gateIdxMap.has(pin.gateId as string)) {
           gateIdx = gateIdxMap.get(pin.gateId as string);
-          const gate = state.circuit.gates.get(pin.gateId);
-          if (gate) {
-            const allPins = getAllPinIds(gate);
-            pinIdx = allPins.indexOf(n.pinId);
-          }
+          const gate = getGate(state.circuit, pin.gateId);
+          const allPins = getAllPinIds(gate);
+          pinIdx = allPins.indexOf(n.pinId);
         }
       }
       nodes.push({ delta: Vec2.sub(n.pos, center), gateIdx, pinIdx });
@@ -1308,15 +1304,13 @@ export class InputHandler {
       newGateIds.push(cmd.getGateId());
 
       // Collect pin IDs and restore properties
-      const gate = state.circuit.gates.get(cmd.getGateId());
-      const allPins = gate ? getAllPinIds(gate) : [];
+      const gate = getGate(state.circuit, cmd.getGateId());
+      const allPins = getAllPinIds(gate);
       newAllPinIds.push(allPins);
       for (let p = 0; p < allPins.length; p++) {
-        const pin = state.circuit.pins.get(allPins[p]);
-        if (pin) {
-          if (cg.pinBitWidths[p] !== undefined) pin.bitWidth = cg.pinBitWidths[p];
-          if (cg.pinValues[p] !== undefined) pin.value = cg.pinValues[p];
-        }
+        const pin = getPin(state.circuit, allPins[p]);
+        if (cg.pinBitWidths[p] !== undefined) pin.bitWidth = cg.pinBitWidths[p];
+        if (cg.pinValues[p] !== undefined) pin.value = cg.pinValues[p];
       }
     }
 
@@ -1345,8 +1339,7 @@ export class InputHandler {
         this.getHistory().execute(cmd);
         // Apply label
         if (cw.label) {
-          const seg = state.circuit.wireSegments.get(cmd.getSegmentId());
-          if (seg) seg.label = cw.label;
+          getWireSegment(state.circuit, cmd.getSegmentId()).label = cw.label;
         }
       }
     }
