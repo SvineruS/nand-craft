@@ -31,11 +31,13 @@ export type GateType =
   | 'output'
   | 'component';
 
+export type Rotation = 0 | 90 | 180 | 270;
+
 export interface Gate {
   id: GateId;
   type: GateType;
   pos: Vec2;
-  rotation: 0 | 90 | 180 | 270;
+  rotation: Rotation;
   inputPins: PinId[];
   outputPins: PinId[];
   componentId?: ComponentId;

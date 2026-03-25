@@ -1,4 +1,4 @@
-import type { Circuit, Gate, GateId, PinId, WireNode, WireNodeId } from '../types.ts';
+import type { Circuit, Gate, GateId, PinId, Rotation, WireNode, WireNodeId } from '../types.ts';
 import { getGate, getWireNode } from '../circuit.ts';
 import { GATE_DEFS } from './gateDefs.ts';
 import { Vec2 } from './vec2.ts';
@@ -52,7 +52,7 @@ export function getPinPositions(gate: Gate): Map<PinId, Vec2> {
 
 function rotatePoint(
   p: Vec2, c: Vec2,
-  rotation: 0 | 90 | 180 | 270,
+  rotation: Rotation,
 ): Vec2 {
   const dx = p.x - c.x;
   const dy = p.y - c.y;
@@ -78,7 +78,7 @@ export function snapToGrid(v: number, offset = 0): number {
  * Non-square gates with odd (width+height) need a half-grid offset at 90°/270°
  * so that rotated pin positions land on grid lines.
  */
-export function gateGridOffset(rotation: 0 | 90 | 180 | 270, w: number, h: number): number {
+export function gateGridOffset(rotation: Rotation, w: number, h: number): number {
   if ((rotation === 90 || rotation === 270) && ((w + h) / GRID_SIZE) % 2 !== 0) {
     return GRID_SIZE / 2;
   }

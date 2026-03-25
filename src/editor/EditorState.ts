@@ -1,4 +1,4 @@
-import type { Circuit, GateId, GateType, WireNodeId, WireSegmentId } from '../types.ts';
+import type { Circuit, GateId, GateType, Rotation, WireNodeId, WireSegmentId } from '../types.ts';
 import { createCircuit } from '../types.ts';
 import type { Vec2 } from './vec2.ts';
 import type { WireEndpoint } from './geometry.ts';
@@ -24,7 +24,7 @@ export type SelectionItem =
 export interface ClipboardGate {
   type: GateType;
   delta: Vec2;
-  rotation: 0 | 90 | 180 | 270;
+  rotation: Rotation;
   pinBitWidths: number[];
   pinValues: (number | null)[];
 }

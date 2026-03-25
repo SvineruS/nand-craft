@@ -3,6 +3,7 @@ import type {
   GateId,
   GateType,
   PinId,
+  Rotation,
   WireNodeId,
   WireSegmentId,
   Pin,
@@ -115,7 +116,7 @@ export class AddGateCommand implements Command {
     state: EditorState,
     gateType: GateType,
     pos: Vec2,
-    rotation: 0 | 90 | 180 | 270 = 0,
+    rotation: Rotation = 0,
     bitWidth: number = 1,
   ) {
     this.state = state;
@@ -369,7 +370,7 @@ export class RotateGatesCommand implements Command {
     for (const saved of this.savedGatePositions) {
       const gate = getGate(circuit, saved.id);
       gate.pos = saved.pos;
-      gate.rotation = saved.rotation as 0 | 90 | 180 | 270;
+      gate.rotation = saved.rotation as Rotation;
     }
     for (const saved of this.savedNodePositions) {
       getWireNode(circuit, saved.id).pos = saved.pos;

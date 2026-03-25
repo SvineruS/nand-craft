@@ -1,4 +1,4 @@
-import type { GateId, PinId, WireNodeId, WireSegmentId, Gate } from '../types.ts';
+import type { GateId, PinId, Rotation, WireNodeId, WireSegmentId, Gate } from '../types.ts';
 import { getGate, getPin, getWireNode, getWireSegment } from '../circuit.ts';
 import type { EditorState, PlaceableType, ClipboardGate, ClipboardNode, ClipboardWire } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
@@ -1183,7 +1183,7 @@ export class InputHandler {
     // Rotate all deltas by 90° CW around origin (0,0)
     for (const cg of clip.gates) {
       cg.delta = Vec2.rotateCW(cg.delta);
-      cg.rotation = (((cg.rotation + 90) % 360) as 0 | 90 | 180 | 270);
+      cg.rotation = (((cg.rotation + 90) % 360) as Rotation);
     }
     for (const cn of clip.nodes) {
       cn.delta = Vec2.rotateCW(cn.delta);
