@@ -1,15 +1,16 @@
 import { currentLevel, testResults, warningText } from './editorStore.ts';
 import { TruthTable } from './TruthTable.tsx';
 import { PropertiesPanel } from './PropertiesPanel.tsx';
+import type { Command } from '../editor/CommandHistory.ts';
 
 interface TestPanelProps {
   onReset: () => void;
   onStep: () => void;
   onRunAll: () => void;
-  onPropChange: () => void;
+  onExecuteCommand: (cmd: Command) => void;
 }
 
-export function TestPanel({ onReset, onStep, onRunAll, onPropChange }: TestPanelProps) {
+export function TestPanel({ onReset, onStep, onRunAll, onExecuteCommand }: TestPanelProps) {
   const level = currentLevel.value;
   const results = testResults.value;
   const warning = warningText.value;
@@ -65,7 +66,7 @@ export function TestPanel({ onReset, onStep, onRunAll, onPropChange }: TestPanel
       <TruthTable />
 
       {/* Properties panel */}
-      <PropertiesPanel onPropChange={onPropChange} />
+      <PropertiesPanel onExecute={onExecuteCommand} />
     </div>
   );
 }

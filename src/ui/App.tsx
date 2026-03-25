@@ -216,7 +216,12 @@ export function App() {
     if (editor) editor.getState().mode = { kind: 'normal' };
   }, []);
 
-  const handlePropChange = useCallback(() => { simulateFirstCase(); }, []);
+  const handleExecuteCommand = useCallback((cmd: import('../editor/CommandHistory.ts').Command) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.executeCommand(cmd);
+    simulateFirstCase();
+  }, []);
 
   // -----------------------------------------------------------------------
   // Mount
@@ -253,7 +258,7 @@ export function App() {
           onReset={resetTests}
           onStep={stepTestCase}
           onRunAll={runAllAnimated}
-          onPropChange={handlePropChange}
+          onExecuteCommand={handleExecuteCommand}
         />
         <div id="editor-container" ref={editorContainerRef} />
         <Sidebar onStamp={handleStamp} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />

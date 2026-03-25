@@ -1,13 +1,16 @@
 import { useEditorState } from './editorStore.ts';
 import { GATE_DEFS } from '../editor/gateDefs.ts';
+import type { Command } from '../editor/CommandHistory.ts';
+import { ChangePinCommand, ChangeWireCommand } from '../editor/CommandHistory.ts';
+import type { PinId } from '../types.ts';
 
 const BIT_OPTIONS = [1, 8, 16, 32];
 
 interface PropertiesPanelProps {
-  onPropChange: () => void;
+  onExecute: (cmd: Command) => void;
 }
 
-export function PropertiesPanel({ onPropChange }: PropertiesPanelProps) {
+export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
   const state = useEditorState();
   if (!state) return null;
 
@@ -17,13 +20,14 @@ export function PropertiesPanel({ onPropChange }: PropertiesPanelProps) {
     const gate = state.circuit.gates.get(gateItem.id);
     if (gate && (gate.type === 'input' || gate.type === 'output' || gate.type === 'constant')) {
       const def = GATE_DEFS[gate.type];
-      const allPinIds = [...gate.inputPins, ...gate.outputPins];
+      const allPinIds: PinId[] = [...gate.inputPins, ...gate.outputPins];
       const firstPin = allPinIds.length > 0 ? state.circuit.pins.get(allPinIds[0]) : undefined;
 
       // Value field for input/constant
-      const outPin = (gate.type === 'input' || gate.type === 'constant')
-        ? (gate.outputPins[0] ? state.circuit.pins.get(gate.outputPins[0]) : undefined)
+      const outPinId = (gate.type === 'input' || gate.type === 'constant')
+        ? gate.outputPins[0]
         : undefined;
+      const outPin = outPinId ? state.circuit.pins.get(outPinId) : undefined;
       const mask = outPin ? ((1 << outPin.bitWidth) >>> 0) - 1 : 0;
 
       return (
@@ -35,7 +39,7 @@ export function PropertiesPanel({ onPropChange }: PropertiesPanelProps) {
               <span class="prop-value">{def.label}</span>
             </div>
 
-            {outPin && (
+            {outPin && outPinId && (
               <div class="prop-row">
                 <span class="prop-label">Value</span>
                 <input
@@ -48,15 +52,13 @@ export function PropertiesPanel({ onPropChange }: PropertiesPanelProps) {
                     let v = parseInt((e.target as HTMLInputElement).value, 10);
                     if (isNaN(v)) v = 0;
                     v = Math.max(0, Math.min(mask, v));
-                    outPin.value = v;
-                    onPropChange();
+                    onExecute(new ChangePinCommand(state, [outPinId], { value: v }));
                   }}
                   onInput={(e) => {
                     let v = parseInt((e.target as HTMLInputElement).value, 10);
                     if (isNaN(v)) return;
                     v = Math.max(0, Math.min(mask, v));
-                    outPin.value = v;
-                    onPropChange();
+                    onExecute(new ChangePinCommand(state, [outPinId], { value: v }));
                   }}
                 />
               </div>
@@ -70,11 +72,7 @@ export function PropertiesPanel({ onPropChange }: PropertiesPanelProps) {
                   value={firstPin.bitWidth}
                   onChange={(e) => {
                     const v = parseInt((e.target as HTMLSelectElement).value, 10);
-                    for (const pid of allPinIds) {
-                      const pin = state.circuit.pins.get(pid);
-                      if (pin) pin.bitWidth = v;
-                    }
-                    onPropChange();
+                    onExecute(new ChangePinCommand(state, allPinIds, { bitWidth: v }));
                   }}
                 >
                   {BIT_OPTIONS.map(opt => (
@@ -109,15 +107,16 @@ export function PropertiesPanel({ onPropChange }: PropertiesPanelProps) {
                 class="prop-input prop-input-text"
                 value={seg.label ?? ''}
                 placeholder="none"
-                onChange={(e) => {
-                  const v = (e.target as HTMLInputElement).value;
-                  seg.label = v || undefined;
-                  state.circuitDirty = true;
+                onBlur={(e) => {
+                  const v = (e.target as HTMLInputElement).value || undefined;
+                  if (v !== seg.label) {
+                    onExecute(new ChangeWireCommand(state, [segItem.id], { label: v }));
+                  }
                 }}
-                onInput={(e) => {
-                  const v = (e.target as HTMLInputElement).value;
-                  seg.label = v || undefined;
-                  state.circuitDirty = true;
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    (e.target as HTMLInputElement).blur();
+                  }
                 }}
               />
             </div>

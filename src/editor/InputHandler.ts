@@ -17,6 +17,8 @@ import {
   RemoveWireNodeCommand,
   AddWireNodeCommand,
   AddWireSegmentCommand,
+  ChangePinCommand,
+  ChangeWireCommand,
 } from './CommandHistory.ts';
 
 // Interaction thresholds (pixels in world space)
@@ -488,9 +490,9 @@ export class InputHandler {
         const pin = state.circuit.pins.get(outPinId);
         if (!pin) return;
         const mask = ((1 << pin.bitWidth) >>> 0) - 1;
-        pin.value = pin.value === null ? 1 : ((pin.value + 1) & mask) >>> 0;
-        if (pin.value > mask) pin.value = 0;
-        state.circuitDirty = true;
+        let newValue = pin.value === null ? 1 : ((pin.value + 1) & mask) >>> 0;
+        if (newValue > mask) newValue = 0;
+        this.getHistory().execute(new ChangePinCommand(state, [outPinId], { value: newValue }));
         return;
       }
     }
@@ -907,19 +909,10 @@ export class InputHandler {
     const color = state.wireColor;
     const colorValue = color === WIRE_COLORS[0] ? undefined : color;
 
-    if (e.shiftKey || ctrl) {
-      const allSegs = this.getConnectedSegments(state, selectedSegs);
-      for (const segId of allSegs) {
-        const seg = state.circuit.wireSegments.get(segId);
-        if (seg) seg.color = colorValue;
-      }
-    } else {
-      for (const segId of selectedSegs) {
-        const seg = state.circuit.wireSegments.get(segId);
-        if (seg) seg.color = colorValue;
-      }
-    }
-    state.circuitDirty = true;
+    const segIds = (e.shiftKey || ctrl)
+      ? this.getConnectedSegments(state, selectedSegs)
+      : selectedSegs;
+    this.getHistory().execute(new ChangeWireCommand(state, segIds, { color: colorValue }));
     return true;
   }
 

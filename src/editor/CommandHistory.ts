@@ -11,7 +11,7 @@ import type {
   WireSegment,
 } from '../types.ts';
 import { generateId } from '../types.ts';
-import { getGate, getPin, getWireNode } from '../circuit.ts';
+import { getGate, getPin, getWireNode, getWireSegment } from '../circuit.ts';
 import type { EditorState } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
 import { getAnchoredNodeIds, getAllPinIds, cleanupOrphanNodes, rotateGroup, updateAnchoredNodes, reconnectPinNodes, undoReconnectPinNodes } from './geometry.ts';
@@ -538,6 +538,100 @@ export class RemoveWireSegmentCommand implements Command {
     }
     if (this.segment) {
       this.state.circuit.wireSegments.set(this.segmentId, this.segment);
+    }
+    this.state.circuitDirty = true;
+  }
+}
+
+export interface PinChanges {
+  value?: number | null;
+  bitWidth?: number;
+}
+
+export class ChangePinCommand implements Command {
+  readonly description = 'Change pin property';
+  private state: EditorState;
+  private pinIds: PinId[];
+  private changes: PinChanges;
+  private oldValues: PinChanges[];
+
+  constructor(state: EditorState, pinIds: PinId[], changes: PinChanges) {
+    this.state = state;
+    this.pinIds = pinIds;
+    this.changes = changes;
+    this.oldValues = pinIds.map(id => {
+      const pin = getPin(state.circuit, id);
+      const old: PinChanges = {};
+      if (changes.value !== undefined) old.value = pin.value;
+      if (changes.bitWidth !== undefined) old.bitWidth = pin.bitWidth;
+      return old;
+    });
+  }
+
+  execute(): void {
+    for (const id of this.pinIds) {
+      const pin = getPin(this.state.circuit, id);
+      if (this.changes.value !== undefined) pin.value = this.changes.value;
+      if (this.changes.bitWidth !== undefined) pin.bitWidth = this.changes.bitWidth;
+    }
+    this.state.circuitDirty = true;
+  }
+
+  undo(): void {
+    for (let i = 0; i < this.pinIds.length; i++) {
+      const pin = getPin(this.state.circuit, this.pinIds[i]);
+      const old = this.oldValues[i];
+      if (old.value !== undefined) pin.value = old.value;
+      if (old.bitWidth !== undefined) pin.bitWidth = old.bitWidth;
+    }
+    this.state.circuitDirty = true;
+  }
+}
+
+export interface WireChanges {
+  label?: string | undefined;
+  color?: string | undefined;
+}
+
+export class ChangeWireCommand implements Command {
+  readonly description = 'Change wire property';
+  private state: EditorState;
+  private segmentIds: WireSegmentId[];
+  private changes: WireChanges;
+  private changeLabel: boolean;
+  private changeColor: boolean;
+  private oldValues: WireChanges[];
+
+  constructor(state: EditorState, segmentIds: WireSegmentId[], changes: WireChanges) {
+    this.state = state;
+    this.segmentIds = segmentIds;
+    this.changes = changes;
+    this.changeLabel = 'label' in changes;
+    this.changeColor = 'color' in changes;
+    this.oldValues = segmentIds.map(id => {
+      const seg = getWireSegment(state.circuit, id);
+      const old: WireChanges = {};
+      if (this.changeLabel) old.label = seg.label;
+      if (this.changeColor) old.color = seg.color;
+      return old;
+    });
+  }
+
+  execute(): void {
+    for (const id of this.segmentIds) {
+      const seg = getWireSegment(this.state.circuit, id);
+      if (this.changeLabel) seg.label = this.changes.label;
+      if (this.changeColor) seg.color = this.changes.color;
+    }
+    this.state.circuitDirty = true;
+  }
+
+  undo(): void {
+    for (let i = 0; i < this.segmentIds.length; i++) {
+      const seg = getWireSegment(this.state.circuit, this.segmentIds[i]);
+      const old = this.oldValues[i];
+      if (this.changeLabel) seg.label = old.label;
+      if (this.changeColor) seg.color = old.color;
     }
     this.state.circuitDirty = true;
   }

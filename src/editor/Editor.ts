@@ -10,6 +10,7 @@ import type { EditorState } from './EditorState.ts';
 import { Renderer } from './Renderer.ts';
 import { InputHandler } from './InputHandler.ts';
 import { CommandHistory, AddGateCommand } from './CommandHistory.ts';
+import type { Command } from './CommandHistory.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
 import { GRID_SIZE } from './geometry.ts';
 import { Vec2 } from './vec2.ts';
@@ -117,6 +118,10 @@ export class Editor {
 
   redo(): void {
     this.history.redo();
+  }
+
+  executeCommand(cmd: Command): void {
+    this.history.execute(cmd);
   }
 
   /** Force a simulation tick with current input pin values (useful after state mutations that bypass commands). */
