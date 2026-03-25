@@ -2,20 +2,28 @@ import type {
   Gate,
   GateId,
   GateType,
+  Pin,
   PinId,
   Rotation,
-  WireNodeId,
-  WireSegmentId,
-  Pin,
   WireNode,
+  WireNodeId,
   WireSegment,
+  WireSegmentId,
 } from '../types.ts';
 import { generateId } from '../types.ts';
 import { getGate, getPin, getWireNode, getWireSegment } from '../circuit.ts';
 import type { EditorState } from './EditorState.ts';
 import { GATE_DEFS } from './gateDefs.ts';
-import { getAnchoredNodeIds, getAllPinIds, cleanupOrphanNodes, rotateGroup, updateAnchoredNodes, reconnectPinNodes, undoReconnectPinNodes } from './geometry.ts';
 import type { ReconnectedNode } from './geometry.ts';
+import {
+  cleanupOrphanNodes,
+  getAllPinIds,
+  getAnchoredNodeIds,
+  reconnectPinNodes,
+  rotateGroup,
+  undoReconnectPinNodes,
+  updateAnchoredNodes
+} from './geometry.ts';
 import { Vec2 } from './vec2.ts';
 
 // ---------------------------------------------------------------------------
@@ -42,11 +50,13 @@ class BatchCommand implements Command {
   }
 
   execute(): void {
-    for (const cmd of this.commands) cmd.execute();
+    for (const cmd of this.commands)
+      cmd.execute();
   }
 
   undo(): void {
-    for (let i = this.commands.length - 1; i >= 0; i--) this.commands[i].undo();
+    for (let i = this.commands.length - 1; i >= 0; i--)
+      this.commands[i].undo();
   }
 }
 
@@ -359,9 +369,14 @@ export class RotateGatesCommand implements Command {
   }
 
   execute(): void {
-    const saved = rotateGroup(this.state.circuit, this.gateIds, this.extraNodeIds, RotateGatesCommand.ROTATION_STEP);
-    this.savedGatePositions = saved.gates;
-    this.savedNodePositions = saved.nodes;
+    const gates = this.gateIds.map(id => getGate(this.state.circuit, id));
+    const nodes = this.extraNodeIds.map(id => getWireNode(this.state.circuit, id));
+
+    this.savedGatePositions = gates.map(gate => ({ id: gate.id, pos: Vec2.copy(gate.pos), rotation: gate.rotation }));
+    this.savedNodePositions = nodes.map(node => ({ id: node.id, pos: Vec2.copy(node.pos) }));
+
+    rotateGroup(this.state.circuit, gates, nodes, RotateGatesCommand.ROTATION_STEP);
+
     this.state.circuitDirty = true;
   }
 

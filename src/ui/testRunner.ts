@@ -78,17 +78,12 @@ function applyTestCase(editor: Editor, caseIdx: number, resetDelay = false): Tes
   };
 }
 
-function checkAllPassed(results: TestResult[], onLevelComplete: () => void): void {
+function allTestsPassed(results: TestResult[]): boolean {
   const level = currentLevel.value;
-  if (!level) return;
+  if (!level) return false;
   const cases = level.test.cases;
-  if (!cases) return;
-  const allPassed = results.length === cases.length && results.every(r => r.passed);
-  if (allPassed) {
-    markLevelSolved(level.id);
-    solvedLevelIds.value = getSolvedLevelIds();
-    onLevelComplete();
-  }
+  if (!cases) return false;
+  return results.length === cases.length && results.every(r => r.passed);
 }
 
 // ---------------------------------------------------------------------------
@@ -131,7 +126,11 @@ export function stepTestCase(editor: Editor, onLevelComplete: () => void): void 
   next[idx] = result;
   testResults.value = next;
   warningText.value = getWarning(editor);
-  checkAllPassed(testResults.value, onLevelComplete);
+  if (allTestsPassed(testResults.value)) {
+    markLevelSolved(currentLevel.value!.id);
+    solvedLevelIds.value = getSolvedLevelIds();
+    onLevelComplete();
+  }
   notifyStateChange();
 }
 
@@ -154,14 +153,22 @@ export function runAllAnimated(editor: Editor, onLevelComplete: () => void): voi
   idx = 1;
 
   if (idx >= cases.length) {
-    checkAllPassed(results, onLevelComplete);
+    if (allTestsPassed(results)) {
+      markLevelSolved(currentLevel.value!.id);
+      solvedLevelIds.value = getSolvedLevelIds();
+      onLevelComplete();
+    }
     return;
   }
 
   runAllInterval = setInterval(() => {
     if (idx >= cases.length) {
       cancelRunAll();
-      checkAllPassed(results, onLevelComplete);
+      if (allTestsPassed(results)) {
+        markLevelSolved(currentLevel.value!.id);
+        solvedLevelIds.value = getSolvedLevelIds();
+        onLevelComplete();
+      }
       return;
     }
     testCaseIndex.value = idx;

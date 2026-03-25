@@ -14,7 +14,8 @@ export const Vec2 = {
   snap: (v: V, offset = 0): V => ({ x: snapToGrid(v.x, offset), y: snapToGrid(v.y, offset) }),
   near: (a: V, b: V, tol: number): boolean => Math.abs(a.x - b.x) < tol && Math.abs(a.y - b.y) < tol,
   avg: (points: V[]): V => Vec2.scale(points.reduce((a, b) => Vec2.add(a, b)), 1 / points.length),
-  rotateAround: (v: V, center: V, rad: number): V => {
+  rotateAround: (v: V, center: V, degrees: number): V => {
+    const rad = (degrees * Math.PI) / 180;
     const d: V = { x: v.x - center.x, y: v.y - center.y };
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);

@@ -30,20 +30,19 @@ export function gateCenter(gate: Gate): Vec2 {
  * Pin positions for a gate — reads from definition, applies gate position + rotation.
  */
 export function getPinPositions(gate: Gate): Map<PinId, Vec2> {
-  const result = new Map<PinId, Vec2>();
   const center = gateCenter(gate);
-
-  const def = GATE_DEFS[gate.type];
   const allPinIds = getAllPinIds(gate);
-  const defPins = def.pins;
+  const defPins = GATE_DEFS[gate.type].pins;
+
+  const pinPositions = new Map<PinId, Vec2>();
 
   for (let i = 0; i < Math.min(allPinIds.length, defPins.length); i++) {
     const pinWorld = Vec2.add(gate.pos, Vec2.scale(defPins[i], GRID_SIZE));
     const rotated = rotatePoint(pinWorld, center, gate.rotation);
-    result.set(allPinIds[i], rotated);
+    pinPositions.set(allPinIds[i], rotated);
   }
 
-  return result;
+  return pinPositions;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,19 +53,23 @@ function rotatePoint(
   p: Vec2, c: Vec2,
   rotation: Rotation,
 ): Vec2 {
-  const dx = p.x - c.x;
-  const dy = p.y - c.y;
+  const d = Vec2.sub(p, c);
   switch (rotation) {
-    case 0: return { x: p.x, y: p.y };
-    case 90: return { x: c.x - dy, y: c.y + dx };
-    case 180: return { x: c.x - dx, y: c.y - dy };
-    case 270: return { x: c.x + dy, y: c.y - dx };
-    default: return { x: p.x, y: p.y };
+    case 0  :
+      return { x: p.x, y: p.y };
+    case 90 :
+      return { x: c.x - d.y, y: c.y + d.x };
+    case 180:
+      return { x: c.x - d.x, y: c.y - d.y };
+    case 270:
+      return { x: c.x + d.y, y: c.y - d.x };
+    default:
+      return { x: p.x, y: p.y };
   }
 }
 
-function rotateBy(current: 0|90|180|270, degrees: number): 0|90|180|270 {
-  return (((current + degrees) % 360 + 360) % 360) as 0|90|180|270;
+function rotateBy(current: Rotation, degrees: number): Rotation {
+  return (((current + degrees) % 360 + 360) % 360) as Rotation;
 }
 
 export function snapToGrid(v: number, offset = 0): number {
@@ -95,7 +98,8 @@ export type WireEndpoint =
 
 export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | null {
   for (const node of circuit.wireNodes.values()) {
-    if (node.pinId === pinId) return node.id;
+    if (node.pinId === pinId)
+      return node.id;
   }
   return null;
 }
@@ -103,16 +107,22 @@ export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | nul
 /** Sync anchored wire-node positions to their gate's current pin positions. */
 export function updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
   const positions = getPinPositions(gate);
+
   for (const [pinId, pos] of positions) {
     for (const node of circuit.wireNodes.values()) {
-      if (node.pinId === (pinId as unknown as PinId)) {
+
+      if (node.pinId === pinId)
         node.pos = pos;
-      }
+
     }
   }
 }
 
-export interface ReconnectedNode { nodeId: WireNodeId; pinId: PinId; prevPos: Vec2 }
+export interface ReconnectedNode {
+  nodeId: WireNodeId;
+  pinId: PinId;
+  prevPos: Vec2
+}
 
 /** Anchor free wire nodes that are near gate pins. Returns what changed (for undo). */
 export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): ReconnectedNode[] {
@@ -120,6 +130,7 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
   for (const gateId of gateIds) {
     const gate = getGate(circuit, gateId);
     const positions = getPinPositions(gate);
+
     for (const [pinId, pos] of positions) {
       for (const node of circuit.wireNodes.values()) {
         if (node.pinId) continue;
@@ -131,6 +142,7 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
         }
       }
     }
+
   }
   return result;
 }
@@ -153,49 +165,40 @@ function gatePosFromCenter(gate: Gate, center: Vec2): Vec2 {
 /** Rotate gates + free wire nodes around group center by `degrees`. Returns saved positions for undo. */
 export function rotateGroup(
   circuit: Circuit,
-  gateIds: GateId[],
-  extraNodeIds: WireNodeId[],
+  gates: Gate[],
+  nodes: WireNode[],
   degrees: number,
-): {
-  gates: { id: GateId; pos: Vec2; rotation: number }[];
-  nodes: { id: WireNodeId; pos: Vec2 }[];
-} {
-  const gates = gateIds.map(id => getGate(circuit, id));
-  const nodes = extraNodeIds.map(id => getWireNode(circuit, id));
-  if (gates.length === 0 && nodes.length === 0) return { gates: [], nodes: [] };
+) {
+  if (gates.length === 0 && nodes.length === 0)
+    return;
 
   const points: Vec2[] = [...gates.map(g => gateCenter(g)), ...nodes.map(n => n.pos)];
   const center = Vec2.avg(points);
-  const rad = (degrees * Math.PI) / 180;
 
-  const savedGates = gates.map(gate => {
-    const saved = { id: gate.id, pos: Vec2.copy(gate.pos), rotation: gate.rotation };
-    const newCenter = Vec2.rotateAround(gateCenter(gate), center, rad);
+  gates.map(gate => {
+    const newCenter = Vec2.rotateAround(gateCenter(gate), center, degrees);
     gate.rotation = rotateBy(gate.rotation, degrees);
     const { w, h } = getGateDims(gate);
     const offset = gateGridOffset(gate.rotation, w, h);
     gate.pos = Vec2.snap(gatePosFromCenter(gate, newCenter), offset);
     updateAnchoredNodes(gate, circuit);
-    return saved;
   });
 
-  const savedNodes = nodes.map(node => {
-    const saved = { id: node.id, pos: Vec2.copy(node.pos) };
-    node.pos = Vec2.snap(Vec2.rotateAround(node.pos, center, rad));
-    return saved;
+  nodes.map(node => {
+    node.pos = Vec2.snap(Vec2.rotateAround(node.pos, center, degrees));
   });
 
-  return { gates: savedGates, nodes: savedNodes };
 }
 
 export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
   const pinIdSet = new Set<string>();
   for (const gateId of gateIds) {
-    for (const p of getAllPinIds(getGate(circuit, gateId))) pinIdSet.add(p as string);
+    for (const p of getAllPinIds(getGate(circuit, gateId)))
+      pinIdSet.add(p);
   }
   const result: WireNodeId[] = [];
   for (const node of circuit.wireNodes.values()) {
-    if (node.pinId && pinIdSet.has(node.pinId as string)) {
+    if (node.pinId && pinIdSet.has(node.pinId)) {
       result.push(node.id);
     }
   }
@@ -210,7 +213,10 @@ export function cleanupOrphanNodes(circuit: Circuit, nodeIds: Iterable<WireNodeI
     if (!node || node.pinId) continue;
     let hasSegments = false;
     for (const s of circuit.wireSegments.values()) {
-      if (s.from === nid || s.to === nid) { hasSegments = true; break; }
+      if (s.from === nid || s.to === nid) {
+        hasSegments = true;
+        break;
+      }
     }
     if (!hasSegments) {
       removed.push({ ...node, pos: Vec2.copy(node.pos) });
