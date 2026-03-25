@@ -14,6 +14,9 @@ let nextId = 0;
 export function generateId(prefix: string): string {
   return prefix + '_' + (nextId++);
 }
+export function setNextId(value: number): void {
+  nextId = value;
+}
 
 // Gate types
 export type GateType =
@@ -29,7 +32,8 @@ export type GateType =
   | 'joiner'
   | 'input'
   | 'output'
-  | 'component';
+  | 'component'
+  | 'level';
 
 export type Rotation = 0 | 90 | 180 | 270;
 
@@ -44,6 +48,7 @@ export interface Gate {
   label?: string;
   canRemove?: boolean;
   canMove?: boolean;
+  status?: 'locked' | 'available' | 'solved';
 }
 
 export interface Pin {
@@ -155,4 +160,6 @@ export interface Level {
   mode: 'combinational' | 'sequential';
   test: TestDefinition;
   predefinedGates?: LevelGate[];
+  prerequisites: LevelId[];
+  mapPosition: Vec2;
 }

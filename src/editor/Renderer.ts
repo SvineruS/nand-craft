@@ -554,8 +554,11 @@ export class Renderer {
       ctx.translate(center.x, center.y);
       ctx.rotate((gate.rotation * Math.PI) / 180);
 
-      const gateFill = def.color ?? COLORS.gateFill;
-      const gateStroke = def.stroke ?? COLORS.gateStroke;
+      let gateFill = def.color ?? COLORS.gateFill;
+      let gateStroke = def.stroke ?? COLORS.gateStroke;
+      if (gate.status === 'locked') { gateFill = '#333345'; gateStroke = '#555568'; }
+      else if (gate.status === 'available') { gateFill = '#2d3d5d'; gateStroke = '#6cb4ff'; }
+      else if (gate.status === 'solved') { gateFill = '#2d4d2d'; gateStroke = '#5a8a5a'; }
 
       if (def.svg) {
         const path = this.getGatePath(gate.type);

@@ -25,6 +25,7 @@ export class Editor {
   private simulationInterval: ReturnType<typeof setInterval> | null = null;
   private resizeHandler: () => void;
   onCircuitChange: (() => void) | null = null;
+  private stateOverride: EditorState | null = null;
 
   constructor(container: HTMLElement) {
     // Create canvas filling the container
@@ -52,11 +53,14 @@ export class Editor {
     this.input.attach();
 
     // Start render loop — onCircuitDirty triggers simulation + UI updates
-    this.renderer.startLoop(() => this.state, () => this.onCircuitChange?.());
+    this.renderer.startLoop(
+      () => this.stateOverride ?? this.state,
+      () => { if (!this.stateOverride) this.onCircuitChange?.(); },
+    );
 
     // Handle resize
     this.resizeHandler = () => {
-      this.state.renderDirty = true;
+      (this.stateOverride ?? this.state).renderDirty = true;
     };
     window.addEventListener('resize', this.resizeHandler);
   }
@@ -102,6 +106,33 @@ export class Editor {
     this.history = this.createHistory();
 
     this.state.circuitDirty = true;
+  }
+
+  loadCircuitFromSave(circuit: Circuit): void {
+    this.state.circuit = circuit;
+    this.history = this.createHistory();
+    if (this.simulationInterval !== null) {
+      clearInterval(this.simulationInterval);
+      this.simulationInterval = null;
+      this.state.simulationRunning = false;
+    }
+    this.state.selection = [];
+    this.state.mode = { kind: 'normal' };
+    this.state.circuitDirty = true;
+  }
+
+  setStateOverride(state: EditorState | null): void {
+    this.stateOverride = state;
+    if (state) state.renderDirty = true;
+    else this.state.renderDirty = true;
+  }
+
+  detachInput(): void {
+    this.input.detach();
+  }
+
+  attachInput(): void {
+    this.input.attach();
   }
 
   getCircuit(): Circuit {

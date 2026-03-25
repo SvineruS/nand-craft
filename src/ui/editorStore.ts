@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals';
 import type { EditorState } from '../editor/EditorState.ts';
-import type { Level, TestResult } from '../types.ts';
+import type { Level, LevelId, TestResult } from '../types.ts';
+import { getSolvedLevelIds } from '../persistence/storage.ts';
 
 // ---------------------------------------------------------------------------
 // Signals – reactive app-level state consumed by Preact components
@@ -26,6 +27,13 @@ export const warningText = signal<string | null>(null);
 
 /** Whether the level-intro dialog is visible. */
 export const levelDialogVisible = signal(false);
+
+/** Current view: editor or level map. */
+export type ViewMode = 'editor' | 'levelMap';
+export const viewMode = signal<ViewMode>('levelMap');
+
+/** Set of solved level IDs (persisted in localStorage). */
+export const solvedLevelIds = signal<Set<LevelId>>(getSolvedLevelIds());
 
 // ---------------------------------------------------------------------------
 // State bridge – lets Preact read the mutable EditorState on demand

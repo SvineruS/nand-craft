@@ -25,6 +25,8 @@ export const LEVELS: Level[] = [
         { inputs: { A: 1 }, expected: { Out: 0 } },
       ],
     },
+    prerequisites: [],
+    mapPosition: { x: 4, y: 5 },
   },
   {
     id: lid('and'),
@@ -53,6 +55,8 @@ export const LEVELS: Level[] = [
         { inputs: { A: 1, B: 1 }, expected: { Out: 1 } },
       ],
     },
+    prerequisites: [lid('not')],
+    mapPosition: { x: 12, y: 3 },
   },
   {
     id: lid('or'),
@@ -81,5 +85,11 @@ export const LEVELS: Level[] = [
         { inputs: { A: 1, B: 1 }, expected: { Out: 1 } },
       ],
     },
+    prerequisites: [lid('not')],
+    mapPosition: { x: 12, y: 7 },
   },
 ];
+
+export function getLevelById(id: LevelId): Level | undefined {
+  return LEVELS.find(l => l.id === id);
+}

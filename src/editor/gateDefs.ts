@@ -163,4 +163,12 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'output', x: 3, y: 1 },
     ],
   },
+  level: {
+    label: '', description: 'Level node', width: 4, height: 2,
+    color: '#2d4d2d', stroke: '#5a8a5a',
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'output', x: 4, y: 1 },
+    ],
+  },
 };
