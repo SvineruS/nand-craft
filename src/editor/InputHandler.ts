@@ -21,6 +21,7 @@ import {
   ChangeWireCommand,
   CommandHistory,
   MoveGatesCommand,
+  MoveWireNodeCommand,
   RemoveGateCommand,
   RemoveWireNodeCommand,
   RemoveWireSegmentCommand,
@@ -84,6 +85,7 @@ export class InputHandler {
   private wireStartWorld: Vec2 = { x: 0, y: 0 };
   private isDraggingNode: WireNodeId | null = null;
   private lastWorld: Vec2 = { x: 0, y: 0 };
+  private _detachPinId: PinId | undefined;
 
   // Bound listeners
   private onMouseDown: (e: MouseEvent) => void;
@@ -301,10 +303,10 @@ export class InputHandler {
     // Wire segment → split and drag new node
     const segHit = hitTestWireSegment(world, state);
     if (segHit) {
+      this.getHistory().beginBatch('Split wire');
       const newNodeId = this.splitWireSegment(state, segHit, Vec2.snap(world));
-      this.isDraggingNode = newNodeId;
-      this.nodeFromSplit = true;
-      this.lastWorld = Vec2.copy(world);
+      this.getHistory().endBatch();
+      this.startNodeDrag(state, newNodeId, world, { fromSplit: true });
       return;
     }
 
@@ -364,26 +366,29 @@ export class InputHandler {
     state.renderDirty = true;
   }
 
+  /** Common setup for all node drag starts. Executes an initial MoveWireNodeCommand. */
+  private startNodeDrag(state: EditorState, nodeId: WireNodeId, world: Vec2,
+      opts: { detachPinId?: PinId; fromSplit?: boolean } = {}): void {
+    this.isDraggingNode = nodeId;
+    this._detachPinId = opts.detachPinId;
+    this.nodeFromSplit = opts.fromSplit ?? false;
+    this.lastWorld = Vec2.copy(world);
+    const node = state.circuit.getWireNode(nodeId);
+    this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, node.pos, opts.detachPinId));
+    state.renderDirty = true;
+  }
+
   /** Start dragging a wire node or detach a pin's anchored node and drag it. */
   private startDetachDrag(state: EditorState, world: Vec2, ep: WireEndpoint): boolean {
     if (ep.kind === 'node') {
-      this.isDraggingNode = ep.nodeId;
-      this.lastWorld = Vec2.copy(world);
+      this.startNodeDrag(state, ep.nodeId, world);
       state.mode = { kind: 'normal' };
-      state.renderDirty = true;
       return true;
     }
-    // Pin: detach anchored wire node and drag it
     const anchoredNode = this.findAnchoredNode(ep.pinId, state);
     if (!anchoredNode) return false;
-    const node = state.circuit.getWireNode(anchoredNode);
-    const pin = state.circuit.getPin(ep.pinId);
-    pin.value = null;
-    node.pinId = undefined;
-    this.isDraggingNode = anchoredNode;
-    this.lastWorld = Vec2.copy(world);
+    this.startNodeDrag(state, anchoredNode, world, { detachPinId: ep.pinId });
     state.mode = { kind: 'normal' };
-    state.renderDirty = true;
     return true;
   }
 
@@ -433,10 +438,10 @@ export class InputHandler {
     if (isDblClick) {
       // Double-click wire → split and start dragging new node
       state.mode = { kind: 'normal' };
+      this.getHistory().beginBatch('Split wire');
       const newNodeId = this.splitWireSegment(state, segHit, Vec2.snap(world));
-      this.isDraggingNode = newNodeId;
-      this.nodeFromSplit = true;
-      this.lastWorld = Vec2.copy(world);
+      this.getHistory().endBatch();
+      this.startNodeDrag(state, newNodeId, world, { fromSplit: true });
       return;
     }
     if (e.ctrlKey || e.metaKey) {
@@ -506,11 +511,13 @@ export class InputHandler {
     // Wire node dragging (snapped to grid)
     if (this.isDraggingNode) {
       const dragId = this.isDraggingNode;
-      const node = state.circuit.getWireNode(dragId);
       const snapped = Vec2.snap(world);
-      if (!Vec2.equal(snapped, node.pos))
+      const node = state.circuit.getWireNode(dragId);
+      if (!Vec2.equal(snapped, node.pos)) {
         this.didDragMove = true;
-      node.pos = snapped;
+        this.getHistory().undo();
+        this.getHistory().execute(new MoveWireNodeCommand(state, dragId, snapped, this._detachPinId));
+      }
       state.hoveredEndpoint = hitTestEndpoint(world, state, dragId);
       state.renderDirty = true;
       return;
@@ -597,44 +604,101 @@ export class InputHandler {
 
   private completeNodeDrag(state: EditorState, e: MouseEvent): void {
     const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
-    const draggedNodeId = this.isDraggingNode!;
+    const nodeId = this.isDraggingNode!;
     const didMove = this.didDragMove;
     const fromSplit = this.nodeFromSplit;
+    const detachPinId = this._detachPinId;
     this.isDraggingNode = null;
     this.didDragMove = false;
     this.nodeFromSplit = false;
+    this._detachPinId = undefined;
 
-    // No drag movement? Try merge (2-segment node removal) — but not if just created by split
-    if (!didMove && !fromSplit && this.tryMergeWireNode(state, draggedNodeId)) return;
-
-    const targetPin = hitTestEndpoint(world, state, draggedNodeId);
-
-    if (targetPin) {
-      // Dropped on pin or wire node → merge: repoint all segments, remove dragged node
-      const targetNodeId = this.ensureWireNode(state, targetPin);
-      if (targetNodeId && targetNodeId !== draggedNodeId) {
-        const toRemove: WireSegmentId[] = [];
-        for (const seg of state.circuit.wireSegments.values()) {
-          if (seg.from === draggedNodeId) seg.from = targetNodeId;
-          if (seg.to === draggedNodeId) seg.to = targetNodeId;
-          if (seg.from === seg.to) toRemove.push(seg.id);
-        }
-        for (const id of toRemove) state.circuit.wireSegments.delete(id);
-        const seen = new Set<string>();
-        for (const seg of state.circuit.wireSegments.values()) {
-          const key = [seg.from, seg.to].sort().join(':');
-          if (seen.has(key)) {
-            state.circuit.wireSegments.delete(seg.id);
-          } else seen.add(key);
-        }
-        state.circuit.wireNodes.delete(draggedNodeId);
+    // Click without movement on a free 2-segment node → merge it away
+    if (!didMove && !fromSplit && !detachPinId) {
+      this.getHistory().undo();
+      if (this.tryMergeWireNode(state, nodeId)) {
+        state.selection = [];
+        state.renderDirty = true;
+        return;
       }
-    } else {
-      const node = state.circuit.getWireNode(draggedNodeId);
-      node.pos = Vec2.snap(node.pos);
+      this.getHistory().execute(new MoveWireNodeCommand(state, nodeId,
+        state.circuit.getWireNode(nodeId).pos));
     }
+
+    const finalPos = Vec2.snap(world);
+    const target = hitTestEndpoint(world, state, nodeId);
+
+    if (fromSplit)
+      this.finalizeSplitDrag(state, nodeId, finalPos, target, detachPinId);
+    else if (target)
+      this.finalizeMergeDrag(state, nodeId, target, detachPinId);
+    else
+      this.finalizeMoveDrag(state, nodeId, finalPos, detachPinId);
+
     state.selection = [];
     state.renderDirty = true;
+  }
+
+  /** Finalize a split-and-drag: undo split+move, replay as single batch. */
+  private finalizeSplitDrag(state: EditorState, nodeId: WireNodeId, finalPos: Vec2,
+      target: WireEndpoint | null, detachPinId?: PinId): void {
+    this.getHistory().undo(); // undo move
+    const splitPos = Vec2.copy(state.circuit.getWireNode(nodeId).pos);
+    this.getHistory().undo(); // undo split
+    const segId = hitTestWireSegment(splitPos, state);
+    if (!segId) return;
+    this.getHistory().beginBatch('Split and move wire');
+    const newNodeId = this.splitWireSegment(state, segId, splitPos);
+    if (target)
+      this.mergeNodeOnto(state, newNodeId, target, detachPinId);
+    else
+      this.getHistory().execute(new MoveWireNodeCommand(state, newNodeId, finalPos, detachPinId));
+    this.getHistory().endBatch();
+  }
+
+  /** Finalize a drag that merges the node onto another endpoint. */
+  private finalizeMergeDrag(state: EditorState, nodeId: WireNodeId,
+      target: WireEndpoint, detachPinId?: PinId): void {
+    const targetNodeId = this.ensureWireNode(state, target);
+    if (!targetNodeId || targetNodeId === nodeId) return;
+    this.getHistory().undo(); // undo live move
+    this.getHistory().beginBatch('Merge wire node');
+    this.mergeNodeOnto(state, nodeId, target, detachPinId);
+    this.getHistory().endBatch();
+  }
+
+  /** Finalize a simple move drag (snap to grid). */
+  private finalizeMoveDrag(state: EditorState, nodeId: WireNodeId,
+      finalPos: Vec2, detachPinId?: PinId): void {
+    const node = state.circuit.getWireNode(nodeId);
+    if (!Vec2.equal(finalPos, node.pos)) {
+      this.getHistory().undo();
+      this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, finalPos, detachPinId));
+    }
+  }
+
+  /** Merge a node onto a target endpoint: move, repoint segments, delete source. */
+  private mergeNodeOnto(state: EditorState, nodeId: WireNodeId,
+      target: WireEndpoint, detachPinId?: PinId): void {
+    const targetNodeId = this.ensureWireNode(state, target);
+    if (!targetNodeId || targetNodeId === nodeId) return;
+    const targetNode = state.circuit.getWireNode(targetNodeId);
+    this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, targetNode.pos, detachPinId));
+    // Repoint segments: remove old, add new (skip self-loops and duplicates)
+    const segments = [...state.circuit.wireSegments.values()];
+    const seen = new Set<string>();
+    for (const seg of segments) {
+      if (seg.from !== nodeId && seg.to !== nodeId) continue;
+      const newFrom = seg.from === nodeId ? targetNodeId : seg.from;
+      const newTo = seg.to === nodeId ? targetNodeId : seg.to;
+      this.getHistory().execute(new RemoveWireSegmentCommand(state, seg.id, false));
+      if (newFrom === newTo) continue;
+      const key = [newFrom, newTo].sort().join(':');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      this.getHistory().execute(new AddWireSegmentCommand(state, newFrom, newTo, seg.color, seg.label));
+    }
+    this.getHistory().execute(new RemoveWireNodeCommand(state, nodeId));
   }
 
   private completeWiring(state: EditorState, e: MouseEvent): void {
@@ -936,14 +1000,12 @@ export class InputHandler {
     const toId = seg.to;
     const color = seg.color;
 
-    this.getHistory().beginBatch('Split wire');
     this.getHistory().execute(new RemoveWireSegmentCommand(state, segId, false));
     const addNode = new AddWireNodeCommand(state, pos);
     this.getHistory().execute(addNode);
     const midId = addNode.getNodeId();
     this.getHistory().execute(new AddWireSegmentCommand(state, fromId, midId, color));
     this.getHistory().execute(new AddWireSegmentCommand(state, midId, toId, color));
-    this.getHistory().endBatch();
     state.renderDirty = true;
     return midId;
   }
@@ -990,15 +1052,12 @@ export class InputHandler {
     const otherId0 = connected[0].otherId;
     const otherId1 = connected[1].otherId;
 
-    // Remove segments directly (NOT via RemoveWireSegmentCommand to avoid orphan cleanup
-    // deleting the endpoints we need for the new segment)
-    state.circuit.wireSegments.delete(connected[0].segId);
-    state.circuit.wireSegments.delete(connected[1].segId);
-    state.circuit.wireNodes.delete(nodeId);
-
-    // Create a new segment connecting the two remaining endpoints
-    const cmd = new AddWireSegmentCommand(state, otherId0, otherId1, color, label);
-    this.getHistory().execute(cmd);
+    this.getHistory().beginBatch('Merge wire node');
+    this.getHistory().execute(new RemoveWireSegmentCommand(state, connected[0].segId, false));
+    this.getHistory().execute(new RemoveWireSegmentCommand(state, connected[1].segId, false));
+    this.getHistory().execute(new RemoveWireNodeCommand(state, nodeId));
+    this.getHistory().execute(new AddWireSegmentCommand(state, otherId0, otherId1, color, label));
+    this.getHistory().endBatch();
     state.renderDirty = true;
     return true;
   }

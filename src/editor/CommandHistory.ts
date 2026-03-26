@@ -560,6 +560,54 @@ export class RemoveWireSegmentCommand implements Command {
   }
 }
 
+export class MoveWireNodeCommand implements Command {
+  readonly description = 'Move wire node';
+  private state: EditorState;
+  private nodeId: WireNodeId;
+  private newPos: Vec2;
+  private detachPinId: PinId | undefined;
+
+  private oldPos: Vec2 = { x: 0, y: 0 };
+  private oldPinValue: number | null = null;
+
+  constructor(state: EditorState, nodeId: WireNodeId, newPos: Vec2, detachPinId?: PinId) {
+    this.state = state;
+    this.nodeId = nodeId;
+    this.newPos = newPos;
+    this.detachPinId = detachPinId;
+  }
+
+  execute(): void {
+    const { circuit } = this.state;
+    const node = circuit.getWireNode(this.nodeId);
+    this.oldPos = Vec2.copy(node.pos);
+    node.pos = Vec2.copy(this.newPos);
+
+    if (this.detachPinId) {
+      const pin = circuit.getPin(this.detachPinId);
+      this.oldPinValue = pin.value;
+      pin.value = null;
+      node.pinId = undefined;
+    }
+
+    this.state.circuitDirty = true;
+  }
+
+  undo(): void {
+    const { circuit } = this.state;
+    const node = circuit.getWireNode(this.nodeId);
+    node.pos = Vec2.copy(this.oldPos);
+
+    if (this.detachPinId) {
+      const pin = circuit.getPin(this.detachPinId);
+      pin.value = this.oldPinValue;
+      node.pinId = this.detachPinId;
+    }
+
+    this.state.circuitDirty = true;
+  }
+}
+
 export interface PinChanges {
   value?: number | null;
   bitWidth?: number;
