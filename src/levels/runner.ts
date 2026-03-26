@@ -1,4 +1,5 @@
-import type { Circuit, Level, TestResult, GateId } from '../types.ts';
+import type { Circuit } from '../editor/circuit.ts';
+import type { Level, TestResult, GateId } from '../types.ts';
 import { runTests } from '../testing/interpreter.ts';
 
 export function runLevel(circuit: Circuit, level: Level): TestResult[] {

@@ -1,4 +1,5 @@
-import type { Circuit, Level, LevelId } from '../types.ts';
+import type { Circuit } from '../editor/circuit.ts';
+import type { Level, LevelId } from '../types.ts';
 import { serializeCircuit, deserializeCircuit } from './serialize.ts';
 
 const PREFIX = 'nand-craft';

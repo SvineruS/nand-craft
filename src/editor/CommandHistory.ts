@@ -11,10 +11,9 @@ import type {
   WireSegmentId,
 } from '../types.ts';
 import { generateId } from '../types.ts';
-import { getGate, getPin, getWireNode, getWireSegment } from '../circuit.ts';
 import type { EditorState } from './EditorState.ts';
-import { GATE_DEFS } from './gateDefs.ts';
-import type { ReconnectedNode } from './geometry.ts';
+import { getGateDefinition } from '../levels/gates.ts';
+import type { ReconnectedNode } from './utils/geometry.ts';
 import {
   cleanupOrphanNodes,
   getAllPinIds,
@@ -23,8 +22,8 @@ import {
   rotateGroup,
   undoReconnectPinNodes,
   updateAnchoredNodes
-} from './geometry.ts';
-import { Vec2 } from './vec2.ts';
+} from './utils/geometry.ts';
+import { Vec2 } from './utils/vec2.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -133,7 +132,7 @@ export class AddGateCommand implements Command {
     this.description = `Add ${gateType} gate`;
     this.gateId = generateId('gate') as GateId;
 
-    const def = GATE_DEFS[gateType];
+    const def = getGateDefinition(gateType);
     let inputIdx = 0;
     let outputIdx = 0;
     for (const p of def.pins) {
@@ -209,7 +208,7 @@ export class RemoveGateCommand implements Command {
 
     // Store gate and pins for undo
     this.gate = { ...gate };
-    this.pins = getAllPinIds(gate).map(pinId => ({ ...getPin(circuit, pinId) }));
+    this.pins = getAllPinIds(gate).map(pinId => ({ ...circuit.getPin(pinId) }));
 
     // Find wire nodes anchored to this gate's pins
     const pinIdSet = new Set<string>(getAllPinIds(gate) as string[]);
@@ -311,7 +310,7 @@ export class MoveGatesCommand implements Command {
     const { circuit } = this.state;
 
     for (const gateId of this.gateIds) {
-      const gate = getGate(circuit, gateId);
+      const gate = circuit.getGate(gateId);
       gate.pos = Vec2.add(gate.pos, this.delta);
     }
 
@@ -319,7 +318,7 @@ export class MoveGatesCommand implements Command {
     const allIds = new Set<WireNodeId>([...anchored, ...this.extraNodeIds]);
     this.movedNodeIds = [...allIds];
     for (const nodeId of this.movedNodeIds) {
-      const node = getWireNode(circuit, nodeId);
+      const node = circuit.getWireNode(nodeId);
       node.pos = Vec2.add(node.pos, this.delta);
     }
 
@@ -333,18 +332,18 @@ export class MoveGatesCommand implements Command {
     undoReconnectPinNodes(circuit, this.reconnectedNodes);
 
     for (const gateId of this.gateIds) {
-      const gate = getGate(circuit, gateId);
+      const gate = circuit.getGate(gateId);
       gate.pos = Vec2.sub(gate.pos, this.delta);
     }
 
     for (const nodeId of this.movedNodeIds) {
-      const node = getWireNode(circuit, nodeId);
+      const node = circuit.getWireNode(nodeId);
       node.pos = Vec2.sub(node.pos, this.delta);
     }
 
     // Restore detached pin connections
     for (const { nodeId, pinId } of this.detachedPins) {
-      getWireNode(circuit, nodeId).pinId = pinId;
+      circuit.getWireNode(nodeId).pinId = pinId;
     }
 
     this.state.circuitDirty = true;
@@ -369,8 +368,8 @@ export class RotateGatesCommand implements Command {
   }
 
   execute(): void {
-    const gates = this.gateIds.map(id => getGate(this.state.circuit, id));
-    const nodes = this.extraNodeIds.map(id => getWireNode(this.state.circuit, id));
+    const gates = this.gateIds.map(id => this.state.circuit.getGate(id));
+    const nodes = this.extraNodeIds.map(id => this.state.circuit.getWireNode(id));
 
     this.savedGatePositions = gates.map(gate => ({ id: gate.id, pos: Vec2.copy(gate.pos), rotation: gate.rotation }));
     this.savedNodePositions = nodes.map(node => ({ id: node.id, pos: Vec2.copy(node.pos) }));
@@ -383,15 +382,15 @@ export class RotateGatesCommand implements Command {
   undo(): void {
     const { circuit } = this.state;
     for (const saved of this.savedGatePositions) {
-      const gate = getGate(circuit, saved.id);
+      const gate = circuit.getGate(saved.id);
       gate.pos = saved.pos;
       gate.rotation = saved.rotation as Rotation;
     }
     for (const saved of this.savedNodePositions) {
-      getWireNode(circuit, saved.id).pos = saved.pos;
+      circuit.getWireNode(saved.id).pos = saved.pos;
     }
     for (const gateId of this.gateIds) {
-      updateAnchoredNodes(getGate(circuit, gateId), circuit);
+      updateAnchoredNodes(circuit.getGate(gateId), circuit);
     }
     this.state.circuitDirty = true;
   }
@@ -492,18 +491,21 @@ export class AddWireSegmentCommand implements Command {
   private segmentId: WireSegmentId;
 
   private color: string | undefined;
+  private label: string | undefined;
 
-  constructor(state: EditorState, from: WireNodeId, to: WireNodeId, color?: string) {
+  constructor(state: EditorState, from: WireNodeId, to: WireNodeId, color?: string, label?: string) {
     this.state = state;
     this.from = from;
     this.to = to;
     this.color = color;
+    this.label = label;
     this.segmentId = generateId('ws') as WireSegmentId;
   }
 
   execute(): void {
     const seg: WireSegment = { id: this.segmentId, from: this.from, to: this.to };
     if (this.color) seg.color = this.color;
+    if (this.label) seg.label = this.label;
     this.state.circuit.wireSegments.set(this.segmentId, seg);
     this.state.circuitDirty = true;
   }
@@ -575,7 +577,7 @@ export class ChangePinCommand implements Command {
     this.pinIds = pinIds;
     this.changes = changes;
     this.oldValues = pinIds.map(id => {
-      const pin = getPin(state.circuit, id);
+      const pin = state.circuit.getPin(id);
       const old: PinChanges = {};
       if (changes.value !== undefined) old.value = pin.value;
       if (changes.bitWidth !== undefined) old.bitWidth = pin.bitWidth;
@@ -585,7 +587,7 @@ export class ChangePinCommand implements Command {
 
   execute(): void {
     for (const id of this.pinIds) {
-      const pin = getPin(this.state.circuit, id);
+      const pin = this.state.circuit.getPin(id);
       if (this.changes.value !== undefined) pin.value = this.changes.value;
       if (this.changes.bitWidth !== undefined) pin.bitWidth = this.changes.bitWidth;
     }
@@ -594,7 +596,7 @@ export class ChangePinCommand implements Command {
 
   undo(): void {
     for (let i = 0; i < this.pinIds.length; i++) {
-      const pin = getPin(this.state.circuit, this.pinIds[i]);
+      const pin = this.state.circuit.getPin(this.pinIds[i]);
       const old = this.oldValues[i];
       if (old.value !== undefined) pin.value = old.value;
       if (old.bitWidth !== undefined) pin.bitWidth = old.bitWidth;
@@ -624,7 +626,7 @@ export class ChangeWireCommand implements Command {
     this.changeLabel = 'label' in changes;
     this.changeColor = 'color' in changes;
     this.oldValues = segmentIds.map(id => {
-      const seg = getWireSegment(state.circuit, id);
+      const seg = state.circuit.getWireSegment(id);
       const old: WireChanges = {};
       if (this.changeLabel) old.label = seg.label;
       if (this.changeColor) old.color = seg.color;
@@ -634,7 +636,7 @@ export class ChangeWireCommand implements Command {
 
   execute(): void {
     for (const id of this.segmentIds) {
-      const seg = getWireSegment(this.state.circuit, id);
+      const seg = this.state.circuit.getWireSegment(id);
       if (this.changeLabel) seg.label = this.changes.label;
       if (this.changeColor) seg.color = this.changes.color;
     }
@@ -643,7 +645,7 @@ export class ChangeWireCommand implements Command {
 
   undo(): void {
     for (let i = 0; i < this.segmentIds.length; i++) {
-      const seg = getWireSegment(this.state.circuit, this.segmentIds[i]);
+      const seg = this.state.circuit.getWireSegment(this.segmentIds[i]);
       const old = this.oldValues[i];
       if (this.changeLabel) seg.label = old.label;
       if (this.changeColor) seg.color = old.color;

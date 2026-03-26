@@ -1,6 +1,6 @@
 import { useRef } from 'preact/hooks';
 import type { GateType } from '../types.ts';
-import { GATE_DEFS } from '../editor/gateDefs.ts';
+import { getAllGateDefinitions } from '../levels/gates.ts';
 
 interface SidebarProps {
   onStamp: (type: GateType) => void;
@@ -11,7 +11,7 @@ interface SidebarProps {
 export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
   const didDrag = useRef(false);
 
-  const entries = (Object.entries(GATE_DEFS) as [GateType, typeof GATE_DEFS[GateType]][])
+  const entries = getAllGateDefinitions()
     .filter(([, def]) => def.placeable);
 
   return (

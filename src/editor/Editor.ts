@@ -1,10 +1,5 @@
-import type {
-  Circuit,
-  GateId,
-  Level,
-} from '../types.ts';
-import { createCircuit } from '../types.ts';
-import { getGate, getPin, getWireNode } from '../circuit.ts';
+import { Circuit } from './circuit.ts';
+import type { GateId, Level } from '../types.ts';
 import { createEditorState } from './EditorState.ts';
 import type { EditorState } from './EditorState.ts';
 import { Renderer } from './Renderer.ts';
@@ -12,8 +7,8 @@ import { InputHandler } from './InputHandler.ts';
 import { CommandHistory, AddGateCommand } from './CommandHistory.ts';
 import type { Command } from './CommandHistory.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
-import { GRID_SIZE } from './geometry.ts';
-import { Vec2 } from './vec2.ts';
+import { GRID_SIZE } from './utils/geometry.ts';
+import { Vec2 } from './utils/vec2.ts';
 
 export class Editor {
   private state: EditorState;
@@ -67,7 +62,7 @@ export class Editor {
 
   loadLevel(level: Level): void {
     // Reset circuit
-    this.state.circuit = createCircuit();
+    this.state.circuit = new Circuit();
 
     // Reset history by creating a new one
     this.history = this.createHistory();
@@ -95,7 +90,7 @@ export class Editor {
         );
         cmd.execute();
 
-        const gate = getGate(this.state.circuit, cmd.getGateId());
+        const gate = this.state.circuit.getGate(cmd.getGateId());
         if (pg.label !== undefined) gate.label = pg.label;
         if (pg.canRemove !== undefined) gate.canRemove = pg.canRemove;
         if (pg.canMove !== undefined) gate.canMove = pg.canMove;
@@ -178,7 +173,7 @@ export class Editor {
     for (const gate of this.state.circuit.gates.values()) {
       if (gate.type === 'input') {
         // Use existing pin value or default to 0
-        inputs.set(gate.id, getPin(this.state.circuit, gate.outputPins[0]).value ?? 0);
+        inputs.set(gate.id, this.state.circuit.getPin(gate.outputPins[0]).value ?? 0);
       }
     }
 
@@ -200,9 +195,9 @@ export class Editor {
     for (const net of this.state.circuit.nets.values()) {
       const drivers: { value: number | null }[] = [];
       for (const nodeId of net.nodeIds) {
-        const node = getWireNode(this.state.circuit, nodeId);
+        const node = this.state.circuit.getWireNode(nodeId);
         if (node.pinId) {
-          const pin = getPin(this.state.circuit, node.pinId);
+          const pin = this.state.circuit.getPin(node.pinId);
           if (pin.kind === 'output' && pin.value !== null) {
             drivers.push(pin);
           }
@@ -258,8 +253,8 @@ export class Editor {
   readOutputs(outputGateIds: GateId[], outputNames: string[]): Record<string, number | null> {
     const actuals: Record<string, number | null> = {};
     for (let j = 0; j < outputNames.length; j++) {
-      const gate = getGate(this.state.circuit, outputGateIds[j]);
-      actuals[outputNames[j]] = getPin(this.state.circuit, gate.inputPins[0]).value ?? null;
+      const gate = this.state.circuit.getGate(outputGateIds[j]);
+      actuals[outputNames[j]] = this.state.circuit.getPin(gate.inputPins[0]).value ?? null;
     }
     return actuals;
   }

@@ -1,7 +1,7 @@
-import type { Circuit, GateId, GateType, Rotation, WireNodeId, WireSegmentId } from '../types.ts';
-import { createCircuit } from '../types.ts';
-import type { Vec2 } from './vec2.ts';
-import type { WireEndpoint } from './geometry.ts';
+import { Circuit } from './circuit.ts';
+import type { GateId, GateType, Rotation, WireNodeId, WireSegmentId } from '../types.ts';
+import type { Vec2 } from './utils/vec2.ts';
+import type { WireEndpoint } from './utils/geometry.ts';
 
 export type PlaceableType = GateType;
 
@@ -77,7 +77,7 @@ export const WIRE_COLORS = [
 
 export function createEditorState(): EditorState {
   return {
-    circuit: createCircuit(),
+    circuit: new Circuit(),
     camera: { pos: { x: 0, y: 0 }, zoom: 1 },
     selection: [],
     hoveredGate: null,

@@ -1,5 +1,5 @@
-import type { Circuit, GateId } from '../types.ts';
-import { getPin } from '../circuit.ts';
+import type { Circuit } from '../editor/circuit.ts';
+import type { GateId } from '../types.ts';
 import { buildNets, detectCycles, propagate } from './evaluate.ts';
 
 export class SimulationEngine {
@@ -17,7 +17,7 @@ export class SimulationEngine {
     const constantValues = new Map<string, number>();
     for (const gate of circuit.gates.values()) {
       if (gate.type !== 'constant') continue;
-      const outPin = getPin(circuit, gate.outputPins[0]);
+      const outPin = circuit.getPin(gate.outputPins[0]);
       constantValues.set(outPin.id as string, outPin.value ?? 0);
     }
     for (const pin of circuit.pins.values()) {
@@ -30,7 +30,7 @@ export class SimulationEngine {
       if (!gate || gate.type !== 'input') continue;
 
       for (const outputPinId of gate.outputPins) {
-        getPin(circuit, outputPinId).value = value;
+        circuit.getPin(outputPinId).value = value;
       }
     }
 
@@ -48,8 +48,8 @@ export class SimulationEngine {
     for (const gate of circuit.gates.values()) {
       if (gate.type !== 'delay') continue;
 
-      const outputPin = getPin(circuit, gate.outputPins[0]);
-      const inputPin = getPin(circuit, gate.inputPins[0]);
+      const outputPin = circuit.getPin(gate.outputPins[0]);
+      const inputPin = circuit.getPin(gate.inputPins[0]);
 
       // Output gets the previously stored state
       outputPin.value = circuit.delayState.get(gate.id) ?? null;
@@ -62,7 +62,7 @@ export class SimulationEngine {
     const outputs = new Map<GateId, number | null>();
     for (const gate of circuit.gates.values()) {
       if (gate.type !== 'output') continue;
-      outputs.set(gate.id, getPin(circuit, gate.inputPins[0]).value ?? null);
+      outputs.set(gate.id, circuit.getPin(gate.inputPins[0]).value ?? null);
     }
 
     return outputs;

@@ -1,15 +1,15 @@
-import type {
-  Circuit,
-  Gate,
-  GateId,
-  Pin,
-  PinId,
-  WireNode,
-  WireNodeId,
-  WireSegment,
-  WireSegmentId,
+import { Circuit } from '../editor/circuit.ts';
+import {
+  setNextId,
+  type Gate,
+  type GateId,
+  type Pin,
+  type PinId,
+  type WireNode,
+  type WireNodeId,
+  type WireSegment,
+  type WireSegmentId,
 } from '../types.ts';
-import { createCircuit, setNextId } from '../types.ts';
 import { buildNets } from '../simulation/evaluate.ts';
 
 interface SerializedCircuit {
@@ -45,7 +45,7 @@ export function serializeCircuit(circuit: Circuit): string {
 
 export function deserializeCircuit(json: string): Circuit {
   const data: SerializedCircuit = JSON.parse(json);
-  const circuit = createCircuit();
+  const circuit = new Circuit();
 
   for (const [id, gate] of data.gates) {
     circuit.gates.set(id as GateId, { id: id as GateId, ...gate });

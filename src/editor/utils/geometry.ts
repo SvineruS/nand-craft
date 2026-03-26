@@ -1,6 +1,6 @@
-import type { Circuit, Gate, GateId, PinId, Rotation, WireNode, WireNodeId } from '../types.ts';
-import { getGate, getWireNode } from '../circuit.ts';
-import { GATE_DEFS } from './gateDefs.ts';
+import type { Circuit } from '../circuit.ts';
+import type { Gate, GateId, PinId, Rotation, WireNode, WireNodeId } from '../../types.ts';
+import { getGateDefinition } from '../../levels/gates.ts';
 import { Vec2 } from './vec2.ts';
 
 export const GRID_SIZE = 20;
@@ -16,7 +16,7 @@ export function getAllPinIds(gate: Gate): PinId[] {
 
 /** Get gate pixel dimensions from definition. */
 export function getGateDims(gate: Gate): { w: number; h: number } {
-  const def = GATE_DEFS[gate.type];
+  const def = getGateDefinition(gate.type);
   return { w: def.width * GRID_SIZE, h: def.height * GRID_SIZE };
 }
 
@@ -32,7 +32,7 @@ export function gateCenter(gate: Gate): Vec2 {
 export function getPinPositions(gate: Gate): Map<PinId, Vec2> {
   const center = gateCenter(gate);
   const allPinIds = getAllPinIds(gate);
-  const defPins = GATE_DEFS[gate.type].pins;
+  const defPins = getGateDefinition(gate.type).pins;
 
   const pinPositions = new Map<PinId, Vec2>();
 
@@ -68,7 +68,7 @@ function rotatePoint(
   }
 }
 
-function rotateBy(current: Rotation, degrees: number): Rotation {
+export function rotateBy(current: Rotation, degrees: number): Rotation {
   return (((current + degrees) % 360 + 360) % 360) as Rotation;
 }
 
@@ -128,7 +128,7 @@ export interface ReconnectedNode {
 export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): ReconnectedNode[] {
   const result: ReconnectedNode[] = [];
   for (const gateId of gateIds) {
-    const gate = getGate(circuit, gateId);
+    const gate = circuit.getGate(gateId);
     const positions = getPinPositions(gate);
 
     for (const [pinId, pos] of positions) {
@@ -150,7 +150,7 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
 /** Undo reconnectPinNodes: clear pinId and restore original positions. */
 export function undoReconnectPinNodes(circuit: Circuit, reconnected: ReconnectedNode[]): void {
   for (const r of reconnected) {
-    const node = getWireNode(circuit, r.nodeId);
+    const node = circuit.getWireNode(r.nodeId);
     node.pinId = undefined;
     node.pos = Vec2.copy(r.prevPos);
   }
@@ -193,7 +193,7 @@ export function rotateGroup(
 export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
   const pinIdSet = new Set<string>();
   for (const gateId of gateIds) {
-    for (const p of getAllPinIds(getGate(circuit, gateId)))
+    for (const p of getAllPinIds(circuit.getGate(gateId)))
       pinIdSet.add(p);
   }
   const result: WireNodeId[] = [];

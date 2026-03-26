@@ -1,11 +1,12 @@
 import type { Editor } from '../editor/Editor.ts';
 import type { EditorState } from '../editor/EditorState.ts';
 import { createEditorState } from '../editor/EditorState.ts';
-import { getGateDims } from '../editor/geometry.ts';
+import { getGateDims } from '../editor/utils/geometry.ts';
 import { LEVELS } from '../levels/registry.ts';
 import { buildLevelMapCircuit, gateIdToLevelId } from '../levels/levelMap.ts';
 import type { LevelGateMap } from '../levels/levelMap.ts';
-import type { Circuit, Level } from '../types.ts';
+import type { Circuit } from '../editor/circuit.ts';
+import type { Level } from '../types.ts';
 import {
   currentLevel,
   currentLevelIndex,

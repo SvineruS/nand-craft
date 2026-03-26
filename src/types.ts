@@ -1,3 +1,5 @@
+import type { Circuit } from './editor/circuit.ts';
+
 export interface Vec2 { x: number; y: number }
 
 // Branded types for type-safe IDs
@@ -80,25 +82,7 @@ export interface Net {
   segmentIds: WireSegmentId[];
 }
 
-export interface Circuit {
-  gates: Map<GateId, Gate>;
-  pins: Map<PinId, Pin>;
-  wireNodes: Map<WireNodeId, WireNode>;
-  wireSegments: Map<WireSegmentId, WireSegment>;
-  nets: Map<NetId, Net>;
-  delayState: Map<GateId, number | null>;
-}
 
-export function createCircuit(): Circuit {
-  return {
-    gates: new Map(),
-    pins: new Map(),
-    wireNodes: new Map(),
-    wireSegments: new Map(),
-    nets: new Map(),
-    delayState: new Map(),
-  };
-}
 
 export interface Component {
   id: ComponentId;

@@ -1,5 +1,5 @@
 import { useEditorState } from './editorStore.ts';
-import { GATE_DEFS } from '../editor/gateDefs.ts';
+import { getGateDefinition } from '../levels/gates.ts';
 import type { Command } from '../editor/CommandHistory.ts';
 import { ChangePinCommand, ChangeWireCommand } from '../editor/CommandHistory.ts';
 import type { PinId } from '../types.ts';
@@ -19,7 +19,7 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
   if (gateItem?.type === 'gate') {
     const gate = state.circuit.gates.get(gateItem.id);
     if (gate && (gate.type === 'input' || gate.type === 'output' || gate.type === 'constant')) {
-      const def = GATE_DEFS[gate.type];
+      const def = getGateDefinition(gate.type);
       const allPinIds: PinId[] = [...gate.inputPins, ...gate.outputPins];
       const firstPin = allPinIds.length > 0 ? state.circuit.pins.get(allPinIds[0]) : undefined;
 

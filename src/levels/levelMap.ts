@@ -1,17 +1,17 @@
-import type {
-  Circuit,
-  Gate,
-  GateId,
-  Level,
-  LevelId,
-  PinId,
-  WireNode,
-  WireNodeId,
-  WireSegment,
-  WireSegmentId,
+import { Circuit } from '../editor/circuit.ts';
+import {
+  generateId,
+  type Gate,
+  type GateId,
+  type Level,
+  type LevelId,
+  type PinId,
+  type WireNode,
+  type WireNodeId,
+  type WireSegment,
+  type WireSegmentId,
 } from '../types.ts';
-import { createCircuit, generateId } from '../types.ts';
-import { GRID_SIZE } from '../editor/geometry.ts';
+import { GRID_SIZE } from '../editor/utils/geometry.ts';
 import { isLevelUnlocked } from '../persistence/storage.ts';
 import { buildNets } from '../simulation/evaluate.ts';
 
@@ -32,7 +32,7 @@ export function buildLevelMapCircuit(
   levels: Level[],
   solvedIds: Set<LevelId>,
 ): { circuit: Circuit; levelGateMap: LevelGateMap } {
-  const circuit = createCircuit();
+  const circuit = new Circuit();
   const levelGateMap: LevelGateMap = new Map();
 
   // Create a gate for each level

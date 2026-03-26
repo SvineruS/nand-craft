@@ -1,8 +1,5 @@
-import type { GateType } from '../types.ts';
+import type { GateType } from "../types.ts";
 
-// ---------------------------------------------------------------------------
-// Gate Definition Interfaces
-// ---------------------------------------------------------------------------
 
 export interface PinDef {
   kind: 'input' | 'output';
@@ -26,6 +23,8 @@ export interface GateDefinition {
   labelY?: number; // label y offset in grid units from center (default 0)
 }
 
+
+
 // ---------------------------------------------------------------------------
 // Gate Definition Registry
 // ---------------------------------------------------------------------------
@@ -33,7 +32,8 @@ export interface GateDefinition {
 // SVG paths are in grid-unit coordinates (0,0 to width,height)
 // They get scaled by GRID_SIZE at render time
 
-export const GATE_DEFS: Record<GateType, GateDefinition> = {
+
+const GATE_DEFS: Record<GateType, GateDefinition> = {
   nand: {
     label: 'NAND', description: 'Bitwise NAND gate', width: 3, height: 2, placeable: true,
     color: '#3b2d50', stroke: '#7c5aad',
@@ -172,3 +172,15 @@ export const GATE_DEFS: Record<GateType, GateDefinition> = {
     ],
   },
 };
+
+
+export function getGateDefinition(type: GateType): GateDefinition {
+  const def = GATE_DEFS[type];
+  if (!def) throw new Error(`Unknown gate type: ${type}`);
+  return def;
+}
+
+/** All gate type entries for iteration (e.g. sidebar). */
+export function getAllGateDefinitions(): [GateType, GateDefinition][] {
+  return Object.entries(GATE_DEFS) as [GateType, GateDefinition][];
+}
