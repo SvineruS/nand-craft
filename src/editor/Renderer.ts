@@ -179,7 +179,7 @@ export class Renderer {
     return this.mouseWorld;
   }
 
-  // --- Private rendering methods ---
+  // --- Private helpers ---
 
   private handleResize(): void {
     this.dpr = window.devicePixelRatio || 1;
@@ -193,6 +193,38 @@ export class Renderer {
       this.canvas.height = Math.round(h * this.dpr);
     }
   }
+
+  /** Get or create cached Path2D for a gate type's SVG shape. */
+  private gatePaths = new Map<GateType, Path2D>();
+  private getGatePath(type: GateType): Path2D {
+    let path = this.gatePaths.get(type);
+    if (!path) {
+      const def = getGateDefinition(type);
+      path = new Path2D(def.svg ?? '');
+      this.gatePaths.set(type, path);
+    }
+    return path;
+  }
+
+  /**
+   * Trace an L-shaped routed path from (ax,ay) to (bx,by) using only
+   * horizontal, vertical, and 45° diagonal segments.
+   *
+   * Routing strategy:
+   *  - If already axis-aligned or perfectly diagonal: draw a straight line.
+   *  - If horizontal distance > vertical distance: go horizontal first to
+   *    consume the excess, then diagonal to reach the target.
+   *  - Otherwise: go vertical first, then diagonal.
+   * This produces clean two-segment paths (cardinal + 45° diagonal).
+   */
+  private traceRoutedPath(ctx: CanvasRenderingContext2D, a: Vec2, b: Vec2): void {
+    ctx.moveTo(a.x, a.y);
+    const c = routeCorner(a, b);
+    if (c) ctx.lineTo(c.x, c.y);
+    ctx.lineTo(b.x, b.y);
+  }
+
+  // --- Draw methods (in render() call order) ---
 
   private drawGrid(state: EditorState): void {
     const { ctx } = this;
@@ -216,25 +248,6 @@ export class Renderer {
       }
     }
   }
-
-  /**
-   * Trace an L-shaped routed path from (ax,ay) to (bx,by) using only
-   * horizontal, vertical, and 45° diagonal segments.
-   *
-   * Routing strategy:
-   *  - If already axis-aligned or perfectly diagonal: draw a straight line.
-   *  - If horizontal distance > vertical distance: go horizontal first to
-   *    consume the excess, then diagonal to reach the target.
-   *  - Otherwise: go vertical first, then diagonal.
-   * This produces clean two-segment paths (cardinal + 45° diagonal).
-   */
-  private traceRoutedPath(ctx: CanvasRenderingContext2D, a: Vec2, b: Vec2): void {
-    ctx.moveTo(a.x, a.y);
-    const c = routeCorner(a, b);
-    if (c) ctx.lineTo(c.x, c.y);
-    ctx.lineTo(b.x, b.y);
-  }
-
 
   private drawWireSegments(state: EditorState): void {
     const { ctx } = this;
@@ -511,18 +524,6 @@ export class Renderer {
         ctx.restore();
       }
     }
-  }
-
-  /** Get or create cached Path2D for a gate type's SVG shape. */
-  private gatePaths = new Map<GateType, Path2D>();
-  private getGatePath(type: GateType): Path2D {
-    let path = this.gatePaths.get(type);
-    if (!path) {
-      const def = getGateDefinition(type);
-      path = new Path2D(def.svg ?? '');
-      this.gatePaths.set(type, path);
-    }
-    return path;
   }
 
   private drawPins(state: EditorState): void {

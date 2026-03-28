@@ -18,23 +18,9 @@ export function snapGateCenter(pos: Vec2, width: number, height: number, offset 
   };
 }
 
-
 // ---------------------------------------------------------------------------
-// Rect hit testing
+// Rect utilities
 // ---------------------------------------------------------------------------
-
-
-export function rectContainsGate(
-  gate: Gate, normRect: Rect,
-): boolean {
-  const { w, h } = getGateDims(gate);
-  const { x1, y1, x2, y2 } = normRect;
-  return gate.pos.x >= x1 && gate.pos.y >= y1 && gate.pos.x + w <= x2 && gate.pos.y + h <= y2;
-}
-
-export function posInRect(pos: Vec2, rect: Rect): boolean {
-  return pos.x >= rect.x1 && pos.x <= rect.x2 && pos.y >= rect.y1 && pos.y <= rect.y2
-}
 
 export interface Rect {
   x1: number;
@@ -52,6 +38,17 @@ export function normalizeRect(rectPos: Vec2, rw: number, rh: number): Rect {
   return { x1: x, y1: y, x2: x + w, y2: y + h };
 }
 
+export function rectContainsGate(
+  gate: Gate, normRect: Rect,
+): boolean {
+  const { w, h } = getGateDims(gate);
+  const { x1, y1, x2, y2 } = normRect;
+  return gate.pos.x >= x1 && gate.pos.y >= y1 && gate.pos.x + w <= x2 && gate.pos.y + h <= y2;
+}
+
+export function posInRect(pos: Vec2, rect: Rect): boolean {
+  return pos.x >= rect.x1 && pos.x <= rect.x2 && pos.y >= rect.y1 && pos.y <= rect.y2
+}
 
 // ---------------------------------------------------------------------------
 // Hit testing
@@ -112,6 +109,10 @@ export function hitTestWireSegment(pos: Vec2, state: EditorState): WireSegmentId
   }
   return closest;
 }
+
+// ---------------------------------------------------------------------------
+// Distance helpers (private)
+// ---------------------------------------------------------------------------
 
 function pointToSegmentDist(p: Vec2, a: Vec2, b: Vec2): number {
   const d = Vec2.sub(b, a);

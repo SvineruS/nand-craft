@@ -63,6 +63,10 @@ export class InputHandler {
   private wireStartWorld: Vec2 = { x: 0, y: 0 };
   private lastWorld: Vec2 = { x: 0, y: 0 };
 
+  // ---------------------------------------------------------------------------
+  // Public interface
+  // ---------------------------------------------------------------------------
+
   constructor(
     canvas: HTMLCanvasElement,
     getState: () => EditorState,
@@ -100,6 +104,54 @@ export class InputHandler {
 
   attach(): void { this.input.attach(); }
   detach(): void { this.input.detach(); }
+
+  // ---------------------------------------------------------------------------
+  // Keyboard setup
+  // ---------------------------------------------------------------------------
+
+  private setupKeyBindings(): void {
+    this.keys.on('ctrl+z', () => {
+      this.getHistory().undo();
+      this.getState().renderDirty = true;
+    });
+    this.keys.on('ctrl+shift+z', () => {
+      this.getHistory().redo();
+      this.getState().renderDirty = true;
+    });
+    this.keys.on('ctrl+y', () => {
+      this.getHistory().redo();
+      this.getState().renderDirty = true;
+    });
+    this.keys.on('delete', () => this.deleteSelected(this.getState()));
+    this.keys.on('backspace', () => this.deleteSelected(this.getState()));
+    this.keys.on('r', () => this.handleRotate());
+    this.keys.on('e', () => this.applyWireColor(false));
+    this.keys.on('shift+e', () => this.applyWireColor(true));
+    this.keys.on('ctrl+e', () => this.applyWireColor(true));
+    this.keys.on('ctrl+c', () => copySelection(this.getState()));
+    this.keys.on('ctrl+x', () => {
+      const state = this.getState();
+      copySelection(state);
+      this.deleteSelected(state);
+    });
+    this.keys.on('ctrl+v', () => {
+      const state = this.getState();
+      if (state.clipboard) {
+        state.mode = { kind: 'pasting', cursor: null };
+        state.renderDirty = true;
+      }
+    });
+    this.keys.on('q', () => this.eyedrop());
+    this.keys.on('escape', () => {
+      this.drag = { kind: 'none' };
+      const state = this.getState();
+      state.selection = [];
+      state.mode = { kind: 'normal' };
+      state.selectionRect = null;
+      state.dropPreview = null;
+      state.renderDirty = true;
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // Drag-and-drop from sidebar (gate placement)
@@ -187,7 +239,7 @@ export class InputHandler {
   }
 
   // ---------------------------------------------------------------------------
-  // Mouse down
+  // Mouse down (dispatcher + sub-handlers)
   // ---------------------------------------------------------------------------
 
   private handleMouseDown(e: PointerEvent): void {
@@ -305,30 +357,6 @@ export class InputHandler {
     this.wireStartWorld = Vec2.copy(world);
     state.mode = { kind: 'wiring', start: ep };
     state.renderDirty = true;
-  }
-
-  /** Common setup for all node drag starts. Executes an initial MoveWireNodeCommand. */
-  private startNodeDrag(state: EditorState, nodeId: WireNodeId, world: Vec2,
-      opts: { detachPinId?: PinId; fromSplit?: boolean } = {}): void {
-    this.drag = { kind: 'wireNode', nodeId, fromSplit: opts.fromSplit ?? false, detachPinId: opts.detachPinId, moved: false };
-    this.lastWorld = Vec2.copy(world);
-    const node = state.circuit.getWireNode(nodeId);
-    this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, node.pos, opts.detachPinId));
-    state.renderDirty = true;
-  }
-
-  /** Start dragging a wire node or detach a pin's anchored node and drag it. */
-  private startDetachDrag(state: EditorState, world: Vec2, ep: WireEndpoint): boolean {
-    if (ep.kind === 'node') {
-      this.startNodeDrag(state, ep.nodeId, world);
-      state.mode = { kind: 'normal' };
-      return true;
-    }
-    const anchoredNode = this.findAnchoredNode(ep.pinId, state);
-    if (!anchoredNode) return false;
-    this.startNodeDrag(state, anchoredNode, world, { detachPinId: ep.pinId });
-    state.mode = { kind: 'normal' };
-    return true;
   }
 
   private handleGateMouseDown(state: EditorState, world: Vec2, gateHit: GateId, isDblClick: boolean, e: PointerEvent): void {
@@ -501,7 +529,7 @@ export class InputHandler {
   }
 
   // ---------------------------------------------------------------------------
-  // Mouse up
+  // Mouse up (dispatcher + completers)
   // ---------------------------------------------------------------------------
 
   private handleMouseUp(e: PointerEvent): void {
@@ -721,52 +749,8 @@ export class InputHandler {
   }
 
   // ---------------------------------------------------------------------------
-  // Keyboard
+  // Keyboard actions
   // ---------------------------------------------------------------------------
-
-  private setupKeyBindings(): void {
-    this.keys.on('ctrl+z', () => {
-      this.getHistory().undo();
-      this.getState().renderDirty = true;
-    });
-    this.keys.on('ctrl+shift+z', () => {
-      this.getHistory().redo();
-      this.getState().renderDirty = true;
-    });
-    this.keys.on('ctrl+y', () => {
-      this.getHistory().redo();
-      this.getState().renderDirty = true;
-    });
-    this.keys.on('delete', () => this.deleteSelected(this.getState()));
-    this.keys.on('backspace', () => this.deleteSelected(this.getState()));
-    this.keys.on('r', () => this.handleRotate());
-    this.keys.on('e', () => this.applyWireColor(false));
-    this.keys.on('shift+e', () => this.applyWireColor(true));
-    this.keys.on('ctrl+e', () => this.applyWireColor(true));
-    this.keys.on('ctrl+c', () => copySelection(this.getState()));
-    this.keys.on('ctrl+x', () => {
-      const state = this.getState();
-      copySelection(state);
-      this.deleteSelected(state);
-    });
-    this.keys.on('ctrl+v', () => {
-      const state = this.getState();
-      if (state.clipboard) {
-        state.mode = { kind: 'pasting', cursor: null };
-        state.renderDirty = true;
-      }
-    });
-    this.keys.on('q', () => this.eyedrop());
-    this.keys.on('escape', () => {
-      this.drag = { kind: 'none' };
-      const state = this.getState();
-      state.selection = [];
-      state.mode = { kind: 'normal' };
-      state.selectionRect = null;
-      state.dropPreview = null;
-      state.renderDirty = true;
-    });
-  }
 
   private handleRotate(): void {
     const state = this.getState();
@@ -813,7 +797,79 @@ export class InputHandler {
   }
 
   // ---------------------------------------------------------------------------
-  // Helpers
+  // Drag start helpers
+  // ---------------------------------------------------------------------------
+
+  /** Common setup for all node drag starts. Executes an initial MoveWireNodeCommand. */
+  private startNodeDrag(state: EditorState, nodeId: WireNodeId, world: Vec2,
+      opts: { detachPinId?: PinId; fromSplit?: boolean } = {}): void {
+    this.drag = { kind: 'wireNode', nodeId, fromSplit: opts.fromSplit ?? false, detachPinId: opts.detachPinId, moved: false };
+    this.lastWorld = Vec2.copy(world);
+    const node = state.circuit.getWireNode(nodeId);
+    this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, node.pos, opts.detachPinId));
+    state.renderDirty = true;
+  }
+
+  /** Start dragging a wire node or detach a pin's anchored node and drag it. */
+  private startDetachDrag(state: EditorState, world: Vec2, ep: WireEndpoint): boolean {
+    if (ep.kind === 'node') {
+      this.startNodeDrag(state, ep.nodeId, world);
+      state.mode = { kind: 'normal' };
+      return true;
+    }
+    const anchoredNode = this.findAnchoredNode(ep.pinId, state);
+    if (!anchoredNode) return false;
+    this.startNodeDrag(state, anchoredNode, world, { detachPinId: ep.pinId });
+    state.mode = { kind: 'normal' };
+    return true;
+  }
+
+  /** Start a disconnect drag: select gate, detach pin nodes, begin dragging. */
+  private startDisconnectDrag(state: EditorState, gateId: GateId, pos: Vec2): void {
+    if (state.circuit.getGate(gateId).canMove === false) return;
+    state.selection = [{ type: 'gate', id: gateId }];
+    // Detach pins for visual feedback; save mappings for command undo
+    const detachedPins = this.detachPinNodes(state, [gateId]);
+    this.drag = { kind: 'gates', disconnected: true, detachedPins };
+    this.dragAcc = { x: 0, y: 0 };
+    this.lastWorld = Vec2.copy(pos);
+  }
+
+  /** Detach all wire nodes anchored to pins of the given gates. Returns detached mappings for undo. */
+  private detachPinNodes(state: EditorState, gateIds: GateId[]): { nodeId: WireNodeId; pinId: PinId }[] {
+    const pinIds = new Set<string>();
+    for (const gateId of gateIds) {
+      for (const p of getAllPinIds(state.circuit.getGate(gateId))) pinIds.add(p as string);
+    }
+    const detached: { nodeId: WireNodeId; pinId: PinId }[] = [];
+    for (const node of state.circuit.wireNodes.values()) {
+      if (node.pinId && pinIds.has(node.pinId as string)) {
+        detached.push({ nodeId: node.id, pinId: node.pinId });
+        node.pinId = undefined;
+      }
+    }
+    // Clear pin values so disconnected wires don't show stale signals
+    for (const pin of state.circuit.pins.values()) {
+      if (pinIds.has(pin.id as string)) {
+        pin.value = null;
+      }
+    }
+    return detached;
+  }
+
+  private findAnchoredNode(pinId: PinId, state: EditorState): WireNodeId | null {
+    for (const node of state.circuit.wireNodes.values()) {
+      if (node.pinId === pinId) {
+        for (const seg of state.circuit.wireSegments.values()) {
+          if (seg.from === node.id || seg.to === node.id) return node.id;
+        }
+      }
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Wire helpers
   // ---------------------------------------------------------------------------
 
   /** Ensure the endpoint has a wire node, returning its ID. Creates one for pins if needed. */
@@ -865,25 +921,6 @@ export class InputHandler {
     return midId;
   }
 
-  /** Delete all selected gates and wire segments. */
-  private deleteSelected(state: EditorState): void {
-    this.getHistory().beginBatch('Delete selection');
-    // Wire nodes first (cascades to attached segments)
-    for (const nodeId of getSelectedIds(state, 'wireNode'))
-      this.getHistory().execute(new RemoveWireNodeCommand(state, nodeId));
-    for (const segId of getSelectedIds(state, 'wireSegment'))
-      this.getHistory().execute(new RemoveWireSegmentCommand(state, segId));
-    const gateIds = getSelectedIds(state, 'gate')
-      .filter(gid => state.circuit.getGate(gid).canRemove !== false);
-    for (const gateId of gateIds)
-      this.getHistory().execute(new RemoveGateCommand(state, gateId));
-    this.getHistory().endBatch();
-
-    state.selection = [];
-    state.renderDirty = true;
-  }
-
-  /** Find a wire node anchored to this pin that has connected segments. */
   /** If a free wire node has exactly 2 segments, remove the node and join the segments. Returns true if merged. */
   private tryMergeWireNode(state: EditorState, nodeId: WireNodeId): boolean {
     const node = state.circuit.getWireNode(nodeId);
@@ -915,50 +952,6 @@ export class InputHandler {
     this.getHistory().endBatch();
     state.renderDirty = true;
     return true;
-  }
-
-  /** Start a disconnect drag: select gate, detach pin nodes, begin dragging. */
-  private startDisconnectDrag(state: EditorState, gateId: GateId, pos: Vec2): void {
-    if (state.circuit.getGate(gateId).canMove === false) return;
-    state.selection = [{ type: 'gate', id: gateId }];
-    // Detach pins for visual feedback; save mappings for command undo
-    const detachedPins = this.detachPinNodes(state, [gateId]);
-    this.drag = { kind: 'gates', disconnected: true, detachedPins };
-    this.dragAcc = { x: 0, y: 0 };
-    this.lastWorld = Vec2.copy(pos);
-  }
-
-  /** Detach all wire nodes anchored to pins of the given gates. Returns detached mappings for undo. */
-  private detachPinNodes(state: EditorState, gateIds: GateId[]): { nodeId: WireNodeId; pinId: PinId }[] {
-    const pinIds = new Set<string>();
-    for (const gateId of gateIds) {
-      for (const p of getAllPinIds(state.circuit.getGate(gateId))) pinIds.add(p as string);
-    }
-    const detached: { nodeId: WireNodeId; pinId: PinId }[] = [];
-    for (const node of state.circuit.wireNodes.values()) {
-      if (node.pinId && pinIds.has(node.pinId as string)) {
-        detached.push({ nodeId: node.id, pinId: node.pinId });
-        node.pinId = undefined;
-      }
-    }
-    // Clear pin values so disconnected wires don't show stale signals
-    for (const pin of state.circuit.pins.values()) {
-      if (pinIds.has(pin.id as string)) {
-        pin.value = null;
-      }
-    }
-    return detached;
-  }
-
-  private findAnchoredNode(pinId: PinId, state: EditorState): WireNodeId | null {
-    for (const node of state.circuit.wireNodes.values()) {
-      if (node.pinId === pinId) {
-        for (const seg of state.circuit.wireSegments.values()) {
-          if (seg.from === node.id || seg.to === node.id) return node.id;
-        }
-      }
-    }
-    return null;
   }
 
   /** Flood-fill from selected segments to find all connected segments. */
@@ -995,8 +988,26 @@ export class InputHandler {
   }
 
   // ---------------------------------------------------------------------------
-  // Clipboard rotation
+  // Other helpers
   // ---------------------------------------------------------------------------
+
+  /** Delete all selected gates and wire segments. */
+  private deleteSelected(state: EditorState): void {
+    this.getHistory().beginBatch('Delete selection');
+    // Wire nodes first (cascades to attached segments)
+    for (const nodeId of getSelectedIds(state, 'wireNode'))
+      this.getHistory().execute(new RemoveWireNodeCommand(state, nodeId));
+    for (const segId of getSelectedIds(state, 'wireSegment'))
+      this.getHistory().execute(new RemoveWireSegmentCommand(state, segId));
+    const gateIds = getSelectedIds(state, 'gate')
+      .filter(gid => state.circuit.getGate(gid).canRemove !== false);
+    for (const gateId of gateIds)
+      this.getHistory().execute(new RemoveGateCommand(state, gateId));
+    this.getHistory().endBatch();
+
+    state.selection = [];
+    state.renderDirty = true;
+  }
 
   private rotateClipboard(state: EditorState): void {
     const clip = state.clipboard;

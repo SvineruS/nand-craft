@@ -10,6 +10,26 @@ interface Binding {
   handler: KeyHandler;
 }
 
+export class KeyMap {
+  private bindings: Binding[] = [];
+
+  on(shortcut: string, handler: KeyHandler): void {
+    const parsed = parseShortcut(shortcut);
+    this.bindings.push({ ...parsed, handler });
+  }
+
+  handle(e: KeyEvent): boolean {
+    for (const binding of this.bindings) {
+      if (matchKey(binding, e)) {
+        e.raw.preventDefault();
+        binding.handler(e);
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
 /**
  * Parse a shortcut string like "ctrl+shift+z" or "Delete" into its parts.
  * Modifier order doesn't matter: "shift+ctrl+z" === "ctrl+shift+z".
@@ -30,24 +50,4 @@ function matchKey(binding: Binding, e: KeyEvent): boolean {
     && e.ctrl === binding.ctrl
     && e.shift === binding.shift
     && e.alt === binding.alt;
-}
-
-export class KeyMap {
-  private bindings: Binding[] = [];
-
-  on(shortcut: string, handler: KeyHandler): void {
-    const parsed = parseShortcut(shortcut);
-    this.bindings.push({ ...parsed, handler });
-  }
-
-  handle(e: KeyEvent): boolean {
-    for (const binding of this.bindings) {
-      if (matchKey(binding, e)) {
-        e.raw.preventDefault();
-        binding.handler(e);
-        return true;
-      }
-    }
-    return false;
-  }
 }
