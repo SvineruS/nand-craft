@@ -3,7 +3,7 @@ import type { EditorState, Camera } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
 import { getGateDefinition } from '../levels/gates.ts';
 import { GRID_SIZE, getGateDims, getPinPositions, getAllPinIds, gateGridOffset, gateCenter } from './utils/geometry.ts';
-import { Vec2 } from './utils/vec2.ts';
+import { Vec2, routeCorner, routePointAt, routeLength } from './utils/vec2.ts';
 
 // --- Colors (dark theme) ---
 const COLORS = {
@@ -27,6 +27,10 @@ const COLORS = {
   wireNodeStroke: '#8888bb',
 } as const;
 
+const GRID_DOT_RADIUS = 1;
+const WIRE_DASH_SIZE = 3;
+const WIRE_LABEL_SPACING = 80;
+const WIRE_LABEL_MIN_LENGTH = 30;
 
 function signalColor(value: number | null, bitWidth = 1): string {
   if (value === null) return COLORS.wireHighZ;
@@ -209,12 +213,10 @@ export class Renderer {
     const startY = Math.floor(top / GRID_SIZE) * GRID_SIZE;
 
     ctx.fillStyle = COLORS.gridDot;
-    const dotRadius = 1;
-
     for (let gx = startX; gx <= right; gx += GRID_SIZE) {
       for (let gy = startY; gy <= bottom; gy += GRID_SIZE) {
         ctx.beginPath();
-        ctx.arc(gx, gy, dotRadius, 0, Math.PI * 2);
+        ctx.arc(gx, gy, GRID_DOT_RADIUS, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -233,112 +235,11 @@ export class Renderer {
    */
   private traceRoutedPath(ctx: CanvasRenderingContext2D, a: Vec2, b: Vec2): void {
     ctx.moveTo(a.x, a.y);
-
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-
-    // Already aligned on one axis — straight line
-    if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
-      ctx.lineTo(b.x, b.y);
-      return;
-    }
-
-    const adx = Math.abs(dx);
-    const ady = Math.abs(dy);
-    const sx = Math.sign(dx);
-    const sy = Math.sign(dy);
-
-    if (adx > ady) {
-      // Go horizontal first, then diagonal
-      const hLen = adx - ady;
-      ctx.lineTo(a.x + hLen * sx, a.y);
-      ctx.lineTo(b.x, b.y);
-    } else {
-      // Go vertical first, then diagonal
-      const vLen = ady - adx;
-      ctx.lineTo(a.x, a.y + vLen * sy);
-      ctx.lineTo(b.x, b.y);
-    }
+    const c = routeCorner(a, b);
+    if (c) ctx.lineTo(c.x, c.y);
+    ctx.lineTo(b.x, b.y);
   }
 
-  /**
-   * Find the midpoint along the actual routed path length (not the straight-line
-   * midpoint). Computes the two-segment path from traceRoutedPath, measures each
-   * segment's length, then walks exactly half the total distance to place labels
-   * and markers at the visual center of the wire.
-   */
-  private routedMidpoint(a: Vec2, b: Vec2): Vec2 {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-
-    if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
-      return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    }
-
-    const adx = Math.abs(dx);
-    const ady = Math.abs(dy);
-    const sx = Math.sign(dx);
-    const sy = Math.sign(dy);
-
-    // Build the 2 or 3 points of the routed path
-    const mid: Vec2 = adx > ady
-      ? { x: a.x + (adx - ady) * sx, y: a.y }
-      : { x: a.x, y: a.y + (ady - adx) * sy };
-
-    // Points: A → mid → B. Find midpoint along total path length.
-    const seg1 = Vec2.dist(a, mid);
-    const seg2 = Vec2.dist(mid, b);
-    const total = seg1 + seg2;
-    const half = total / 2;
-
-    if (half <= seg1) {
-      const t = seg1 > 0 ? half / seg1 : 0;
-      return { x: a.x + (mid.x - a.x) * t, y: a.y + (mid.y - a.y) * t };
-    } else {
-      const t = seg2 > 0 ? (half - seg1) / seg2 : 0;
-      return { x: mid.x + (b.x - mid.x) * t, y: mid.y + (b.y - mid.y) * t };
-    }
-  }
-
-  /** Total length of the routed path from A to B. */
-  private routedPathLength(a: Vec2, b: Vec2): number {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
-      return Math.hypot(dx, dy);
-    }
-    const adx = Math.abs(dx);
-    const ady = Math.abs(dy);
-    const mid: Vec2 = adx > ady
-      ? { x: a.x + (adx - ady) * Math.sign(dx), y: a.y }
-      : { x: a.x, y: a.y + (ady - adx) * Math.sign(dy) };
-    return Vec2.dist(a, mid) + Vec2.dist(mid, b);
-  }
-
-  /** Point at fraction t (0..1) along the routed path. */
-  private routedPointAt(a: Vec2, b: Vec2, t: number): Vec2 {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) {
-      return { x: a.x + dx * t, y: a.y + dy * t };
-    }
-    const adx = Math.abs(dx);
-    const ady = Math.abs(dy);
-    const mid: Vec2 = adx > ady
-      ? { x: a.x + (adx - ady) * Math.sign(dx), y: a.y }
-      : { x: a.x, y: a.y + (ady - adx) * Math.sign(dy) };
-    const seg1 = Vec2.dist(a, mid);
-    const seg2 = Vec2.dist(mid, b);
-    const total = seg1 + seg2;
-    const dist = t * total;
-    if (dist <= seg1) {
-      const s = seg1 > 0 ? dist / seg1 : 0;
-      return { x: a.x + (mid.x - a.x) * s, y: a.y + (mid.y - a.y) * s };
-    } else {
-      const s = seg2 > 0 ? (dist - seg1) / seg2 : 0;
-      return { x: mid.x + (b.x - mid.x) * s, y: mid.y + (b.y - mid.y) * s };
-    }
-  }
 
   private drawWireSegments(state: EditorState): void {
     const { ctx } = this;
@@ -399,21 +300,20 @@ export class Renderer {
       const color = signalColor(value, bitWidth);
       // Animated dash offset creates flowing motion
       const segLen = Vec2.dist(fromNode.pos, toNode.pos);
-      const dashSize = 3;
-      const offset = this.wireAnimProgress * dashSize * 4;
+      const dashOffset = this.wireAnimProgress * WIRE_DASH_SIZE * 4;
 
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.setLineDash([dashSize, dashSize]);
-      ctx.lineDashOffset = -offset;
+      ctx.setLineDash([WIRE_DASH_SIZE, WIRE_DASH_SIZE]);
+      ctx.lineDashOffset = -dashOffset;
       ctx.beginPath();
       this.traceRoutedPath(ctx, fromNode.pos, toNode.pos);
       ctx.stroke();
 
       // Value labels spaced along the routed path
-      if (segLen > 30) {
+      if (segLen > WIRE_LABEL_MIN_LENGTH) {
         const bw = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
         const text = formatWireValue(value, bw);
         ctx.setLineDash([]);
@@ -423,12 +323,11 @@ export class Renderer {
         const tw = ctx.measureText(text).width + 6;
 
         // Compute routed path total length and place labels every ~80px
-        const labelSpacing = 80;
-        const pathLen = this.routedPathLength(fromNode.pos, toNode.pos);
-        const labelCount = Math.max(1, Math.floor(pathLen / labelSpacing));
+        const pathLen = routeLength(fromNode.pos, toNode.pos);
+        const labelCount = Math.max(1, Math.floor(pathLen / WIRE_LABEL_SPACING));
         for (let li = 0; li < labelCount; li++) {
           const t = labelCount === 1 ? 0.5 : (li + 0.5) / labelCount;
-          const pt = this.routedPointAt(fromNode.pos, toNode.pos, t);
+          const pt = routePointAt(fromNode.pos, toNode.pos, t);
 
           ctx.fillStyle = COLORS.background;
           ctx.globalAlpha = 0.8;
@@ -452,7 +351,7 @@ export class Renderer {
       const toNode = circuit.getWireNode(segment.to);
 
       // Position label slightly above midpoint of routed path
-      const mid = this.routedMidpoint(fromNode.pos, toNode.pos);
+      const mid = routePointAt(fromNode.pos, toNode.pos, 0.5);
       const mx = mid.x;
       const my = mid.y;
 
@@ -727,7 +626,7 @@ export class Renderer {
       const segLen = Vec2.dist(from.pos, to.pos);
       if (segLen < 20) continue;
 
-      const mid = this.routedMidpoint(from.pos, to.pos);
+      const mid = routePointAt(from.pos, to.pos, 0.5);
       const mx = mid.x;
       const my = mid.y;
 

@@ -21,6 +21,13 @@ export type SelectionItem =
   | { type: 'wireNode'; id: WireNodeId }
   | { type: 'wireSegment'; id: WireSegmentId };
 
+export function getSelectedIds(state: EditorState, type: 'gate'): GateId[];
+export function getSelectedIds(state: EditorState, type: 'wireNode'): WireNodeId[];
+export function getSelectedIds(state: EditorState, type: 'wireSegment'): WireSegmentId[];
+export function getSelectedIds(state: EditorState, type: SelectionItem['type']): string[] {
+  return state.selection.filter(s => s.type === type).map(s => s.id as string);
+}
+
 export interface ClipboardGate {
   type: GateType;
   delta: Vec2;

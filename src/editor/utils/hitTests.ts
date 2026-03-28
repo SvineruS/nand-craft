@@ -1,6 +1,6 @@
 import type { EditorState } from "../EditorState.ts";
 import type { Gate, GateId, WireNodeId, WireSegmentId } from "../../types.ts";
-import { Vec2 } from "./vec2.ts";
+import { Vec2, routeCorner } from "./vec2.ts";
 import { getGateDims, getPinPositions, GRID_SIZE, snapToGrid, type WireEndpoint } from "./geometry.ts";
 
 
@@ -128,19 +128,7 @@ function pointToSegmentDist(p: Vec2, a: Vec2, b: Vec2): number {
 
 /** Distance from point to routed path (H/V + diagonal). */
 function distToRoutedPath(p: Vec2, a: Vec2, b: Vec2): number {
-  const d = Vec2.sub(b, a);
-
-  if (d.x === 0 || d.y === 0 || Math.abs(d.x) === Math.abs(d.y))
-    return pointToSegmentDist(p, a, b);
-
-  const adx = Math.abs(d.x);
-  const ady = Math.abs(d.y);
-  const mid: Vec2 = adx > ady ?
-    { x: a.x + (adx - ady) * Math.sign(d.x), y: a.y } :
-    { x: a.x, y: a.y + (ady - adx) * Math.sign(d.y) };
-
-  return Math.min(
-    pointToSegmentDist(p, a, mid),
-    pointToSegmentDist(p, mid, b),
-  );
+  const c = routeCorner(a, b);
+  if (!c) return pointToSegmentDist(p, a, b);
+  return Math.min(pointToSegmentDist(p, a, c), pointToSegmentDist(p, c, b));
 }
