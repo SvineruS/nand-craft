@@ -2,6 +2,9 @@ import { Circuit } from './circuit.ts';
 import type { GateId, GateType, Rotation, WireNodeId, WireSegmentId } from '../types.ts';
 import type { Vec2 } from './utils/vec2.ts';
 import type { WireEndpoint } from './utils/geometry.ts';
+import type { Camera } from '../engine/camera.ts';
+
+export type { Camera };
 
 export type PlaceableType = GateType;
 
@@ -10,11 +13,6 @@ export type InteractionMode =
   | { kind: 'stamping'; gateType: GateType }
   | { kind: 'wiring'; start: WireEndpoint }
   | { kind: 'pasting'; cursor: Vec2 | null };
-
-export interface Camera {
-  pos: Vec2;
-  zoom: number;
-}
 
 export type SelectionItem =
   | { type: 'gate'; id: GateId }
@@ -57,8 +55,6 @@ export interface EditorState {
   hoveredGate: GateId | null;
   hoveredEndpoint: WireEndpoint | null;
   mode: InteractionMode;
-  isDragging: boolean;
-  dragStart: Vec2 | null;
   selectionRect: { pos: Vec2; w: number; h: number } | null;
   dropPreview: { type: PlaceableType; pos: Vec2 } | null;
   clipboard: ClipboardData | null;
@@ -90,8 +86,6 @@ export function createEditorState(): EditorState {
     hoveredGate: null,
     hoveredEndpoint: null,
     mode: { kind: 'normal' },
-    isDragging: false,
-    dragStart: null,
     selectionRect: null,
     dropPreview: null,
     clipboard: null,

@@ -4,6 +4,7 @@ import { WIRE_COLORS } from './EditorState.ts';
 import { getGateDefinition } from '../levels/gates.ts';
 import { GRID_SIZE, getGateDims, getPinPositions, getAllPinIds, gateGridOffset, gateCenter } from './utils/geometry.ts';
 import { Vec2, routeCorner, routePointAt, routeLength } from './utils/vec2.ts';
+import { screenToWorld as stw, worldToScreen as wts } from '../engine/camera.ts';
 
 // --- Colors (dark theme) ---
 const COLORS = {
@@ -163,17 +164,11 @@ export class Renderer {
   }
 
   screenToWorld(screen: Vec2, camera: Camera): Vec2 {
-    return {
-      x: (screen.x - this.canvas.clientWidth / 2) / camera.zoom + camera.pos.x,
-      y: (screen.y - this.canvas.clientHeight / 2) / camera.zoom + camera.pos.y,
-    };
+    return stw(screen, camera, this.canvas.clientWidth, this.canvas.clientHeight);
   }
 
   worldToScreen(world: Vec2, camera: Camera): Vec2 {
-    return {
-      x: (world.x - camera.pos.x) * camera.zoom + this.canvas.clientWidth / 2,
-      y: (world.y - camera.pos.y) * camera.zoom + this.canvas.clientHeight / 2,
-    };
+    return wts(world, camera, this.canvas.clientWidth, this.canvas.clientHeight);
   }
 
   setMouseWorld(p: Vec2): void {

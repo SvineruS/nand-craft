@@ -34,15 +34,9 @@ import {
   snapGateCenter
 } from "./utils/hitTests.ts";
 import { copySelection, pasteClipboard } from './clipboard.ts';
+import { CanvasInput, type PointerEvent, type KeyEvent, type DragDropEvent } from '../engine/input.ts';
 
-// Interaction thresholds (pixels in world space)
-
-const MIN_WIRE_DRAG = 5;     // minimum drag to create wire (prevents accidental wires on dblclick)
-const ZOOM_MAX = 4;
-const ZOOM_MIN = 0.25;
-
-
-
+const MIN_WIRE_DRAG = 5;
 
 
 
@@ -57,7 +51,7 @@ type DragState =
   | { kind: 'wireNode'; nodeId: WireNodeId; fromSplit: boolean; detachPinId?: PinId; moved: boolean };
 
 export class InputHandler {
-  private canvas: HTMLCanvasElement;
+  private input: CanvasInput;
   private getState: () => EditorState;
   private getHistory: () => CommandHistory;
   private renderer: Renderer;
@@ -67,94 +61,66 @@ export class InputHandler {
   private wireStartWorld: Vec2 = { x: 0, y: 0 };
   private lastWorld: Vec2 = { x: 0, y: 0 };
 
-  // Bound listeners
-  private onMouseDown: (e: MouseEvent) => void;
-  private onMouseMove: (e: MouseEvent) => void;
-  private onMouseUp: (e: MouseEvent) => void;
-  private onWheel: (e: WheelEvent) => void;
-  private onKeyDown: (e: KeyboardEvent) => void;
-  private onContextMenu: (e: MouseEvent) => void;
-  private onDragOver: (e: DragEvent) => void;
-  private onDrop: (e: DragEvent) => void;
-  private onDragLeave: (e: DragEvent) => void;
-
   constructor(
     canvas: HTMLCanvasElement,
     getState: () => EditorState,
     getHistory: () => CommandHistory,
     renderer: Renderer,
   ) {
-    this.canvas = canvas;
     this.getState = getState;
     this.getHistory = getHistory;
     this.renderer = renderer;
 
-    this.onMouseDown = this.handleMouseDown.bind(this);
-    this.onMouseMove = this.handleMouseMove.bind(this);
-    this.onMouseUp = this.handleMouseUp.bind(this);
-    this.onWheel = this.handleWheel.bind(this);
-    this.onKeyDown = this.handleKeyDown.bind(this);
-    this.onContextMenu = this.handleContextMenu.bind(this);
-    this.onDragOver = this.handleDragOver.bind(this);
-    this.onDrop = this.handleDrop.bind(this);
-    this.onDragLeave = this.handleDragLeave.bind(this);
+    this.input = new CanvasInput(canvas, {
+      onPointerDown: (e) => this.handleMouseDown(e),
+      onPointerMove: (e) => this.handleMouseMove(e),
+      onPointerUp: (e) => this.handleMouseUp(e),
+      onKeyDown: (e) => this.handleKeyDown(e),
+      onContextMenu: (e) => this.handleContextMenu(e),
+      onDragOver: (e) => this.handleDragOver(e),
+      onDrop: (e) => this.handleDrop(e),
+      onDragLeave: (e) => this.handleDragLeave(e),
+    }, {
+      getCamera: () => getState().camera,
+      shouldPan: (e) => {
+        if (e.button === 1) {
+          const state = getState();
+          return !hitTestGate(e.world, state) && !hitTestEndpoint(e.world, state) && !hitTestWireSegment(e.world, state);
+        }
+        return false;
+      },
+      onCameraChange: () => { getState().renderDirty = true; },
+    });
   }
 
-  attach(): void {
-    this.canvas.addEventListener('mousedown', this.onMouseDown);
-    this.canvas.addEventListener('mousemove', this.onMouseMove);
-    this.canvas.addEventListener('mouseup', this.onMouseUp);
-    this.canvas.addEventListener('wheel', this.onWheel, { passive: false });
-    window.addEventListener('keydown', this.onKeyDown);
-    this.canvas.addEventListener('contextmenu', this.onContextMenu);
-    this.canvas.addEventListener('dragover', this.onDragOver);
-    this.canvas.addEventListener('drop', this.onDrop);
-    this.canvas.addEventListener('dragleave', this.onDragLeave);
-  }
-
-  detach(): void {
-    this.canvas.removeEventListener('mousedown', this.onMouseDown);
-    this.canvas.removeEventListener('mousemove', this.onMouseMove);
-    this.canvas.removeEventListener('mouseup', this.onMouseUp);
-    this.canvas.removeEventListener('wheel', this.onWheel);
-    window.removeEventListener('keydown', this.onKeyDown);
-    this.canvas.removeEventListener('contextmenu', this.onContextMenu);
-    this.canvas.removeEventListener('dragover', this.onDragOver);
-    this.canvas.removeEventListener('drop', this.onDrop);
-    this.canvas.removeEventListener('dragleave', this.onDragLeave);
-  }
+  attach(): void { this.input.attach(); }
+  detach(): void { this.input.detach(); }
 
   // ---------------------------------------------------------------------------
   // Drag-and-drop from sidebar (gate placement)
   // ---------------------------------------------------------------------------
 
-  private handleDragOver(e: DragEvent): void {
-    e.preventDefault();
-    if (!e.dataTransfer) return;
-    e.dataTransfer.dropEffect = 'copy';
+  private handleDragOver(e: DragDropEvent): void {
     const state = this.getState();
-    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
     if (state.mode.kind !== 'stamping') throw new Error('Drag without stamping mode');
     const previewType = state.mode.gateType;
     const def = getGateDefinition(previewType);
-    state.dropPreview = { type: previewType, pos: snapGateCenter(world, def.width, def.height) };
+    state.dropPreview = { type: previewType, pos: snapGateCenter(e.world, def.width, def.height) };
     state.renderDirty = true;
   }
 
-  private handleDrop(e: DragEvent): void {
-    e.preventDefault();
+  private handleDrop(e: DragDropEvent): void {
     if (!e.dataTransfer) return;
     const gateType = e.dataTransfer.getData('text/plain') as PlaceableType;
     const def = getGateDefinition(gateType);
     const state = this.getState();
-    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
-    const cmd = new AddGateCommand(state, gateType, snapGateCenter(world, def.width, def.height));
+    const cmd = new AddGateCommand(state, gateType, snapGateCenter(e.world, def.width, def.height));
     this.getHistory().execute(cmd);
     state.dropPreview = null;
     state.renderDirty = true;
   }
 
-  private handleDragLeave(_e: DragEvent): void {
+  private handleDragLeave(_e: DragDropEvent): void {
     const state = this.getState();
     state.dropPreview = null;
     state.renderDirty = true;
@@ -164,10 +130,9 @@ export class InputHandler {
   // Right-click — select + delete element under cursor, or clear selection
   // ---------------------------------------------------------------------------
 
-  private handleContextMenu(e: MouseEvent): void {
-    e.preventDefault();
+  private handleContextMenu(e: PointerEvent): void {
     const state = this.getState();
-    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
+    const world = e.world;
 
     // Cancel stamp/paste mode
     if (state.mode.kind !== 'normal') {
@@ -197,7 +162,7 @@ export class InputHandler {
     // Wire segment?
     const segHit = hitTestWireSegment(world, state);
     if (segHit) {
-      if (e.shiftKey) {
+      if (e.shift) {
         // Shift+right-click: delete all connected wires
         const allSegs = this.getConnectedSegments(state, [segHit]);
         this.getHistory().beginBatch('Delete connected wires');
@@ -220,16 +185,16 @@ export class InputHandler {
   // Mouse down
   // ---------------------------------------------------------------------------
 
-  private handleMouseDown(e: MouseEvent): void {
+  private handleMouseDown(e: PointerEvent): void {
     const state = this.getState();
-    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
+    const world = e.world;
 
     if (e.button === 1) {
-      this.handleMiddleMouseDown(state, world, e);
+      this.handleMiddleMouseDown(state, world);
       return;
     }
-    if (e.button === 0 && e.shiftKey) {
-      this.handleShiftMouseDown(state, world, e);
+    if (e.button === 0 && e.shift) {
+      this.handleShiftMouseDown(state, world);
       return;
     }
     if (e.button !== 0) return;
@@ -243,7 +208,7 @@ export class InputHandler {
       return;
     }
 
-    const isDblClick = e.detail >= 2;
+    const isDblClick = e.raw.detail >= 2;
 
     const ep = hitTestEndpoint(world, state);
     if (ep) {
@@ -266,7 +231,7 @@ export class InputHandler {
     this.handleEmptyMouseDown(state, world, isDblClick, e);
   }
 
-  private handleMiddleMouseDown(state: EditorState, world: Vec2, e: MouseEvent): void {
+  private handleMiddleMouseDown(state: EditorState, world: Vec2): void {
     // Disconnect drag if over gate
     const gateHit = hitTestGate(world, state);
     if (gateHit) {
@@ -287,15 +252,10 @@ export class InputHandler {
       const newNodeId = this.splitWireSegment(state, segHit, Vec2.snap(world));
       this.getHistory().endBatch();
       this.startNodeDrag(state, newNodeId, world, { fromSplit: true });
-      return;
     }
-
-    // Otherwise pan
-    state.isDragging = true;
-    state.dragStart = { x: e.offsetX, y: e.offsetY };
   }
 
-  private handleShiftMouseDown(state: EditorState, world: Vec2, e: MouseEvent): void {
+  private handleShiftMouseDown(state: EditorState, world: Vec2): void {
     const ep = hitTestEndpoint(world, state);
     if (ep && ep.kind === 'node') {
       this.drag = { kind: 'wireNode', nodeId: ep.nodeId, fromSplit: false, moved: false };
@@ -308,11 +268,7 @@ export class InputHandler {
     const gateHit = hitTestGate(world, state);
     if (gateHit) {
       this.startDisconnectDrag(state, gateHit, world);
-      return;
     }
-
-    state.isDragging = true;
-    state.dragStart = { x: e.offsetX, y: e.offsetY };
   }
 
   private handleStampClick(state: EditorState, world: Vec2): void {
@@ -370,7 +326,7 @@ export class InputHandler {
     return true;
   }
 
-  private handleGateMouseDown(state: EditorState, world: Vec2, gateHit: GateId, isDblClick: boolean, e: MouseEvent): void {
+  private handleGateMouseDown(state: EditorState, world: Vec2, gateHit: GateId, isDblClick: boolean, e: PointerEvent): void {
     // Double-click constant gate → toggle value
     if (isDblClick) {
       const gate = state.circuit.getGate(gateHit);
@@ -389,7 +345,7 @@ export class InputHandler {
     const alreadySelected = state.selection.some(
       (s) => s.type === 'gate' && s.id === gateHit,
     );
-    if (e.ctrlKey || e.metaKey) {
+    if (e.ctrl) {
       if (alreadySelected) {
         state.selection = state.selection.filter(item => !(item.type === 'gate' && item.id === gateHit));
       } else {
@@ -412,7 +368,7 @@ export class InputHandler {
     }
   }
 
-  private handleWireSegmentMouseDown(state: EditorState, world: Vec2, segHit: WireSegmentId, isDblClick: boolean, e: MouseEvent): void {
+  private handleWireSegmentMouseDown(state: EditorState, world: Vec2, segHit: WireSegmentId, isDblClick: boolean, e: PointerEvent): void {
     if (isDblClick) {
       // Double-click wire → split and start dragging new node
       state.mode = { kind: 'normal' };
@@ -422,7 +378,7 @@ export class InputHandler {
       this.startNodeDrag(state, newNodeId, world, { fromSplit: true });
       return;
     }
-    if (e.ctrlKey || e.metaKey) {
+    if (e.ctrl) {
       const alreadySel = state.selection.some(s => s.type === 'wireSegment' && s.id === segHit);
       if (alreadySel) {
         state.selection = state.selection.filter(item => !(item.type === 'wireSegment' && item.id === segHit));
@@ -434,7 +390,7 @@ export class InputHandler {
     }
   }
 
-  private handleEmptyMouseDown(state: EditorState, world: Vec2, isDblClick: boolean, e: MouseEvent): void {
+  private handleEmptyMouseDown(state: EditorState, world: Vec2, isDblClick: boolean, e: PointerEvent): void {
     if (isDblClick) {
       // Double-click empty → create wire node and start wiring from it
       const snapPos = Vec2.snap(world);
@@ -448,21 +404,19 @@ export class InputHandler {
     }
 
     // Single click empty → start selection rect
-    if (!(e.ctrlKey || e.metaKey)) {
+    if (!e.ctrl) {
       state.selection = [];
     }
     state.selectionRect = { pos: Vec2.copy(world), w: 0, h: 0 };
-    state.isDragging = false;
-    state.dragStart = Vec2.copy(world);
   }
 
   // ---------------------------------------------------------------------------
   // Mouse move
   // ---------------------------------------------------------------------------
 
-  private handleMouseMove(e: MouseEvent): void {
+  private handleMouseMove(e: PointerEvent): void {
     const state = this.getState();
-    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
+    const world = e.world;
     this.renderer.setMouseWorld(world);
 
     // Stamp/paste preview
@@ -474,16 +428,6 @@ export class InputHandler {
     } else if (state.mode.kind === 'pasting') {
       state.mode = { kind: 'pasting', cursor: Vec2.snap(world) };
       state.renderDirty = true;
-    }
-
-    // Pan
-    if (state.isDragging && state.dragStart) {
-      const dragStart = { x: e.offsetX, y: e.offsetY };
-      const d = Vec2.sub(dragStart, state.dragStart);
-      state.camera.pos = Vec2.sub(state.camera.pos, Vec2.scale(d, 1 / state.camera.zoom));
-      state.dragStart = dragStart;
-      state.renderDirty = true;
-      return;
     }
 
     // Wire node dragging (snapped to grid)
@@ -538,9 +482,9 @@ export class InputHandler {
     }
 
     // Selection rect
-    if (state.selectionRect && state.dragStart) {
-      state.selectionRect.w = world.x - state.dragStart.x;
-      state.selectionRect.h = world.y - state.dragStart.y;
+    if (state.selectionRect) {
+      state.selectionRect.w = world.x - state.selectionRect.pos.x;
+      state.selectionRect.h = world.y - state.selectionRect.pos.y;
       state.renderDirty = true;
       return;
     }
@@ -555,7 +499,7 @@ export class InputHandler {
   // Mouse up
   // ---------------------------------------------------------------------------
 
-  private handleMouseUp(e: MouseEvent): void {
+  private handleMouseUp(e: PointerEvent): void {
     const state = this.getState();
 
     if (this.drag.kind === 'wireNode') {
@@ -572,17 +516,12 @@ export class InputHandler {
     }
     if (state.selectionRect) {
       this.completeSelectionRect(state);
-      return;
     }
-
-    // Clear pan
-    state.isDragging = false;
-    state.dragStart = null;
   }
 
-  private completeNodeDrag(state: EditorState, e: MouseEvent): void {
+  private completeNodeDrag(state: EditorState, e: PointerEvent): void {
     if (this.drag.kind !== 'wireNode') return;
-    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
+    const world = e.world;
     const { nodeId, moved: didMove, fromSplit, detachPinId } = this.drag;
     this.drag = { kind: 'none' };
 
@@ -674,10 +613,10 @@ export class InputHandler {
     this.getHistory().execute(new RemoveWireNodeCommand(state, nodeId));
   }
 
-  private completeWiring(state: EditorState, e: MouseEvent): void {
+  private completeWiring(state: EditorState, e: PointerEvent): void {
     if (state.mode.kind !== 'wiring') return;
     const wireStart = state.mode.start;
-    const world = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
+    const world = e.world;
 
     // No drag? Cancel (allows double-click to work)
     const dragDist = Vec2.dist(world, this.wireStartWorld);
@@ -777,48 +716,30 @@ export class InputHandler {
   }
 
   // ---------------------------------------------------------------------------
-  // Wheel (zoom)
-  // ---------------------------------------------------------------------------
-
-  private handleWheel(e: WheelEvent): void {
-    e.preventDefault();
-    const state = this.getState();
-    const worldBefore = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-    state.camera.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, state.camera.zoom * zoomFactor));
-    const worldAfter = this.renderer.screenToWorld({ x: e.offsetX, y: e.offsetY }, state.camera);
-    state.camera.pos = Vec2.add(state.camera.pos, Vec2.sub(worldBefore, worldAfter));
-    state.renderDirty = true;
-  }
-
-  // ---------------------------------------------------------------------------
   // Keyboard
   // ---------------------------------------------------------------------------
 
-  private handleKeyDown(e: KeyboardEvent): void {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
+  private handleKeyDown(e: KeyEvent): void {
     const state = this.getState();
-    const ctrl = e.ctrlKey || e.metaKey;
 
-    if (this.handleUndoRedo(state, e, ctrl)) return;
+    if (this.handleUndoRedo(state, e)) return;
     if (this.handleDeleteKey(state, e)) return;
     if (this.handleRotateKey(state, e)) return;
-    if (this.handleWireColorKey(state, e, ctrl)) return;
-    if (this.handleClipboardKeys(state, e, ctrl)) return;
+    if (this.handleWireColorKey(state, e)) return;
+    if (this.handleClipboardKeys(state, e)) return;
     if (this.handleEyedropperKey(state, e)) return;
     if (this.handleEscapeKey(state, e)) return;
   }
 
-  private handleUndoRedo(state: EditorState, e: KeyboardEvent, ctrl: boolean): boolean {
-    if (ctrl && e.key === 'z' && !e.shiftKey) {
-      e.preventDefault();
+  private handleUndoRedo(state: EditorState, e: KeyEvent): boolean {
+    if (e.ctrl && e.key === 'z' && !e.shift) {
+      e.raw.preventDefault();
       this.getHistory().undo();
       state.renderDirty = true;
       return true;
     }
-    if (ctrl && (e.key === 'Z' || e.key === 'y')) {
-      e.preventDefault();
+    if (e.ctrl && (e.key === 'Z' || e.key === 'y')) {
+      e.raw.preventDefault();
       this.getHistory().redo();
       state.renderDirty = true;
       return true;
@@ -826,14 +747,14 @@ export class InputHandler {
     return false;
   }
 
-  private handleDeleteKey(state: EditorState, e: KeyboardEvent): boolean {
+  private handleDeleteKey(state: EditorState, e: KeyEvent): boolean {
     if (e.key !== 'Delete' && e.key !== 'Backspace') return false;
-    e.preventDefault();
+    e.raw.preventDefault();
     this.deleteSelected(state);
     return true;
   }
 
-  private handleRotateKey(state: EditorState, e: KeyboardEvent): boolean {
+  private handleRotateKey(state: EditorState, e: KeyEvent): boolean {
     if (e.key !== 'r' && e.key !== 'R') return false;
 
     // Rotate clipboard in paste mode
@@ -851,7 +772,7 @@ export class InputHandler {
     return true;
   }
 
-  private handleWireColorKey(state: EditorState, e: KeyboardEvent, ctrl: boolean): boolean {
+  private handleWireColorKey(state: EditorState, e: KeyEvent): boolean {
     if (e.key !== 'e' && e.key !== 'E') return false;
 
     const selectedSegs = state.selection
@@ -862,32 +783,32 @@ export class InputHandler {
     const color = state.wireColor;
     const colorValue = color === WIRE_COLORS[0] ? undefined : color;
 
-    const segIds = (e.shiftKey || ctrl)
+    const segIds = (e.shift || e.ctrl)
       ? this.getConnectedSegments(state, selectedSegs)
       : selectedSegs;
     this.getHistory().execute(new ChangeWireCommand(state, segIds, { color: colorValue }));
     return true;
   }
 
-  private handleClipboardKeys(state: EditorState, e: KeyboardEvent, ctrl: boolean): boolean {
-    if (!ctrl) return false;
+  private handleClipboardKeys(state: EditorState, e: KeyEvent): boolean {
+    if (!e.ctrl) return false;
 
     // Copy
-    if ((e.key === 'c' || e.key === 'C') && !e.shiftKey) {
-      e.preventDefault();
+    if ((e.key === 'c' || e.key === 'C') && !e.shift) {
+      e.raw.preventDefault();
       copySelection(state);
       return true;
     }
     // Cut
     if (e.key === 'x' || e.key === 'X') {
-      e.preventDefault();
+      e.raw.preventDefault();
       copySelection(state);
       this.deleteSelected(state);
       return true;
     }
     // Paste
     if (e.key === 'v' || e.key === 'V') {
-      e.preventDefault();
+      e.raw.preventDefault();
       if (state.clipboard) {
         state.mode = { kind: 'pasting', cursor: null };
         state.renderDirty = true;
@@ -897,7 +818,7 @@ export class InputHandler {
     return false;
   }
 
-  private handleEyedropperKey(state: EditorState, e: KeyboardEvent): boolean {
+  private handleEyedropperKey(state: EditorState, e: KeyEvent): boolean {
     if (e.key !== 'q' && e.key !== 'Q') return false;
 
     if (state.hoveredGate) {
@@ -917,7 +838,7 @@ export class InputHandler {
     return true;
   }
 
-  private handleEscapeKey(state: EditorState, e: KeyboardEvent): boolean {
+  private handleEscapeKey(state: EditorState, e: KeyEvent): boolean {
     if (e.key !== 'Escape') return false;
     this.drag = { kind: 'none' };
     state.selection = [];
