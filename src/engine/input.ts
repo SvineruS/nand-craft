@@ -80,17 +80,6 @@ export class CanvasInput {
   private panning = false;
   private panLast: Vec2 = { x: 0, y: 0 };
 
-  // Bound listeners
-  private _mouseDown: (e: MouseEvent) => void;
-  private _mouseMove: (e: MouseEvent) => void;
-  private _mouseUp: (e: MouseEvent) => void;
-  private _wheel: (e: globalThis.WheelEvent) => void;
-  private _keyDown: (e: KeyboardEvent) => void;
-  private _contextMenu: (e: MouseEvent) => void;
-  private _dragOver: (e: globalThis.DragEvent) => void;
-  private _drop: (e: globalThis.DragEvent) => void;
-  private _dragLeave: (e: globalThis.DragEvent) => void;
-
   constructor(
     canvas: HTMLCanvasElement,
     handlers: CanvasInputHandlers,
@@ -104,41 +93,107 @@ export class CanvasInput {
     this.zoomMin = opts.zoomMin ?? 0.25;
     this.zoomMax = opts.zoomMax ?? 4;
     this.zoomFactor = opts.zoomFactor ?? 1.1;
-
-    this._mouseDown = this.handleMouseDown.bind(this);
-    this._mouseMove = this.handleMouseMove.bind(this);
-    this._mouseUp = this.handleMouseUp.bind(this);
-    this._wheel = this.handleWheel.bind(this);
-    this._keyDown = this.handleKeyDown.bind(this);
-    this._contextMenu = this.handleContextMenu.bind(this);
-    this._dragOver = this.handleDragOver.bind(this);
-    this._drop = this.handleDrop.bind(this);
-    this._dragLeave = this.handleDragLeave.bind(this);
   }
 
   attach(): void {
-    this.canvas.addEventListener('mousedown', this._mouseDown);
-    this.canvas.addEventListener('mousemove', this._mouseMove);
-    this.canvas.addEventListener('mouseup', this._mouseUp);
-    this.canvas.addEventListener('wheel', this._wheel, { passive: false });
-    window.addEventListener('keydown', this._keyDown);
-    this.canvas.addEventListener('contextmenu', this._contextMenu);
-    this.canvas.addEventListener('dragover', this._dragOver);
-    this.canvas.addEventListener('drop', this._drop);
-    this.canvas.addEventListener('dragleave', this._dragLeave);
+    this.canvas.addEventListener('mousedown', this.handleMouseDown);
+    this.canvas.addEventListener('mousemove', this.handleMouseMove);
+    this.canvas.addEventListener('mouseup', this.handleMouseUp);
+    this.canvas.addEventListener('wheel', this.handleWheel, { passive: false });
+    window.addEventListener('keydown', this.handleKeyDown);
+    this.canvas.addEventListener('contextmenu', this.handleContextMenu);
+    this.canvas.addEventListener('dragover', this.handleDragOver);
+    this.canvas.addEventListener('drop', this.handleDrop);
+    this.canvas.addEventListener('dragleave', this.handleDragLeave);
   }
 
   detach(): void {
-    this.canvas.removeEventListener('mousedown', this._mouseDown);
-    this.canvas.removeEventListener('mousemove', this._mouseMove);
-    this.canvas.removeEventListener('mouseup', this._mouseUp);
-    this.canvas.removeEventListener('wheel', this._wheel);
-    window.removeEventListener('keydown', this._keyDown);
-    this.canvas.removeEventListener('contextmenu', this._contextMenu);
-    this.canvas.removeEventListener('dragover', this._dragOver);
-    this.canvas.removeEventListener('drop', this._drop);
-    this.canvas.removeEventListener('dragleave', this._dragLeave);
+    this.canvas.removeEventListener('mousedown', this.handleMouseDown);
+    this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+    this.canvas.removeEventListener('mouseup', this.handleMouseUp);
+    this.canvas.removeEventListener('wheel', this.handleWheel);
+    window.removeEventListener('keydown', this.handleKeyDown);
+    this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
+    this.canvas.removeEventListener('dragover', this.handleDragOver);
+    this.canvas.removeEventListener('drop', this.handleDrop);
+    this.canvas.removeEventListener('dragleave', this.handleDragLeave);
   }
+
+  // --- Event handlers ---
+
+  private handleMouseDown = (e: MouseEvent): void => {
+    const p = this.pointer(e);
+    if (this.shouldPan(p)) {
+      this.panning = true;
+      this.panLast = { x: e.offsetX, y: e.offsetY };
+      return;
+    }
+    this.handlers.onPointerDown?.(p);
+  };
+
+  private handleMouseMove = (e: MouseEvent): void => {
+    if (this.panning) {
+      const current = { x: e.offsetX, y: e.offsetY };
+      applyPan(this.getCamera(), { x: current.x - this.panLast.x, y: current.y - this.panLast.y });
+      this.panLast = current;
+      this.onCameraChange?.();
+      return;
+    }
+    this.handlers.onPointerMove?.(this.pointer(e));
+  };
+
+  private handleMouseUp = (e: MouseEvent): void => {
+    if (this.panning) {
+      this.panning = false;
+      return;
+    }
+    this.handlers.onPointerUp?.(this.pointer(e));
+  };
+
+  private handleWheel = (e: globalThis.WheelEvent): void => {
+    e.preventDefault();
+    const screen = { x: e.offsetX, y: e.offsetY };
+    const factor = e.deltaY < 0 ? this.zoomFactor : 1 / this.zoomFactor;
+    applyZoom(
+      this.getCamera(), screen, factor,
+      this.canvas.clientWidth, this.canvas.clientHeight,
+      this.zoomMin, this.zoomMax,
+    );
+    this.onCameraChange?.();
+    this.handlers.onWheel?.({
+      world: this.toWorld(screen), screen, raw: e, deltaY: e.deltaY,
+    });
+  };
+
+  private handleKeyDown = (e: KeyboardEvent): void => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    this.handlers.onKeyDown?.({
+      raw: e, key: e.key,
+      ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, alt: e.altKey,
+    });
+  };
+
+  private handleContextMenu = (e: MouseEvent): void => {
+    e.preventDefault();
+    this.handlers.onContextMenu?.(this.pointer(e));
+  };
+
+  private handleDragOver = (e: globalThis.DragEvent): void => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    this.handlers.onDragOver?.(this.dragEvent(e));
+  };
+
+  private handleDrop = (e: globalThis.DragEvent): void => {
+    e.preventDefault();
+    this.handlers.onDrop?.(this.dragEvent(e));
+  };
+
+  private handleDragLeave = (e: globalThis.DragEvent): void => {
+    this.handlers.onDragLeave?.(this.dragEvent(e));
+  };
+
+  // --- Helpers ---
 
   toWorld(screen: Vec2): Vec2 {
     const cam = this.getCamera();
@@ -163,77 +218,5 @@ export class CanvasInput {
     return { world: this.toWorld(screen), screen, raw: e, dataTransfer: e.dataTransfer };
   }
 
-  // --- Event handlers ---
 
-  private handleMouseDown(e: MouseEvent): void {
-    const p = this.pointer(e);
-    if (this.shouldPan(p)) {
-      this.panning = true;
-      this.panLast = { x: e.offsetX, y: e.offsetY };
-      return;
-    }
-    this.handlers.onPointerDown?.(p);
-  }
-
-  private handleMouseMove(e: MouseEvent): void {
-    if (this.panning) {
-      const current = { x: e.offsetX, y: e.offsetY };
-      applyPan(this.getCamera(), { x: current.x - this.panLast.x, y: current.y - this.panLast.y });
-      this.panLast = current;
-      this.onCameraChange?.();
-      return;
-    }
-    this.handlers.onPointerMove?.(this.pointer(e));
-  }
-
-  private handleMouseUp(e: MouseEvent): void {
-    if (this.panning) {
-      this.panning = false;
-      return;
-    }
-    this.handlers.onPointerUp?.(this.pointer(e));
-  }
-
-  private handleWheel(e: globalThis.WheelEvent): void {
-    e.preventDefault();
-    const screen = { x: e.offsetX, y: e.offsetY };
-    const factor = e.deltaY < 0 ? this.zoomFactor : 1 / this.zoomFactor;
-    applyZoom(
-      this.getCamera(), screen, factor,
-      this.canvas.clientWidth, this.canvas.clientHeight,
-      this.zoomMin, this.zoomMax,
-    );
-    this.onCameraChange?.();
-    this.handlers.onWheel?.({
-      world: this.toWorld(screen), screen, raw: e, deltaY: e.deltaY,
-    });
-  }
-
-  private handleKeyDown(e: KeyboardEvent): void {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    this.handlers.onKeyDown?.({
-      raw: e, key: e.key,
-      ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, alt: e.altKey,
-    });
-  }
-
-  private handleContextMenu(e: MouseEvent): void {
-    e.preventDefault();
-    this.handlers.onContextMenu?.(this.pointer(e));
-  }
-
-  private handleDragOver(e: globalThis.DragEvent): void {
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-    this.handlers.onDragOver?.(this.dragEvent(e));
-  }
-
-  private handleDrop(e: globalThis.DragEvent): void {
-    e.preventDefault();
-    this.handlers.onDrop?.(this.dragEvent(e));
-  }
-
-  private handleDragLeave(e: globalThis.DragEvent): void {
-    this.handlers.onDragLeave?.(this.dragEvent(e));
-  }
 }
