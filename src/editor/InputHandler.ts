@@ -34,7 +34,8 @@ import {
   snapGateCenter
 } from "./utils/hitTests.ts";
 import { copySelection, pasteClipboard } from './clipboard.ts';
-import { CanvasInput, type PointerEvent, type KeyEvent, type DragDropEvent } from '../engine/input.ts';
+import { CanvasInput, type PointerEvent, type DragDropEvent } from '../engine/input.ts';
+import { KeyMap } from '../engine/keymap.ts';
 
 const MIN_WIRE_DRAG = 5;
 
@@ -52,6 +53,7 @@ type DragState =
 
 export class InputHandler {
   private input: CanvasInput;
+  private keys: KeyMap;
   private getState: () => EditorState;
   private getHistory: () => CommandHistory;
   private renderer: Renderer;
@@ -71,11 +73,14 @@ export class InputHandler {
     this.getHistory = getHistory;
     this.renderer = renderer;
 
+    this.keys = new KeyMap();
+    this.setupKeyBindings();
+
     this.input = new CanvasInput(canvas, {
       onPointerDown: (e) => this.handleMouseDown(e),
       onPointerMove: (e) => this.handleMouseMove(e),
       onPointerUp: (e) => this.handleMouseUp(e),
-      onKeyDown: (e) => this.handleKeyDown(e),
+      onKeyDown: (e) => this.keys.handle(e),
       onContextMenu: (e) => this.handleContextMenu(e),
       onDragOver: (e) => this.handleDragOver(e),
       onDrop: (e) => this.handleDrop(e),
@@ -719,113 +724,84 @@ export class InputHandler {
   // Keyboard
   // ---------------------------------------------------------------------------
 
-  private handleKeyDown(e: KeyEvent): void {
-    const state = this.getState();
-
-    if (this.handleUndoRedo(state, e)) return;
-    if (this.handleDeleteKey(state, e)) return;
-    if (this.handleRotateKey(state, e)) return;
-    if (this.handleWireColorKey(state, e)) return;
-    if (this.handleClipboardKeys(state, e)) return;
-    if (this.handleEyedropperKey(state, e)) return;
-    if (this.handleEscapeKey(state, e)) return;
-  }
-
-  private handleUndoRedo(state: EditorState, e: KeyEvent): boolean {
-    if (e.ctrl && e.key === 'z' && !e.shift) {
-      e.raw.preventDefault();
+  private setupKeyBindings(): void {
+    this.keys.on('ctrl+z', () => {
       this.getHistory().undo();
-      state.renderDirty = true;
-      return true;
-    }
-    if (e.ctrl && (e.key === 'Z' || e.key === 'y')) {
-      e.raw.preventDefault();
+      this.getState().renderDirty = true;
+    });
+    this.keys.on('ctrl+shift+z', () => {
       this.getHistory().redo();
+      this.getState().renderDirty = true;
+    });
+    this.keys.on('ctrl+y', () => {
+      this.getHistory().redo();
+      this.getState().renderDirty = true;
+    });
+    this.keys.on('delete', () => this.deleteSelected(this.getState()));
+    this.keys.on('backspace', () => this.deleteSelected(this.getState()));
+    this.keys.on('r', () => this.handleRotate());
+    this.keys.on('e', () => this.applyWireColor(false));
+    this.keys.on('shift+e', () => this.applyWireColor(true));
+    this.keys.on('ctrl+e', () => this.applyWireColor(true));
+    this.keys.on('ctrl+c', () => copySelection(this.getState()));
+    this.keys.on('ctrl+x', () => {
+      const state = this.getState();
+      copySelection(state);
+      this.deleteSelected(state);
+    });
+    this.keys.on('ctrl+v', () => {
+      const state = this.getState();
+      if (state.clipboard) {
+        state.mode = { kind: 'pasting', cursor: null };
+        state.renderDirty = true;
+      }
+    });
+    this.keys.on('q', () => this.eyedrop());
+    this.keys.on('escape', () => {
+      this.drag = { kind: 'none' };
+      const state = this.getState();
+      state.selection = [];
+      state.mode = { kind: 'normal' };
+      state.selectionRect = null;
+      state.dropPreview = null;
       state.renderDirty = true;
-      return true;
-    }
-    return false;
+    });
   }
 
-  private handleDeleteKey(state: EditorState, e: KeyEvent): boolean {
-    if (e.key !== 'Delete' && e.key !== 'Backspace') return false;
-    e.raw.preventDefault();
-    this.deleteSelected(state);
-    return true;
-  }
-
-  private handleRotateKey(state: EditorState, e: KeyEvent): boolean {
-    if (e.key !== 'r' && e.key !== 'R') return false;
-
-    // Rotate clipboard in paste mode
+  private handleRotate(): void {
+    const state = this.getState();
     if (state.mode.kind === 'pasting' && state.clipboard) {
       this.rotateClipboard(state);
-      return true;
+      return;
     }
-    // Rotate selection (gates + free nodes around group center)
     const gateIds = getSelectedIds(state, 'gate')
       .filter(gid => state.circuit.getGate(gid).canMove !== false);
     const nodeIds = getSelectedIds(state, 'wireNode');
     if (gateIds.length > 0 || nodeIds.length > 0) {
       this.getHistory().execute(new RotateGatesCommand(state, gateIds, nodeIds));
     }
-    return true;
   }
 
-  private handleWireColorKey(state: EditorState, e: KeyEvent): boolean {
-    if (e.key !== 'e' && e.key !== 'E') return false;
-
+  private applyWireColor(connected: boolean): void {
+    const state = this.getState();
     const selectedSegs = state.selection
       .filter((s): s is { type: 'wireSegment'; id: WireSegmentId } => s.type === 'wireSegment')
       .map((s) => s.id);
-    if (selectedSegs.length === 0) return true;
+    if (selectedSegs.length === 0) return;
 
     const color = state.wireColor;
     const colorValue = color === WIRE_COLORS[0] ? undefined : color;
-
-    const segIds = (e.shift || e.ctrl)
-      ? this.getConnectedSegments(state, selectedSegs)
-      : selectedSegs;
+    const segIds = connected ? this.getConnectedSegments(state, selectedSegs) : selectedSegs;
     this.getHistory().execute(new ChangeWireCommand(state, segIds, { color: colorValue }));
-    return true;
   }
 
-  private handleClipboardKeys(state: EditorState, e: KeyEvent): boolean {
-    if (!e.ctrl) return false;
-
-    // Copy
-    if ((e.key === 'c' || e.key === 'C') && !e.shift) {
-      e.raw.preventDefault();
-      copySelection(state);
-      return true;
-    }
-    // Cut
-    if (e.key === 'x' || e.key === 'X') {
-      e.raw.preventDefault();
-      copySelection(state);
-      this.deleteSelected(state);
-      return true;
-    }
-    // Paste
-    if (e.key === 'v' || e.key === 'V') {
-      e.raw.preventDefault();
-      if (state.clipboard) {
-        state.mode = { kind: 'pasting', cursor: null };
-        state.renderDirty = true;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  private handleEyedropperKey(state: EditorState, e: KeyEvent): boolean {
-    if (e.key !== 'q' && e.key !== 'Q') return false;
-
+  private eyedrop(): void {
+    const state = this.getState();
     if (state.hoveredGate) {
       const gate = state.circuit.getGate(state.hoveredGate);
       state.mode = { kind: 'stamping', gateType: gate.type };
       state.renderDirty = true;
-      return true;
+      return;
     }
     const mw = this.renderer.getMouseWorld();
     const segHit = hitTestWireSegment(mw, state);
@@ -833,20 +809,7 @@ export class InputHandler {
       const seg = state.circuit.getWireSegment(segHit);
       state.wireColor = seg.color ?? WIRE_COLORS[0];
       state.renderDirty = true;
-      return true;
     }
-    return true;
-  }
-
-  private handleEscapeKey(state: EditorState, e: KeyEvent): boolean {
-    if (e.key !== 'Escape') return false;
-    this.drag = { kind: 'none' };
-    state.selection = [];
-    state.mode = { kind: 'normal' };
-    state.selectionRect = null;
-    state.dropPreview = null;
-    state.renderDirty = true;
-    return true;
   }
 
   // ---------------------------------------------------------------------------
