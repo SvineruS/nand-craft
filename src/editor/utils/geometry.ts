@@ -2,8 +2,18 @@ import type { Circuit } from '../circuit.ts';
 import type { GateId, PinId, Rotation, WireNode, WireNodeId } from '../types.ts';
 import { type Gate, getGateDefinition } from '../gates.ts';
 import { Vec2 } from './vec2.ts';
+import { GRID_SIZE } from "../consts.ts";
 
-export const GRID_SIZE = 20;
+
+export function cameraBoundingBox(camera: { pos: Vec2; zoom: number }, canvasSize: Vec2) {
+  const vw = canvasSize.x / camera.zoom;
+  const vh = canvasSize.y / camera.zoom;
+  const left = camera.pos.x - vw / 2;
+  const top = camera.pos.y - vh / 2;
+  const right = camera.pos.x + vw / 2;
+  const bottom = camera.pos.y + vh / 2;
+  return { left, top, right, bottom };
+}
 
 // ---------------------------------------------------------------------------
 // Gate geometry helpers

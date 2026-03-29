@@ -32,12 +32,13 @@ export const Vec2 = {
 export function routeCorner(a: V, b: V): V | null {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) return null;
+  if (dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy))
+    return null; // No corner needed for axis-aligned or perfectly diagonal
   const adx = Math.abs(dx);
   const ady = Math.abs(dy);
   return adx > ady
     ? { x: a.x + (adx - ady) * Math.sign(dx), y: a.y }
-    : { x: a.x, y: a.y + (ady - adx) * Math.sign(dy) };
+    : { y: a.y + (ady - adx) * Math.sign(dy), x: a.x };
 }
 
 /** Point at fraction t (0..1) along the routed path from A to B. */

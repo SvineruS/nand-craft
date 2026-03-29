@@ -4,6 +4,7 @@ import type { Vec2 } from './utils/vec2.ts';
 import type { WireEndpoint } from './utils/geometry.ts';
 import type { Camera } from '../engine/camera.ts';
 import type { GateType } from "./gates.ts";
+import { WIRE_COLORS } from "./consts.ts";
 
 export type { Camera };
 
@@ -66,18 +67,6 @@ export interface EditorState {
   renderDirty: boolean;
   circuitDirty: boolean;
 }
-
-export const WIRE_COLORS = [
-  '#4a4a7a', // default (no override)
-  '#fb923c', // orange
-  '#facc15', // yellow
-  '#60a5fa', // blue
-  '#c084fc', // purple
-  '#f472b6', // pink
-  '#8b5cf6', // violet
-  '#14b8a6', // teal
-  '#ffffff', // white
-];
 
 export function createEditorState(): EditorState {
   return {

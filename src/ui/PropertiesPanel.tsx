@@ -1,7 +1,7 @@
 import { useEditorState } from './editorStore.ts';
 import { getGateDefinition } from '../editor/gates.ts';
-import type { Command } from '../editor/CommandHistory.ts';
-import { ChangePinCommand, ChangeWireCommand } from '../editor/CommandHistory.ts';
+import type { Command } from '../editor/commands.ts';
+import { ChangePinCommand, ChangeWireCommand } from '../editor/commands.ts';
 import type { PinId } from '../editor/types.ts';
 
 const BIT_OPTIONS = [1, 8, 16, 32];

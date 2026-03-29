@@ -1,7 +1,7 @@
 import { currentLevel, testResults, warningText } from './editorStore.ts';
 import { TruthTable } from './TruthTable.tsx';
 import { PropertiesPanel } from './PropertiesPanel.tsx';
-import type { Command } from '../editor/CommandHistory.ts';
+import type { Command } from '../editor/commands.ts';
 
 interface TestPanelProps {
   onReset: () => void;

@@ -7,10 +7,11 @@ import {
   AddWireNodeCommand,
   AddWireSegmentCommand,
   type CommandHistory,
-} from './CommandHistory.ts';
-import { getAllPinIds, gateCenter, gateGridOffset, GRID_SIZE } from './utils/geometry.ts';
+} from './commands.ts';
+import { getAllPinIds, gateCenter, gateGridOffset } from './utils/geometry.ts';
 import { snapGateCenter } from './utils/hitTests.ts';
 import { Vec2 } from './utils/vec2.ts';
+import { GRID_SIZE } from "./consts.ts";
 
 export function copySelection(state: EditorState): void {
   const selectedGateIds = getSelectedIds(state, 'gate');

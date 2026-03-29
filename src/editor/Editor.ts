@@ -4,12 +4,12 @@ import { createEditorState } from './EditorState.ts';
 import type { EditorState } from './EditorState.ts';
 import { Renderer } from './Renderer.ts';
 import { InputHandler } from './InputHandler.ts';
-import { CommandHistory, AddGateCommand } from './CommandHistory.ts';
-import type { Command } from './CommandHistory.ts';
+import { CommandHistory, AddGateCommand } from './commands.ts';
+import type { Command } from './commands.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
-import { GRID_SIZE } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
 import type { Level } from "../levels/levelTypes.ts";
+import { GRID_SIZE } from "./consts.ts";
 
 export class Editor {
   private state: EditorState;

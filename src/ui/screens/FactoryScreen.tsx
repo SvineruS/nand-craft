@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import { viewMode } from '../editorStore.ts';
 import type { Camera } from '../../engine/camera.ts';
 import { CanvasInput } from '../../engine/input.ts';
+import { cameraBoundingBox } from "../../editor/utils/geometry.ts";
 
 const GRID_SIZE = 32;
 const BG_COLOR = '#181825';
@@ -38,12 +39,7 @@ function renderGrid(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, ca
   ctx.scale(camera.zoom, camera.zoom);
 
   // Visible world bounds
-  const vw = w / camera.zoom;
-  const vh = h / camera.zoom;
-  const left = camera.pos.x - vw / 2;
-  const top = camera.pos.y - vh / 2;
-  const right = camera.pos.x + vw / 2;
-  const bottom = camera.pos.y + vh / 2;
+  const { left, top, right, bottom } = cameraBoundingBox(camera, { x: w, y: h });
 
   const startX = Math.floor(left / GRID_SIZE) * GRID_SIZE;
   const startY = Math.floor(top / GRID_SIZE) * GRID_SIZE;

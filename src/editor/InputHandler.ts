@@ -1,6 +1,6 @@
 import type { GateId, PinId, WireNodeId, WireSegmentId } from './types.ts';
 import type { EditorState, PlaceableType } from './EditorState.ts';
-import { WIRE_COLORS, getSelectedIds } from './EditorState.ts';
+import { getSelectedIds } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
 import { rotateBy, type WireEndpoint } from './utils/geometry.ts';
 import {
@@ -23,7 +23,7 @@ import {
   RemoveWireNodeCommand,
   RemoveWireSegmentCommand,
   RotateGatesCommand,
-} from './CommandHistory.ts';
+} from './commands.ts';
 import {
   hitTestEndpoint,
   hitTestGate,
@@ -36,6 +36,7 @@ import {
 import { copySelection, pasteClipboard } from './clipboard.ts';
 import { CanvasInput, type PointerEvent, type DragDropEvent } from '../engine/input.ts';
 import { KeyMap } from '../engine/keymap.ts';
+import { WIRE_COLORS } from "./consts.ts";
 
 const MIN_WIRE_DRAG = 5;
 

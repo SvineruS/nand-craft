@@ -1,7 +1,7 @@
 import type { RefObject } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import type { Editor } from '../editor/Editor.ts';
-import type { Command } from '../editor/CommandHistory.ts';
+import type { Command } from '../editor/commands.ts';
 import { notifyStateChange, currentLevel, viewMode } from './editorStore.ts';
 import { simulateFirstCase, stepTestCase, runAllAnimated, resetTests } from './testRunner.ts';
 import { switchToLevelMap, switchToEditor, detachMapInput } from './levelManager.ts';
