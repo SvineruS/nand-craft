@@ -1,8 +1,8 @@
 import { useEditorState } from './editorStore.ts';
-import { getGateDefinition } from '../levels/gates.ts';
+import { getGateDefinition } from '../editor/gates.ts';
 import type { Command } from '../editor/CommandHistory.ts';
 import { ChangePinCommand, ChangeWireCommand } from '../editor/CommandHistory.ts';
-import type { PinId } from '../types.ts';
+import type { PinId } from '../editor/types.ts';
 
 const BIT_OPTIONS = [1, 8, 16, 32];
 

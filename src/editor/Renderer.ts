@@ -1,7 +1,7 @@
-import type { GateType } from '../types.ts';
+
 import type { EditorState, Camera } from './EditorState.ts';
 import { WIRE_COLORS } from './EditorState.ts';
-import { getGateDefinition } from '../levels/gates.ts';
+import { type GateType, getGateDefinition } from './gates.ts';
 import { GRID_SIZE, getGateDims, getPinPositions, getAllPinIds, gateGridOffset, gateCenter } from './utils/geometry.ts';
 import { Vec2, routeCorner, routePointAt, routeLength } from './utils/vec2.ts';
 import { screenToWorld as stw, worldToScreen as wts } from '../engine/camera.ts';

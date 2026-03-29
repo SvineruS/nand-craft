@@ -2,11 +2,11 @@ import type { RefObject } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import type { Editor } from '../editor/Editor.ts';
 import type { Command } from '../editor/CommandHistory.ts';
-import type { GateType } from '../types.ts';
 import { notifyStateChange, currentLevel, viewMode } from './editorStore.ts';
 import { simulateFirstCase, stepTestCase, runAllAnimated, resetTests } from './testRunner.ts';
 import { switchToLevelMap, switchToEditor, detachMapInput } from './levelManager.ts';
 import { saveCircuit } from '../persistence/storage.ts';
+import type { GateType } from "../editor/gates.ts";
 
 export function useEditorCallbacks(editorRef: RefObject<Editor | null>) {
   const [showLevelComplete, setShowLevelComplete] = useState(false);

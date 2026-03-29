@@ -1,4 +1,4 @@
-import type { Vec2 } from '../types.ts';
+import type { Vec2 } from '../editor/types.ts';
 
 export interface Camera {
   pos: Vec2;

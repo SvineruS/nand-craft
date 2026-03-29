@@ -1,6 +1,7 @@
 import type { Circuit } from '../editor/circuit.ts';
-import type { TestDefinition, TestResult, GateId } from '../types.ts';
+import type { GateId } from '../editor/types.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
+import type { TestDefinition, TestResult } from "../levels/levelTypes.ts";
 
 export function runTests(
   circuit: Circuit,

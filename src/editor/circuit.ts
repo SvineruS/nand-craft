@@ -1,4 +1,5 @@
-import type { Gate, GateId, Net, NetId, Pin, PinId, WireNode, WireNodeId, WireSegment, WireSegmentId } from '../types.ts';
+import type { GateId, Net, NetId, PinId, WireNode, WireNodeId, WireSegment, WireSegmentId } from './types.ts';
+import type { Gate, Pin } from "./gates.ts";
 
 export class Circuit {
   gates = new Map<GateId, Gate>();

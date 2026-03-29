@@ -1,8 +1,9 @@
 import { Circuit } from './circuit.ts';
-import type { GateId, GateType, Rotation, WireNodeId, WireSegmentId } from '../types.ts';
+import type { GateId, Rotation, WireNodeId, WireSegmentId } from './types.ts';
 import type { Vec2 } from './utils/vec2.ts';
 import type { WireEndpoint } from './utils/geometry.ts';
 import type { Camera } from '../engine/camera.ts';
+import type { GateType } from "./gates.ts";
 
 export type { Camera };
 

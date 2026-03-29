@@ -1,4 +1,4 @@
-import type { Vec2 as V } from '../../types.ts';
+import type { Vec2 as V } from '../types.ts';
 import { snapToGrid } from './geometry.ts';
 
 export type Vec2 = V;

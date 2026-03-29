@@ -1,18 +1,15 @@
 import type {
-  Gate,
   GateId,
-  GateType,
-  Pin,
   PinId,
   Rotation,
   WireNode,
   WireNodeId,
   WireSegment,
   WireSegmentId,
-} from '../types.ts';
-import { generateId } from '../types.ts';
+} from './types.ts';
+import { generateId } from './types.ts';
 import type { EditorState } from './EditorState.ts';
-import { getGateDefinition } from '../levels/gates.ts';
+import { type Gate, type GateType, getGateDefinition, type Pin } from './gates.ts';
 import type { ReconnectedNode } from './utils/geometry.ts';
 import {
   cleanupOrphanNodes,

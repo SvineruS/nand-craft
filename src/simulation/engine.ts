@@ -1,5 +1,5 @@
 import type { Circuit } from '../editor/circuit.ts';
-import type { GateId } from '../types.ts';
+import type { GateId } from '../editor/types.ts';
 import { buildNets, detectCycles, propagate } from './evaluate.ts';
 
 export class SimulationEngine {

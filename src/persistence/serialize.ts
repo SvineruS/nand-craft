@@ -1,16 +1,15 @@
 import { Circuit } from '../editor/circuit.ts';
 import {
   setNextId,
-  type Gate,
   type GateId,
-  type Pin,
   type PinId,
   type WireNode,
   type WireNodeId,
   type WireSegment,
   type WireSegmentId,
-} from '../types.ts';
+} from '../editor/types.ts';
 import { buildNets } from '../simulation/evaluate.ts';
+import type { Gate, Pin } from "../editor/gates.ts";
 
 interface SerializedCircuit {
   version: 1;

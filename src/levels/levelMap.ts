@@ -1,19 +1,19 @@
 import { Circuit } from '../editor/circuit.ts';
 import {
   generateId,
-  type Gate,
   type GateId,
-  type Level,
   type LevelId,
   type PinId,
   type WireNode,
   type WireNodeId,
   type WireSegment,
   type WireSegmentId,
-} from '../types.ts';
+} from '../editor/types.ts';
 import { GRID_SIZE } from '../editor/utils/geometry.ts';
 import { isLevelUnlocked } from '../persistence/storage.ts';
 import { buildNets } from '../simulation/evaluate.ts';
+import type { Gate } from "../editor/gates.ts";
+import type { Level } from "./levelTypes.ts";
 
 /** Map from LevelId to the GateId representing it on the level map. */
 export type LevelGateMap = Map<LevelId, GateId>;

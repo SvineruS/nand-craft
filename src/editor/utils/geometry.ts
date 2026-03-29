@@ -1,6 +1,6 @@
 import type { Circuit } from '../circuit.ts';
-import type { Gate, GateId, PinId, Rotation, WireNode, WireNodeId } from '../../types.ts';
-import { getGateDefinition } from '../../levels/gates.ts';
+import type { GateId, PinId, Rotation, WireNode, WireNodeId } from '../types.ts';
+import { type Gate, getGateDefinition } from '../gates.ts';
 import { Vec2 } from './vec2.ts';
 
 export const GRID_SIZE = 20;

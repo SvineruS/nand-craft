@@ -1,7 +1,8 @@
 import type { EditorState } from "../EditorState.ts";
-import type { Gate, GateId, WireNodeId, WireSegmentId } from "../../types.ts";
+import type { GateId, WireNodeId, WireSegmentId } from "../types.ts";
 import { Vec2, routeCorner } from "./vec2.ts";
 import { getGateDims, getPinPositions, GRID_SIZE, snapToGrid, type WireEndpoint } from "./geometry.ts";
+import type { Gate } from "../gates.ts";
 
 
 const HIT_RADIUS = 10;       // pin / wire node click target

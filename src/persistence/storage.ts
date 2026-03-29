@@ -1,6 +1,7 @@
 import type { Circuit } from '../editor/circuit.ts';
-import type { Level, LevelId } from '../types.ts';
+import type { LevelId } from '../editor/types.ts';
 import { serializeCircuit, deserializeCircuit } from './serialize.ts';
+import type { Level } from "../levels/levelTypes.ts";
 
 const PREFIX = 'nand-craft';
 const SOLVED_KEY = `${PREFIX}:solved`;

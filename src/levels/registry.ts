@@ -1,4 +1,5 @@
-import type { Level, LevelId } from '../types.ts';
+import type { LevelId } from '../editor/types.ts';
+import type { Level } from "./levelTypes.ts";
 
 // Cast helper for level IDs
 const lid = (s: string) => s as LevelId;

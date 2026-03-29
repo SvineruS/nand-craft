@@ -1,4 +1,4 @@
-import type { GateId, PinId, WireNodeId, WireSegmentId } from '../types.ts';
+import type { GateId, PinId, WireNodeId, WireSegmentId } from './types.ts';
 import type { EditorState, PlaceableType } from './EditorState.ts';
 import { WIRE_COLORS, getSelectedIds } from './EditorState.ts';
 import type { Renderer } from './Renderer.ts';
@@ -9,7 +9,7 @@ import {
   getAnchoredNodeIds,
 } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
-import { getGateDefinition } from '../levels/gates.ts';
+import { getGateDefinition } from './gates.ts';
 import {
   AddGateCommand,
   AddWireNodeCommand,

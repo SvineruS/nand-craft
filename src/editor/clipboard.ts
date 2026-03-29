@@ -1,7 +1,7 @@
-import type { PinId, WireNodeId } from '../types.ts';
+import type { PinId, WireNodeId } from './types.ts';
 import type { ClipboardGate, ClipboardNode, ClipboardWire, EditorState } from './EditorState.ts';
 import { getSelectedIds } from './EditorState.ts';
-import { getGateDefinition } from '../levels/gates.ts';
+import { getGateDefinition } from './gates.ts';
 import {
   AddGateCommand,
   AddWireNodeCommand,

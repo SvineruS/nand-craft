@@ -1,5 +1,5 @@
 import { Circuit } from './circuit.ts';
-import type { GateId, Level } from '../types.ts';
+import type { GateId } from './types.ts';
 import { createEditorState } from './EditorState.ts';
 import type { EditorState } from './EditorState.ts';
 import { Renderer } from './Renderer.ts';
@@ -9,6 +9,7 @@ import type { Command } from './CommandHistory.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
 import { GRID_SIZE } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
+import type { Level } from "../levels/levelTypes.ts";
 
 export class Editor {
   private state: EditorState;

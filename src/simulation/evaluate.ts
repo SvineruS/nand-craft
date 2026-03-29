@@ -1,15 +1,14 @@
 import type { Circuit } from '../editor/circuit.ts';
 import type {
-  Gate,
   GateId,
   Net,
   NetId,
-  Pin,
   PinId,
   WireNodeId,
   WireSegmentId,
-} from '../types.ts';
-import { generateId } from '../types.ts';
+} from '../editor/types.ts';
+import { generateId } from '../editor/types.ts';
+import type { Gate, Pin } from "../editor/gates.ts";
 
 /** Gate types that are part of the combinational subgraph. */
 const COMBINATIONAL_TYPES = new Set([

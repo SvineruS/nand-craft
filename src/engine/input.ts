@@ -1,4 +1,4 @@
-import type { Vec2 } from '../types.ts';
+import type { Vec2 } from '../editor/types.ts';
 import type { Camera } from './camera.ts';
 import { screenToWorld, applyZoom, applyPan } from './camera.ts';
 

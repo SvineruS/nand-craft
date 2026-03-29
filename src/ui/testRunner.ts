@@ -1,5 +1,5 @@
 import type { Editor } from '../editor/Editor.ts';
-import type { GateId, TestResult } from '../types.ts';
+import type { GateId } from '../editor/types.ts';
 import { LEVELS } from '../levels/registry.ts';
 import {
   currentLevel,
@@ -11,6 +11,7 @@ import {
   notifyStateChange,
 } from './editorStore.ts';
 import { markLevelSolved, getSolvedLevelIds } from '../persistence/storage.ts';
+import type { TestResult } from "../levels/levelTypes.ts";
 
 // ---------------------------------------------------------------------------
 // Module-level state

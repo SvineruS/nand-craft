@@ -6,7 +6,6 @@ import { LEVELS } from '../levels/registry.ts';
 import { buildLevelMapCircuit, gateIdToLevelId } from '../levels/levelMap.ts';
 import type { LevelGateMap } from '../levels/levelMap.ts';
 import type { Circuit } from '../editor/circuit.ts';
-import type { Level } from '../types.ts';
 import { CanvasInput } from '../engine/input.ts';
 import {
   currentLevel,
@@ -20,6 +19,7 @@ import {
 } from './editorStore.ts';
 import { saveCircuit, loadCircuit, isLevelUnlocked } from '../persistence/storage.ts';
 import { simulateFirstCase, cancelRunAll } from './testRunner.ts';
+import type { Level } from "../levels/levelTypes.ts";
 
 // ---------------------------------------------------------------------------
 // Module-level state

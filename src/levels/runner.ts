@@ -1,6 +1,7 @@
 import type { Circuit } from '../editor/circuit.ts';
-import type { Level, TestResult, GateId } from '../types.ts';
+import type { GateId } from '../editor/types.ts';
 import { runTests } from '../testing/interpreter.ts';
+import type { Level, TestResult } from "./levelTypes.ts";
 
 export function runLevel(circuit: Circuit, level: Level): TestResult[] {
   // Find input and output gates in the circuit by type, matched by order
