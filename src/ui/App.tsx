@@ -1,22 +1,21 @@
-import { useEffect, useRef, useCallback, useState } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import { Editor } from '../editor/Editor.ts';
 import { Toolbar } from './Toolbar.tsx';
 import { Sidebar } from './Sidebar.tsx';
 import { TestPanel } from './TestPanel.tsx';
 import { LevelDialog } from './LevelDialog.tsx';
 import { LevelCompleteDialog } from './LevelCompleteDialog.tsx';
-import type { GateType } from '../types.ts';
+import { MainMenuScreen } from './screens/MainMenuScreen.tsx';
+import { SettingsScreen } from './screens/SettingsScreen.tsx';
+import { FactoryScreen } from './screens/FactoryScreen.tsx';
+import { useEditorCallbacks } from './useEditorCallbacks.ts';
 import {
   setStateGetter,
   notifyStateChange,
-  currentLevel,
   viewMode,
 } from './editorStore.ts';
 import {
   simulateFirstCase,
-  stepTestCase,
-  runAllAnimated,
-  resetTests,
   cancelRunAll,
   suppressSimulate,
   resetSuppressSimulate,
@@ -24,9 +23,9 @@ import {
 import {
   buildLevelMap,
   getLevelMapState,
+  attachMapInput,
+  detachMapInput,
   switchToLevelMap,
-  switchToEditor,
-  handleLevelMapClick,
 } from './levelManager.ts';
 import '../style.css';
 
@@ -36,98 +35,15 @@ import '../style.css';
 
 export function App() {
   const editorRef = useRef<Editor | null>(null);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [showLevelComplete, setShowLevelComplete] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cb = useEditorCallbacks(editorRef);
 
-  const onLevelComplete = useCallback(() => setShowLevelComplete(true), []);
-
-  // -----------------------------------------------------------------------
-  // Toolbar callbacks
-  // -----------------------------------------------------------------------
-
-  const handleUndo = useCallback(() => { editorRef.current?.undo(); }, []);
-  const handleRedo = useCallback(() => { editorRef.current?.redo(); }, []);
-  const handleColorChange = useCallback((color: string) => {
-    const editor = editorRef.current;
-    if (editor) { editor.getState().wireColor = color; notifyStateChange(); }
-  }, []);
-  const handleShowLevels = useCallback(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    if (viewMode.value === 'levelMap') {
-      if (currentLevel.value) switchToEditor(editor);
-    } else {
-      switchToLevelMap(editor);
-    }
-  }, []);
-  const handleResetLevel = useCallback(() => {
-    const editor = editorRef.current;
-    const level = currentLevel.value;
-    if (!editor || !level) return;
-    editor.loadLevel(level);
-    simulateFirstCase(editor);
-  }, []);
-
-  // -----------------------------------------------------------------------
-  // Sidebar callbacks
-  // -----------------------------------------------------------------------
-
-  const handleStamp = useCallback((type: GateType) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const state = editor.getState();
-    state.mode = { kind: 'stamping', gateType: type };
-    state.renderDirty = true;
-  }, []);
-
-  const handleDragStart = useCallback((type: GateType) => {
-    const editor = editorRef.current;
-    if (editor) editor.getState().mode = { kind: 'stamping', gateType: type };
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) editor.getState().mode = { kind: 'normal' };
-  }, []);
-
-  const handleExecuteCommand = useCallback((cmd: import('../editor/CommandHistory.ts').Command) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.executeCommand(cmd);
-    simulateFirstCase(editor);
-  }, []);
-
-  // -----------------------------------------------------------------------
-  // Test panel callbacks
-  // -----------------------------------------------------------------------
-
-  const handleReset = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) resetTests(editor);
-  }, []);
-
-  const handleStep = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) stepTestCase(editor, onLevelComplete);
-  }, []);
-
-  const handleRunAll = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) runAllAnimated(editor, onLevelComplete);
-  }, []);
-
-  // -----------------------------------------------------------------------
-  // Mount
-  // -----------------------------------------------------------------------
-
+  // Create editor once
   useEffect(() => {
-    const container = editorContainerRef.current!;
+    const container = containerRef.current!;
     const editor = new Editor(container);
     editorRef.current = editor;
 
-    // Start in level map mode
-    buildLevelMap();
-    editor.setStateOverride(getLevelMapState());
     editor.detachInput();
     setStateGetter(() => editor.getState());
 
@@ -140,46 +56,68 @@ export function App() {
       notifyStateChange();
     };
 
-    // Click handler for level map
-    const canvas = container.querySelector('canvas');
-    const clickHandler = (e: MouseEvent) => {
-      if (canvas) handleLevelMapClick(editor, e, canvas);
-    };
-    if (canvas) {
-      canvas.addEventListener('click', clickHandler);
-    }
-
     return () => {
       cancelRunAll();
-      if (canvas) canvas.removeEventListener('click', clickHandler);
+      detachMapInput();
       editor.destroy();
     };
   }, []);
 
-  // -----------------------------------------------------------------------
-  // Render
-  // -----------------------------------------------------------------------
+  // Configure editor when view mode changes
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
 
-  const isMapView = viewMode.value === 'levelMap';
+    const mode = viewMode.value;
+    if (mode === 'levelSelect') {
+      buildLevelMap();
+      editor.setStateOverride(getLevelMapState());
+      editor.detachInput();
+      attachMapInput(editor, editor.getCanvas());
+      notifyStateChange();
+    }
+  }, [viewMode.value]);
+
+  const mode = viewMode.value;
+  const isCanvasScreen = mode === 'editor' || mode === 'levelSelect';
+
   return (
     <>
-      <Toolbar onUndo={handleUndo} onRedo={handleRedo} onColorChange={handleColorChange} onShowLevels={handleShowLevels} onResetLevel={handleResetLevel} />
-      <div class="main-row">
-        {!isMapView && (
+      {mode === 'mainMenu' && <MainMenuScreen />}
+      {mode === 'factory' && <FactoryScreen />}
+      {mode === 'settings' && <SettingsScreen />}
+
+      {isCanvasScreen && (
+        <Toolbar
+          onUndo={cb.handleUndo}
+          onRedo={cb.handleRedo}
+          onColorChange={cb.handleColorChange}
+          onShowLevels={cb.handleShowLevels}
+          onMenu={cb.handleMenu}
+          onResetLevel={cb.handleResetLevel}
+        />
+      )}
+      <div class="main-row" style={isCanvasScreen ? undefined : { display: 'none' }}>
+        {mode === 'editor' && (
           <TestPanel
-            onReset={handleReset}
-            onStep={handleStep}
-            onRunAll={handleRunAll}
-            onExecuteCommand={handleExecuteCommand}
+            onReset={cb.handleReset}
+            onStep={cb.handleStep}
+            onRunAll={cb.handleRunAll}
+            onExecuteCommand={cb.handleExecuteCommand}
           />
         )}
-        <div id="editor-container" ref={editorContainerRef} />
-        {!isMapView && (
-          <Sidebar onStamp={handleStamp} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+        <div id="editor-container" ref={containerRef} />
+        {mode === 'editor' && (
+          <Sidebar onStamp={cb.handleStamp} onDragStart={cb.handleDragStart} onDragEnd={cb.handleDragEnd} />
         )}
       </div>
-      {!isMapView && <LevelDialog />}
-      {showLevelComplete && <LevelCompleteDialog onLevelMap={() => { const e = editorRef.current; if (e) switchToLevelMap(e); setShowLevelComplete(false); }} onClose={() => setShowLevelComplete(false)} />}
+      {mode === 'editor' && <LevelDialog />}
+      {cb.showLevelComplete && (
+        <LevelCompleteDialog
+          onLevelMap={() => { const e = editorRef.current; if (e) switchToLevelMap(e); cb.setShowLevelComplete(false); }}
+          onClose={() => cb.setShowLevelComplete(false)}
+        />
+      )}
     </>
   );
 }

@@ -28,9 +28,9 @@ export const warningText = signal<string | null>(null);
 /** Whether the level-intro dialog is visible. */
 export const levelDialogVisible = signal(false);
 
-/** Current view: editor or level map. */
-export type ViewMode = 'editor' | 'levelMap';
-export const viewMode = signal<ViewMode>('levelMap');
+/** Current view mode. */
+export type ViewMode = 'mainMenu' | 'levelSelect' | 'editor' | 'factory' | 'settings';
+export const viewMode = signal<ViewMode>('mainMenu');
 
 /** Set of solved level IDs (persisted in localStorage). */
 export const solvedLevelIds = signal<Set<LevelId>>(getSolvedLevelIds());

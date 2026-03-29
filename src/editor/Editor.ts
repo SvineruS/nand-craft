@@ -130,6 +130,10 @@ export class Editor {
     this.input.attach();
   }
 
+  getCanvas(): HTMLCanvasElement {
+    return this.canvas;
+  }
+
   getCircuit(): Circuit {
     return this.state.circuit;
   }

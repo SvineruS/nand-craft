@@ -6,18 +6,20 @@ interface ToolbarProps {
   onRedo: () => void;
   onColorChange: (color: string) => void;
   onShowLevels: () => void;
+  onMenu: () => void;
   onResetLevel: () => void;
 }
 
-export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onResetLevel }: ToolbarProps) {
+export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, onResetLevel }: ToolbarProps) {
   const state = useEditorState();
   const level = currentLevel.value;
-  const isMapView = viewMode.value === 'levelMap';
+  const isMapView = viewMode.value === 'levelSelect';
 
   if (!state) return null;
 
   return (
     <div class="toolbar">
+      <button class="toolbar-btn" onClick={onMenu}>Menu</button>
       <button class="toolbar-btn" onClick={onShowLevels} style={{ fontWeight: isMapView ? 'bold' : 'normal' }}>
         Levels
       </button>

@@ -7,6 +7,7 @@ import { buildLevelMapCircuit, gateIdToLevelId } from '../levels/levelMap.ts';
 import type { LevelGateMap } from '../levels/levelMap.ts';
 import type { Circuit } from '../editor/circuit.ts';
 import type { Level } from '../types.ts';
+import { CanvasInput } from '../engine/input.ts';
 import {
   currentLevel,
   currentLevelIndex,
@@ -26,6 +27,7 @@ import { simulateFirstCase, cancelRunAll } from './testRunner.ts';
 
 let levelMapState: EditorState | null = null;
 let levelGateMap: LevelGateMap = new Map();
+let mapInput: CanvasInput | null = null;
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -42,6 +44,23 @@ function hasPredefinedGates(level: Level, circuit: Circuit): boolean {
     if (!found) return false;
   }
   return true;
+}
+
+function hitTestLevel(wx: number, wy: number): number | null {
+  if (!levelMapState) return null;
+  for (const gate of levelMapState.circuit.gates.values()) {
+    const dims = getGateDims(gate);
+    if (wx >= gate.pos.x && wx <= gate.pos.x + dims.w && wy >= gate.pos.y && wy <= gate.pos.y + dims.h) {
+      const levelId = gateIdToLevelId(gate.id, levelGateMap);
+      if (!levelId) continue;
+      const levelIdx = LEVELS.findIndex(l => l.id === levelId);
+      if (levelIdx < 0) continue;
+      const level = LEVELS[levelIdx];
+      if (!isLevelUnlocked(level, solvedLevelIds.value)) continue;
+      return levelIdx;
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +90,7 @@ export function loadLevel(editor: Editor, index: number): void {
   }
 
   // Switch to editor view (clear override, reattach input)
+  detachMapInput();
   editor.setStateOverride(null);
   editor.attachInput();
   viewMode.value = 'editor';
@@ -104,6 +124,30 @@ export function getLevelMapState(): EditorState | null {
   return levelMapState;
 }
 
+export function attachMapInput(editor: Editor, canvas: HTMLCanvasElement): void {
+  detachMapInput();
+  if (!levelMapState) return;
+
+  mapInput = new CanvasInput(canvas, {
+    onPointerUp(e) {
+      const idx = hitTestLevel(e.world.x, e.world.y);
+      if (idx !== null) loadLevel(editor, idx);
+    },
+  }, {
+    getCamera: () => levelMapState!.camera,
+    onCameraChange() { if (levelMapState) levelMapState.renderDirty = true; },
+    shouldPan: (e) => e.button === 1,
+  });
+  mapInput.attach();
+}
+
+export function detachMapInput(): void {
+  if (mapInput) {
+    mapInput.detach();
+    mapInput = null;
+  }
+}
+
 export function switchToLevelMap(editor: Editor): void {
   // Auto-save if currently in editor
   if (viewMode.value === 'editor' && currentLevel.value) {
@@ -112,47 +156,20 @@ export function switchToLevelMap(editor: Editor): void {
 
   buildLevelMap();
 
-  viewMode.value = 'levelMap';
+  viewMode.value = 'levelSelect';
   editor.detachInput();
   editor.setStateOverride(levelMapState);
+
+  const canvas = editor.getCanvas();
+  if (canvas) attachMapInput(editor, canvas);
+
   notifyStateChange();
 }
 
 export function switchToEditor(editor: Editor): void {
+  detachMapInput();
   viewMode.value = 'editor';
   editor.attachInput();
   editor.setStateOverride(null);
   notifyStateChange();
-}
-
-export function handleLevelMapClick(
-  editor: Editor,
-  e: MouseEvent,
-  canvas: HTMLCanvasElement,
-): void {
-  if (viewMode.value !== 'levelMap') return;
-  if (!levelMapState) return;
-
-  // Convert screen → world
-  const rect = canvas.getBoundingClientRect();
-  const sx = e.clientX - rect.left;
-  const sy = e.clientY - rect.top;
-  const cam = levelMapState.camera;
-  const wx = (sx - canvas.clientWidth / 2) / cam.zoom + cam.pos.x;
-  const wy = (sy - canvas.clientHeight / 2) / cam.zoom + cam.pos.y;
-
-  // Hit test gates
-  for (const gate of levelMapState.circuit.gates.values()) {
-    const dims = getGateDims(gate);
-    if (wx >= gate.pos.x && wx <= gate.pos.x + dims.w && wy >= gate.pos.y && wy <= gate.pos.y + dims.h) {
-      const levelId = gateIdToLevelId(gate.id, levelGateMap);
-      if (!levelId) break;
-      const levelIdx = LEVELS.findIndex(l => l.id === levelId);
-      if (levelIdx < 0) break;
-      const level = LEVELS[levelIdx];
-      if (!isLevelUnlocked(level, solvedLevelIds.value)) break;
-      loadLevel(editor, levelIdx);
-      return;
-    }
-  }
 }

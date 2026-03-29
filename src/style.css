@@ -506,3 +506,82 @@ body {
     background: var(--accent-hover);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Full-screen menus (main menu, settings, factory)                   */
+/* ------------------------------------------------------------------ */
+
+.fullscreen-menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: var(--bg);
+  z-index: 10;
+}
+
+.menu-title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  margin: 0;
+}
+
+.menu-placeholder {
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.menu-btn {
+  padding: 12px 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Factory screen                                                      */
+/* ------------------------------------------------------------------ */
+
+.factory-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.factory-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.factory-canvas {
+  flex: 1;
+  overflow: hidden;
+}
