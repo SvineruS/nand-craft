@@ -63,6 +63,12 @@ export interface EditorState {
   simulationRunning: boolean;
   shortCircuitGates: GateId[];
   contentionNets: string[];
+  /** Precomputed: wire segments involved in short circuits or bus contention. */
+  errorSegmentIds: Set<string>;
+  /** Precomputed: wire node values (propagated from pins via nets). */
+  nodeValues: Map<string, number | null>;
+  /** Precomputed: wire node bit widths (propagated from pins via nets). */
+  nodeBitWidths: Map<string, number>;
   wireColor: string;
   renderDirty: boolean;
   circuitDirty: boolean;
@@ -82,6 +88,9 @@ export function createEditorState(): EditorState {
     simulationRunning: false,
     shortCircuitGates: [],
     contentionNets: [],
+    errorSegmentIds: new Set(),
+    nodeValues: new Map(),
+    nodeBitWidths: new Map(),
     wireColor: WIRE_COLORS[0],
     renderDirty: true,
     circuitDirty: true,

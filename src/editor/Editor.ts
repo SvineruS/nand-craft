@@ -158,9 +158,8 @@ export class Editor {
   /** Force a simulation tick with current input pin values (useful after state mutations that bypass commands). */
   resimulate(): void {
     this.stepTick();
-    const cycles = this.engine.detectShortCircuits(this.state.circuit);
-    this.state.shortCircuitGates = cycles.flat();
-    this.state.contentionNets = this.detectContention();
+    this.updateErrorState();
+    this.updateDerivedState();
     this.state.circuitDirty = true;
   }
 
@@ -215,6 +214,70 @@ export class Editor {
     return result;
   }
 
+  /** Detect short circuits and contention, store in state. */
+  private updateErrorState(): void {
+    const cycles = this.engine.detectShortCircuits(this.state.circuit);
+    this.state.shortCircuitGates = cycles.flat();
+    this.state.contentionNets = this.detectContention();
+  }
+
+  /** Compute derived rendering data: error segments, node values/bit widths. */
+  private updateDerivedState(): void {
+    const { circuit, shortCircuitGates, contentionNets } = this.state;
+
+    // Error segments
+    const errorSegments = new Set<string>();
+    if (shortCircuitGates.length > 0) {
+      const errorPinIds = new Set<string>();
+      for (const gateId of shortCircuitGates) {
+        const gate = circuit.getGate(gateId);
+        for (const p of [...gate.inputPins, ...gate.outputPins])
+          errorPinIds.add(p as string);
+      }
+      for (const net of circuit.nets.values()) {
+        let touches = false;
+        for (const nid of net.nodeIds) {
+          const node = circuit.getWireNode(nid);
+          if (node.pinId && errorPinIds.has(node.pinId as string)) { touches = true; break; }
+        }
+        if (touches) {
+          for (const sid of net.segmentIds) errorSegments.add(sid as string);
+        }
+      }
+    }
+    if (contentionNets.length > 0) {
+      const contentionSet = new Set(contentionNets);
+      for (const net of circuit.nets.values()) {
+        if (contentionSet.has(net.id as string)) {
+          for (const sid of net.segmentIds) errorSegments.add(sid as string);
+        }
+      }
+    }
+    this.state.errorSegmentIds = errorSegments;
+
+    // Node values & bit widths
+    const nodeValues = new Map<string, number | null>();
+    const nodeBitWidths = new Map<string, number>();
+    for (const net of circuit.nets.values()) {
+      let netValue: number | null = null;
+      let netBitWidth = 1;
+      for (const nodeId of net.nodeIds) {
+        const node = circuit.getWireNode(nodeId);
+        if (node.pinId) {
+          const pin = circuit.getPin(node.pinId);
+          if (pin.value !== null) netValue = pin.value;
+          netBitWidth = pin.bitWidth;
+        }
+      }
+      for (const nodeId of net.nodeIds) {
+        nodeValues.set(nodeId as string, netValue);
+        nodeBitWidths.set(nodeId as string, netBitWidth);
+      }
+    }
+    this.state.nodeValues = nodeValues;
+    this.state.nodeBitWidths = nodeBitWidths;
+  }
+
   /** Clear all pin values and delay state (reset simulation visuals). */
   resetSimulation(): void {
     for (const pin of this.state.circuit.pins.values()) {
@@ -230,9 +293,8 @@ export class Editor {
       this.state.circuit.delayState.clear();
     }
     this.engine.tick(this.state.circuit, inputs);
-    const cycles = this.engine.detectShortCircuits(this.state.circuit);
-    this.state.shortCircuitGates = cycles.flat();
-    this.state.contentionNets = this.detectContention();
+    this.updateErrorState();
+    this.updateDerivedState();
     this.state.circuitDirty = true;
   }
 

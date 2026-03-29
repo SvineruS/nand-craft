@@ -4,7 +4,6 @@ import {
   cameraBoundingBox,
   gateCenter,
   gateGridOffset,
-  getAllPinIds,
   getGateDims,
   getPinPositions
 } from './utils/geometry.ts';
@@ -18,8 +17,7 @@ import {
   WIRE_LABEL_MIN_LENGTH,
   WIRE_LABEL_SPACING
 } from "./consts.ts";
-import type { GateId, WireSegment } from "./types.ts";
-import type { Circuit } from "./circuit.ts";
+import type { WireSegment } from "./types.ts";
 
 
 
@@ -183,14 +181,13 @@ export class Renderer {
     const { circuit } = state;
 
 
-    const { nodeValue, nodeBitWidth } = getNodesValues(circuit);
-
+    const { nodeValues, nodeBitWidths } = state;
 
     const drawWireBody = (segment: WireSegment) => {
       const fromNode = circuit.getWireNode(segment.from);
       const toNode = circuit.getWireNode(segment.to);
 
-      const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
+      const bitWidth = nodeBitWidths.get(segment.from as string) ?? nodeBitWidths.get(segment.to as string) ?? 1;
       const thickness = bitWidth > 1 ? 8 : 6;
 
       ctx.strokeStyle = segment.color ?? COLORS.wireDefault;
@@ -207,10 +204,10 @@ export class Renderer {
       const fromNode = circuit.getWireNode(segment.from);
       const toNode = circuit.getWireNode(segment.to);
 
-      const value = nodeValue.get(segment.from as string) ?? nodeValue.get(segment.to as string) ?? null;
+      const value = nodeValues.get(segment.from as string) ?? nodeValues.get(segment.to as string) ?? null;
       if (value === null) return;
 
-      const bitWidth = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
+      const bitWidth = nodeBitWidths.get(segment.from as string) ?? nodeBitWidths.get(segment.to as string) ?? 1;
       const color = signalColor(value, bitWidth);
       // Animated dash offset creates flowing motion
       const segLen = Vec2.dist(fromNode.pos, toNode.pos);
@@ -230,7 +227,7 @@ export class Renderer {
       if (segLen <= WIRE_LABEL_MIN_LENGTH)
         return;
 
-      const bw = nodeBitWidth.get(segment.from as string) ?? nodeBitWidth.get(segment.to as string) ?? 1;
+      const bw = nodeBitWidths.get(segment.from as string) ?? nodeBitWidths.get(segment.to as string) ?? 1;
       const text = formatWireValue(value, bw);
       ctx.setLineDash([]);
       ctx.font = 'bold 9px monospace';
@@ -321,16 +318,14 @@ export class Renderer {
       }
     }
 
-    // Build node→net value + bitWidth lookup for free nodes
-    const { nodeValue, nodeBitWidth } = getNodesValues(circuit);
-
+    const { nodeValues, nodeBitWidths } = state;
 
     for (const node of circuit.wireNodes.values()) {
       const count = segmentCount.get(node.id as string) ?? 0;
       if (count === 0 && !node.pinId) continue;
 
       const pin = node.pinId ? circuit.getPin(node.pinId) : null;
-      const value = pin?.value ?? nodeValue.get(node.id as string) ?? null;
+      const value = pin?.value ?? nodeValues.get(node.id as string) ?? null;
       const customColor = nodeColor.get(node.id as string);
       const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
@@ -346,7 +341,7 @@ export class Renderer {
 
       // Signal indicator dot inside
       if (value !== null) {
-        const bw = pin?.bitWidth ?? nodeBitWidth.get(node.id as string) ?? 1;
+        const bw = pin?.bitWidth ?? nodeBitWidths.get(node.id as string) ?? 1;
         ctx.fillStyle = signalColor(value, bw);
         ctx.beginPath();
         ctx.arc(node.pos.x, node.pos.y, 2.5, 0, Math.PI * 2);
@@ -466,13 +461,10 @@ export class Renderer {
   }
 
   private drawShortCircuitHighlights(state: EditorState): void {
-    const { shortCircuitGates, contentionNets, circuit } = state;
-    if (shortCircuitGates.length === 0 && contentionNets.length === 0) return;
+    const { errorSegmentIds, circuit } = state;
+    if (errorSegmentIds.size === 0) return;
 
     const { ctx } = this;
-
-    const errorSegments = getSegmentsTouchingShortCircuitGates(shortCircuitGates, contentionNets, circuit);
-    if (errorSegments.size === 0) return;
 
     // Draw red pulsing overlay on error segments
     ctx.strokeStyle = COLORS.error;
@@ -484,7 +476,7 @@ export class Renderer {
     ctx.lineCap = 'round';
 
     for (const seg of circuit.wireSegments.values()) {
-      if (!errorSegments.has(seg.id as string)) continue;
+      if (!errorSegmentIds.has(seg.id as string)) continue;
       const from = circuit.getWireNode(seg.from);
       const to = circuit.getWireNode(seg.to);
       ctx.beginPath();
@@ -498,7 +490,7 @@ export class Renderer {
 
     // Draw ! label at midpoint of error segments (same style as wire value labels)
     for (const seg of circuit.wireSegments.values()) {
-      if (!errorSegments.has(seg.id as string)) continue;
+      if (!errorSegmentIds.has(seg.id as string)) continue;
       const from = circuit.getWireNode(seg.from);
       const to = circuit.getWireNode(seg.to);
       const segLen = Vec2.dist(from.pos, to.pos);
@@ -742,88 +734,6 @@ export class Renderer {
 
     ctx.globalAlpha = 1;
   }
-}
-
-
-
-// todo short circuit segments should be calculated in the simulation step and stored in circuit state, not re-derived here in renderer. Renderer should just read a set of error segment ids from state and draw them, not do its own logic to determine which segments are involved based on gates + nets.
-function getSegmentsTouchingShortCircuitGates(shortCircuitGates: GateId[], contentionNets: string[], circuit: Circuit) {
-  const errorSegments = new Set<string>();
-
-  // Short circuit: find segments on nets touching error gate pins
-  if (shortCircuitGates.length > 0) {
-    const errorPinIds = new Set<string>();
-    for (const gateId of shortCircuitGates) {
-      const gate = circuit.getGate(gateId);
-      for (const p of getAllPinIds(gate))
-        errorPinIds.add(p as string);
-    }
-    for (const net of circuit.nets.values()) {
-      let touchesErrorGate = false;
-      for (const nid of net.nodeIds) {
-        const node = circuit.getWireNode(nid);
-        if (node.pinId && errorPinIds.has(node.pinId as string)) {
-          touchesErrorGate = true;
-          break;
-        }
-      }
-      if (touchesErrorGate) {
-        for (const sid of net.segmentIds)
-          errorSegments.add(sid as string);
-      }
-    }
-  }
-
-
-  // Bus contention: find segments on contention nets
-  if (contentionNets.length > 0) {
-    const contentionSet = new Set(contentionNets);
-    for (const net of circuit.nets.values()) {
-      if (contentionSet.has(net.id as string)) {
-        for (const sid of net.segmentIds)
-          errorSegments.add(sid as string);
-      }
-    }
-  }
-
-
-  return errorSegments;
-}
-
-
-function getNodesValues(circuit: Circuit) {
-  // TODO: values (and bits) should be evaluated in simulation step and stored.
-  // renderer should just read them, not do its own logic to determine them from pins + nets.
-
-  // Build node→net value lookup.
-  // Each "net" is a set of wire nodes electrically connected together.
-  // We scan all nodes in each net to find one that is anchored to a gate pin,
-  // then propagate that pin's value and bit width to every node on the same
-  // net. This lets us color wire segments by their signal value even though
-  // only pin-anchored nodes carry values directly.
-  const nodeValue = new Map<string, number | null>();
-  const nodeBitWidth = new Map<string, number>();
-
-  for (const net of circuit.nets.values()) {
-    let netValue: number | null = null;
-    let netBitWidth = 1;
-
-    for (const nodeId of net.nodeIds) {
-      const node = circuit.getWireNode(nodeId);
-      if (node.pinId) {
-        const pin = circuit.getPin(node.pinId);
-        if (pin.value !== null)
-          netValue = pin.value;
-        netBitWidth = pin.bitWidth;
-      }
-    }
-
-    for (const nodeId of net.nodeIds) {
-      nodeValue.set(nodeId as string, netValue);
-      nodeBitWidth.set(nodeId as string, netBitWidth);
-    }
-  }
-  return { nodeValue, nodeBitWidth };
 }
 
 
