@@ -17,7 +17,7 @@ import {
   WIRE_LABEL_MIN_LENGTH,
   WIRE_LABEL_SPACING
 } from "./consts.ts";
-import type { WireSegment } from "./types.ts";
+import type { GateId, WireNodeId, WireSegment, WireSegmentId } from "./types.ts";
 
 
 
@@ -521,43 +521,47 @@ export class Renderer {
     const { ctx } = this;
     const { circuit, selection } = state;
 
+    const drawSelectionGate = (gateId: GateId) => {
+      const gate = circuit.gates.get(gateId);
+      if (!gate) return;
+      const { w, h } = getGateDims(gate);
+      const center = gateCenter(gate);
+      ctx.save();
+      ctx.translate(center.x, center.y);
+      ctx.rotate((gate.rotation * Math.PI) / 180);
+      ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
+      ctx.restore();
+    }
+
+    const drawSelectionWireNode = (wireNodeId: WireNodeId) => {
+      const node = circuit.wireNodes.get(wireNodeId);
+      if (!node) return;
+      ctx.beginPath();
+      ctx.arc(node.pos.x, node.pos.y, 8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    const drawSelectionWireSegment = (segmentId: WireSegmentId) => {
+      const seg = circuit.wireSegments.get(segmentId);
+      if (!seg) return;
+      const from = circuit.getWireNode(seg.from);
+      const to = circuit.getWireNode(seg.to);
+      ctx.beginPath();
+      this.traceRoutedPath(ctx, from.pos, to.pos);
+      ctx.stroke();
+    }
+
     ctx.strokeStyle = COLORS.selection;
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 2]);
 
     for (const item of selection) {
-      switch (item.type) {
-        case 'gate': {
-          const gate = circuit.gates.get(item.id);
-          if (!gate) break;
-          const { w, h } = getGateDims(gate);
-          const center = gateCenter(gate);
-          ctx.save();
-          ctx.translate(center.x, center.y);
-          ctx.rotate((gate.rotation * Math.PI) / 180);
-          ctx.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
-          ctx.restore();
-          break;
-        }
-        case 'wireNode': {
-          const node = circuit.wireNodes.get(item.id);
-          if (!node) break;
-          ctx.beginPath();
-          ctx.arc(node.pos.x, node.pos.y, 8, 0, Math.PI * 2);
-          ctx.stroke();
-          break;
-        }
-        case 'wireSegment': {
-          const seg = circuit.wireSegments.get(item.id);
-          if (!seg) break;
-          const from = circuit.getWireNode(seg.from);
-          const to = circuit.getWireNode(seg.to);
-          ctx.beginPath();
-          this.traceRoutedPath(ctx, from.pos, to.pos);
-          ctx.stroke();
-          break;
-        }
-      }
+      if (item.type === 'gate')
+        drawSelectionGate(item.id);
+      else if (item.type === 'wireNode')
+        drawSelectionWireNode(item.id);
+      else if (item.type === 'wireSegment')
+        drawSelectionWireSegment(item.id);
     }
 
     ctx.setLineDash([]);
