@@ -4,6 +4,7 @@ import type { Vec2 } from './utils/vec2.ts';
 import type { WireEndpoint } from './utils/geometry.ts';
 import type { Camera } from '../engine/camera.ts';
 import type { GateType } from "./gates.ts";
+import type { TickResult } from '../simulation/types.ts';
 import { WIRE_COLORS } from "./consts.ts";
 
 export type { Camera };
@@ -62,13 +63,7 @@ export interface EditorState {
   clipboard: ClipboardData | null;
   simulationRunning: boolean;
   shortCircuitGates: GateId[];
-  contentionNets: string[];
-  /** Precomputed: wire segments involved in short circuits or bus contention. */
-  errorSegmentIds: Set<string>;
-  /** Precomputed: wire node values (propagated from pins via nets). */
-  nodeValues: Map<string, number | null>;
-  /** Precomputed: wire node bit widths (propagated from pins via nets). */
-  nodeBitWidths: Map<string, number>;
+  tickResult: TickResult;
   wireColor: string;
   renderDirty: boolean;
   circuitDirty: boolean;
@@ -87,10 +82,7 @@ export function createEditorState(): EditorState {
     clipboard: null,
     simulationRunning: false,
     shortCircuitGates: [],
-    contentionNets: [],
-    errorSegmentIds: new Set(),
-    nodeValues: new Map(),
-    nodeBitWidths: new Map(),
+    tickResult: { outputs: new Map(), contentionNets: [], errorSegmentIds: new Set(), nodeValues: new Map(), nodeBitWidths: new Map() },
     wireColor: WIRE_COLORS[0],
     renderDirty: true,
     circuitDirty: true,

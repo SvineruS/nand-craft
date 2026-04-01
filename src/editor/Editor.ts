@@ -1,10 +1,10 @@
 import type { GateId } from './types.ts';
-import { createEditorState } from './EditorState.ts';
 import type { EditorState } from './EditorState.ts';
+import { createEditorState } from './EditorState.ts';
 import { Renderer } from './render/Renderer.ts';
 import { InputHandler } from './InputHandler.ts';
-import { CommandHistory, AddGateCommand } from './commands.ts';
 import type { Command } from './commands.ts';
+import { AddGateCommand, CommandHistory } from './commands.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
 import type { TickResult } from '../simulation/types.ts';
 import { Vec2 } from './utils/vec2.ts';
@@ -36,7 +36,7 @@ export class Editor {
 
     // Initialize state
     this.state = createEditorState();
-    this.history = this.createHistory();
+    this.history = new CommandHistory();
     this.engine = new SimulationEngine();
     this.renderer = new Renderer(this.canvas);
 
@@ -68,24 +68,8 @@ export class Editor {
   }
 
   loadLevel(level: Level): void {
-    // Reset circuit
-    this.state.circuit = new Circuit();
+    this.resetEditor(new Circuit());
 
-    // Reset history by creating a new one
-    this.history = this.createHistory();
-
-    // Stop simulation if running
-    if (this.simulationInterval !== null) {
-      clearInterval(this.simulationInterval);
-      this.simulationInterval = null;
-      this.state.simulationRunning = false;
-    }
-
-    // Clear selection and mode state
-    this.state.selection = [];
-    this.state.mode = { kind: 'normal' };
-
-    // Create predefined gates from level spec
     if (level.predefinedGates) {
       for (const pg of level.predefinedGates) {
         const cmd = new AddGateCommand(
@@ -104,23 +88,12 @@ export class Editor {
       }
     }
 
-    // Reset history again so the input/output gate placements aren't undoable
-    this.history = this.createHistory();
-
-    this.state.circuitDirty = true;
+    // Reset history so predefined gate placements aren't undoable
+    this.history = new CommandHistory();
   }
 
   loadCircuitFromSave(circuit: Circuit): void {
-    this.state.circuit = circuit;
-    this.history = this.createHistory();
-    if (this.simulationInterval !== null) {
-      clearInterval(this.simulationInterval);
-      this.simulationInterval = null;
-      this.state.simulationRunning = false;
-    }
-    this.state.selection = [];
-    this.state.mode = { kind: 'normal' };
-    this.state.circuitDirty = true;
+    this.resetEditor(circuit);
   }
 
   setStateOverride(state: EditorState | null): void {
@@ -187,7 +160,7 @@ export class Editor {
   }
 
   hasContention(): boolean {
-    return this.state.contentionNets.length > 0;
+    return this.state.tickResult.contentionNets.length > 0;
   }
 
   /** Clear all pin values and delay state (reset simulation visuals). */
@@ -257,15 +230,21 @@ export class Editor {
     return inputs;
   }
 
-  private applyTickResult(result: TickResult): void {
-    this.state.shortCircuitGates = this.engine.getBuild()?.shortCircuitGates ?? [];
-    this.state.contentionNets = result.contentionNets;
-    this.state.errorSegmentIds = result.errorSegmentIds;
-    this.state.nodeValues = result.nodeValues;
-    this.state.nodeBitWidths = result.nodeBitWidths;
+  private resetEditor(circuit: Circuit): void {
+    this.state.circuit = circuit;
+    this.history = new CommandHistory();
+    if (this.simulationInterval !== null) {
+      clearInterval(this.simulationInterval);
+      this.simulationInterval = null;
+      this.state.simulationRunning = false;
+    }
+    this.state.selection = [];
+    this.state.mode = { kind: 'normal' };
+    this.state.circuitDirty = true;
   }
 
-  private createHistory(): CommandHistory {
-    return new CommandHistory();
+  private applyTickResult(result: TickResult): void {
+    this.state.shortCircuitGates = this.engine.getBuild()?.shortCircuitGates ?? [];
+    this.state.tickResult = result;
   }
 }

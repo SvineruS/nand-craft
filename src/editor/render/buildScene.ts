@@ -28,7 +28,7 @@ export function buildScene(
 // ---------------------------------------------------------------------------
 
 function buildWireSegments(state: EditorState): RenderWireSegment[] {
-  const { circuit, nodeValues, nodeBitWidths } = state;
+  const { circuit, tickResult: { nodeValues, nodeBitWidths } } = state;
   const result: RenderWireSegment[] = [];
 
   for (const segment of circuit.wireSegments.values()) {
@@ -78,7 +78,7 @@ function buildWireSegments(state: EditorState): RenderWireSegment[] {
 // ---------------------------------------------------------------------------
 
 function buildWireNodes(state: EditorState): RenderWireNode[] {
-  const { circuit, nodeValues, nodeBitWidths } = state;
+  const { circuit, tickResult: { nodeValues, nodeBitWidths } } = state;
   const result: RenderWireNode[] = [];
 
   // Count segments per node + find first connected segment color
@@ -217,7 +217,7 @@ function buildPins(state: EditorState): RenderPin[] {
 // ---------------------------------------------------------------------------
 
 function buildErrorSegments(state: EditorState): RenderErrorSegment[] {
-  const { errorSegmentIds, circuit } = state;
+  const { tickResult: { errorSegmentIds }, circuit } = state;
   if (errorSegmentIds.size === 0) return [];
 
   const result: RenderErrorSegment[] = [];
