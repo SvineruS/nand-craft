@@ -1,4 +1,4 @@
-import { currentLevel } from './editorStore.ts';
+import { currentLevel } from '../editorStore.ts';
 
 interface LevelCompleteDialogProps {
   onLevelMap: () => void;

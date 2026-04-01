@@ -1,6 +1,7 @@
 // Level definition
 import type { LevelId, Vec2 } from "../editor/types.ts";
-import type { Gate, GateType } from "../editor/gates.ts";
+import type { Gate } from "../editor/gates.ts";
+import type { GateType } from "../simulation/gateTypes.ts";
 
 export interface TestDefinition {
   name: string;
@@ -64,4 +65,23 @@ export interface Level {
   gateConstraints?: GateConstraints;
   prerequisites: LevelId[];
   mapPosition: Vec2;
+}
+
+// ---------------------------------------------------------------------------
+// Gate constraint helpers
+// ---------------------------------------------------------------------------
+
+export function isGateAllowed(type: GateType, constraints: GateConstraints | undefined): boolean {
+  if (!constraints) return true;
+  if (constraints.allow) return constraints.allow.includes(type);
+  if (constraints.block) return !constraints.block.includes(type);
+  return true;
+}
+
+export function getGateCount(type: GateType, gates: Iterable<{ type: GateType }>): number {
+  let count = 0;
+  for (const gate of gates) {
+    if (gate.type === type) count++;
+  }
+  return count;
 }

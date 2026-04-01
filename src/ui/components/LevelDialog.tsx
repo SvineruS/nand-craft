@@ -1,4 +1,4 @@
-import { currentLevel, levelDialogVisible } from './editorStore.ts';
+import { currentLevel, levelDialogVisible } from '../editorStore.ts';
 
 export function LevelDialog() {
   const level = currentLevel.value;

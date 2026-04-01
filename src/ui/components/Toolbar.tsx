@@ -1,5 +1,5 @@
-import { currentLevel, useEditorState, viewMode } from './editorStore.ts';
-import { WIRE_COLORS } from "../editor/consts.ts";
+import { currentLevel, useEditorState, viewMode } from '../editorStore.ts';
+import { WIRE_COLORS } from "../../editor/consts.ts";
 
 interface ToolbarProps {
   onUndo: () => void;

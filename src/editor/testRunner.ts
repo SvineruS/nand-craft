@@ -1,5 +1,6 @@
-import type { Editor } from '../editor/Editor.ts';
-import type { GateId } from '../editor/types.ts';
+import type { Editor } from './Editor.ts';
+import type { GateId } from './types.ts';
+import type { Level, TestResult } from '../levels/levelTypes.ts';
 import { LEVELS } from '../levels/registry.ts';
 import {
   currentLevel,
@@ -9,25 +10,11 @@ import {
   warningText,
   solvedLevelIds,
   notifyStateChange,
-} from './editorStore.ts';
+} from '../ui/editorStore.ts';
 import { markLevelSolved, getSolvedLevelIds } from '../persistence/storage.ts';
-import type { TestResult } from "../levels/levelTypes.ts";
 
 // ---------------------------------------------------------------------------
-// Module-level state
-// ---------------------------------------------------------------------------
-
-let runAllInterval: ReturnType<typeof setInterval> | null = null;
-
-/** Set to true by test functions to prevent onCircuitChange from re-simulating. */
-export let suppressSimulate = false;
-
-export function resetSuppressSimulate(): void {
-  suppressSimulate = false;
-}
-
-// ---------------------------------------------------------------------------
-// Internal helpers
+// Test case execution (pure domain logic)
 // ---------------------------------------------------------------------------
 
 function getWarning(editor: Editor): string | null {
@@ -37,8 +24,7 @@ function getWarning(editor: Editor): string | null {
   return warnings.length > 0 ? warnings.join(' | ') : null;
 }
 
-function applyTestCase(editor: Editor, caseIdx: number, resetDelay = false): TestResult {
-  const level = LEVELS[currentLevelIndex.value];
+function applyTestCase(editor: Editor, level: Level, caseIdx: number, resetDelay = false): TestResult {
   const cases = level.test.cases;
   if (!cases || !cases[caseIdx]) {
     return { passed: false, caseIndex: caseIdx, message: 'Case not found' };
@@ -79,17 +65,23 @@ function applyTestCase(editor: Editor, caseIdx: number, resetDelay = false): Tes
   };
 }
 
-function allTestsPassed(results: TestResult[]): boolean {
-  const level = currentLevel.value;
-  if (!level) return false;
+function allTestsPassed(results: TestResult[], level: Level): boolean {
   const cases = level.test.cases;
   if (!cases) return false;
   return results.length === cases.length && results.every(r => r.passed);
 }
 
 // ---------------------------------------------------------------------------
-// Exported functions
+// Test orchestration (signal-driven)
 // ---------------------------------------------------------------------------
+
+let runAllInterval: ReturnType<typeof setInterval> | null = null;
+
+export let suppressSimulate = false;
+
+export function resetSuppressSimulate(): void {
+  suppressSimulate = false;
+}
 
 export function cancelRunAll(): void {
   if (runAllInterval !== null) {
@@ -100,10 +92,11 @@ export function cancelRunAll(): void {
 
 export function simulateFirstCase(editor: Editor): void {
   cancelRunAll();
-  if (!currentLevel.value) return;
+  const level = currentLevel.value;
+  if (!level) return;
   testCaseIndex.value = 0;
   testResults.value = [];
-  const result = applyTestCase(editor, 0, true);
+  const result = applyTestCase(editor, level, 0, true);
   testResults.value = [result];
   warningText.value = getWarning(editor);
 }
@@ -122,13 +115,13 @@ export function stepTestCase(editor: Editor, onLevelComplete: () => void): void 
   }
   testCaseIndex.value = idx;
 
-  const result = applyTestCase(editor, idx);
+  const result = applyTestCase(editor, level, idx);
   const next = [...testResults.value];
   next[idx] = result;
   testResults.value = next;
   warningText.value = getWarning(editor);
-  if (allTestsPassed(testResults.value)) {
-    markLevelSolved(currentLevel.value!.id);
+  if (allTestsPassed(testResults.value, level)) {
+    markLevelSolved(level.id);
     solvedLevelIds.value = getSolvedLevelIds();
     onLevelComplete();
   }
@@ -144,18 +137,14 @@ export function runAllAnimated(editor: Editor, onLevelComplete: () => void): voi
 
   testCaseIndex.value = 0;
   testResults.value = [];
-  const results: TestResult[] = [];
-  let idx = 0;
-
-  const firstResult = applyTestCase(editor, 0, true);
-  results[0] = firstResult;
+  const results = [applyTestCase(editor, level, 0, true)];
   testResults.value = [...results];
   warningText.value = getWarning(editor);
-  idx = 1;
+  let idx = 1;
 
   if (idx >= cases.length) {
-    if (allTestsPassed(results)) {
-      markLevelSolved(currentLevel.value!.id);
+    if (allTestsPassed(results, level)) {
+      markLevelSolved(level.id);
       solvedLevelIds.value = getSolvedLevelIds();
       onLevelComplete();
     }
@@ -165,8 +154,8 @@ export function runAllAnimated(editor: Editor, onLevelComplete: () => void): voi
   runAllInterval = setInterval(() => {
     if (idx >= cases.length) {
       cancelRunAll();
-      if (allTestsPassed(results)) {
-        markLevelSolved(currentLevel.value!.id);
+      if (allTestsPassed(results, level)) {
+        markLevelSolved(level.id);
         solvedLevelIds.value = getSolvedLevelIds();
         onLevelComplete();
       }
@@ -174,8 +163,7 @@ export function runAllAnimated(editor: Editor, onLevelComplete: () => void): voi
     }
     testCaseIndex.value = idx;
     suppressSimulate = true;
-    const result = applyTestCase(editor, idx);
-    results[idx] = result;
+    results[idx] = applyTestCase(editor, level, idx);
     testResults.value = [...results];
     warningText.value = getWarning(editor);
     notifyStateChange();

@@ -1,28 +1,12 @@
 import { useRef } from 'preact/hooks';
-import { type GateType, getAllGateDefinitions } from '../editor/gates.ts';
-import { currentLevel } from './editorStore.ts';
-import { useEditorState } from './editorStore.ts';
-import type { GateConstraints } from '../levels/levelTypes.ts';
+import { type GateType, getAllGateDefinitions } from '../../editor/gates.ts';
+import { currentLevel, useEditorState } from '../editorStore.ts';
+import { isGateAllowed, getGateCount } from '../../levels/levelTypes.ts';
 
 interface SidebarProps {
   onStamp: (type: GateType) => void;
   onDragStart: (type: GateType) => void;
   onDragEnd: () => void;
-}
-
-function isGateAllowed(type: GateType, constraints: GateConstraints | undefined): boolean {
-  if (!constraints) return true;
-  if (constraints.allow) return constraints.allow.includes(type);
-  if (constraints.block) return !constraints.block.includes(type);
-  return true;
-}
-
-function getGateCount(type: GateType, state: { circuit: { gates: Map<unknown, { type: GateType }> } }): number {
-  let count = 0;
-  for (const gate of state.circuit.gates.values()) {
-    if (gate.type === type) count++;
-  }
-  return count;
 }
 
 export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
@@ -39,7 +23,7 @@ export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
       <div class="sidebar-header">Components</div>
       {entries.map(([type, def]) => {
         const maxCount = constraints?.maxCount?.[type];
-        const currentCount = editorState && maxCount !== undefined ? getGateCount(type, editorState) : 0;
+        const currentCount = editorState && maxCount !== undefined ? getGateCount(type, editorState.circuit.gates.values()) : 0;
         const atLimit = maxCount !== undefined && currentCount >= maxCount;
 
         return (

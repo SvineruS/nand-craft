@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Editor } from '../editor/Editor.ts';
-import { Toolbar } from './Toolbar.tsx';
-import { Sidebar } from './Sidebar.tsx';
-import { TestPanel } from './TestPanel.tsx';
-import { LevelDialog } from './LevelDialog.tsx';
-import { LevelCompleteDialog } from './LevelCompleteDialog.tsx';
+import { Toolbar } from './components/Toolbar.tsx';
+import { Sidebar } from './components/Sidebar.tsx';
+import { TestPanel } from './components/TestPanel.tsx';
+import { LevelDialog } from './components/LevelDialog.tsx';
+import { LevelCompleteDialog } from './components/LevelCompleteDialog.tsx';
 import { MainMenuScreen } from './screens/MainMenuScreen.tsx';
 import { SettingsScreen } from './screens/SettingsScreen.tsx';
 import { FactoryScreen } from './screens/FactoryScreen.tsx';
@@ -19,15 +19,10 @@ import {
   cancelRunAll,
   suppressSimulate,
   resetSuppressSimulate,
-} from './testRunner.ts';
-import {
-  buildLevelMap,
-  getLevelMapState,
-  attachMapInput,
-  detachMapInput,
-  switchToLevelMap,
-} from './levelManager.ts';
-import '../style.css';
+} from '../editor/testRunner.ts';
+import { buildLevelMap, getLevelMapState } from '../levels/levelManager.ts';
+import { attachMapInput, detachMapInput, switchToLevelMap } from './screenManager.ts';
+import './style.css';
 
 // ---------------------------------------------------------------------------
 // Root component

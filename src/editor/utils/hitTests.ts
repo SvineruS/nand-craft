@@ -56,13 +56,16 @@ export function posInRect(pos: Vec2, rect: Rect): boolean {
 // Hit testing
 // ---------------------------------------------------------------------------
 
+export function hitTestGate_(pos: Vec2, gate: Gate): boolean {
+  const { w, h } = getGateDims(gate);
+  return posInRect(pos, { x1: gate.pos.x, y1: gate.pos.y, x2: gate.pos.x + w, y2: gate.pos.y + h });
+}
+
+
 export function hitTestGate(pos: Vec2, state: EditorState): GateId | null {
-  for (const gate of state.circuit.gates.values()) {
-    const { w, h } = getGateDims(gate);
-    if (pos.x >= gate.pos.x && pos.x <= gate.pos.x + w && pos.y >= gate.pos.y && pos.y <= gate.pos.y + h) {
+  for (const gate of state.circuit.gates.values())
+    if (hitTestGate_(pos, gate))
       return gate.id;
-    }
-  }
   return null;
 }
 

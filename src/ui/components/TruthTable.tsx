@@ -1,4 +1,4 @@
-import { currentLevel, testResults, testCaseIndex } from './editorStore.ts';
+import { currentLevel, testResults, testCaseIndex } from '../editorStore.ts';
 
 function rowBg(passed?: boolean, isCurrent?: boolean): string {
   if (isCurrent) return 'var(--current-bg)';
