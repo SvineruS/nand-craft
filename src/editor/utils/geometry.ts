@@ -1,4 +1,4 @@
-import type { Circuit } from '../circuit.ts';
+import { Circuit } from '../../simulation/circuit.ts';
 import type { GateId, PinId, Rotation, WireNode, WireNodeId } from '../types.ts';
 import { type Gate, getGateDefinition } from '../gates.ts';
 import { Vec2 } from './vec2.ts';

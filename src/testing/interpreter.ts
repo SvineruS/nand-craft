@@ -1,4 +1,4 @@
-import type { Circuit } from '../editor/circuit.ts';
+import { Circuit } from '../simulation/circuit.ts';
 import type { GateId } from '../editor/types.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
 import type { TestDefinition, TestResult } from "../levels/levelTypes.ts";

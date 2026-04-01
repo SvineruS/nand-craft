@@ -5,7 +5,7 @@ import { getGateDims } from '../editor/utils/geometry.ts';
 import { LEVELS } from '../levels/registry.ts';
 import { buildLevelMapCircuit, gateIdToLevelId } from '../levels/levelMap.ts';
 import type { LevelGateMap } from '../levels/levelMap.ts';
-import type { Circuit } from '../editor/circuit.ts';
+import { Circuit } from '../simulation/circuit.ts';
 import { CanvasInput } from '../engine/input.ts';
 import {
   currentLevel,

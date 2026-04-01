@@ -1,4 +1,4 @@
-import type { Circuit } from '../editor/circuit.ts';
+import { Circuit } from '../simulation/circuit.ts';
 import type { LevelId } from '../editor/types.ts';
 import { serializeCircuit, deserializeCircuit } from './serialize.ts';
 import type { Level } from "../levels/levelTypes.ts";

@@ -1,4 +1,4 @@
-import type { Circuit } from './circuit.ts';
+import { Circuit } from '../simulation/circuit.ts';
 
 export interface Vec2 { x: number; y: number }
 

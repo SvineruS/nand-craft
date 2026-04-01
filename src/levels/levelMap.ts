@@ -1,4 +1,4 @@
-import { Circuit } from '../editor/circuit.ts';
+import { Circuit } from '../simulation/circuit.ts';
 import {
   generateId,
   type GateId,

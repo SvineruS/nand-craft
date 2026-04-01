@@ -1,4 +1,3 @@
-import { Circuit } from './circuit.ts';
 import type { GateId } from './types.ts';
 import { createEditorState } from './EditorState.ts';
 import type { EditorState } from './EditorState.ts';
@@ -11,6 +10,7 @@ import type { TickResult } from '../simulation/types.ts';
 import { Vec2 } from './utils/vec2.ts';
 import type { Level } from "../levels/levelTypes.ts";
 import { GRID_SIZE } from "./consts.ts";
+import { Circuit } from "../simulation/circuit.ts";
 
 export class Editor {
   private state: EditorState;
