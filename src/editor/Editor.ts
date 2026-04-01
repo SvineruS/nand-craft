@@ -2,7 +2,7 @@ import { Circuit } from './circuit.ts';
 import type { GateId } from './types.ts';
 import { createEditorState } from './EditorState.ts';
 import type { EditorState } from './EditorState.ts';
-import { Renderer } from './Renderer.ts';
+import { Renderer } from './render/Renderer.ts';
 import { InputHandler } from './InputHandler.ts';
 import { CommandHistory, AddGateCommand } from './commands.ts';
 import type { Command } from './commands.ts';

@@ -1,7 +1,7 @@
 import type { GateId, PinId, WireNodeId, WireSegmentId } from './types.ts';
 import type { EditorState, PlaceableType } from './EditorState.ts';
 import { getSelectedIds } from './EditorState.ts';
-import type { Renderer } from './Renderer.ts';
+import type { Renderer } from './render/Renderer.ts';
 import { rotateBy, type WireEndpoint } from './utils/geometry.ts';
 import {
   findNodeForPin,
