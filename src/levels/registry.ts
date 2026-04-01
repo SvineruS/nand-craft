@@ -16,6 +16,7 @@ export const LEVELS: Level[] = [
       { type: 'input', pos: { x: 2, y: 3 }, label: 'A', canRemove: false, canMove: false },
       { type: 'output', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false, canMove: false },
     ],
+    gateConstraints: { allow: ['nand'] },
     mode: 'combinational',
     test: {
       name: 'NOT gate',
@@ -33,7 +34,7 @@ export const LEVELS: Level[] = [
     id: lid('and'),
     name: 'AND',
     description:
-      'Build an AND gate using only NAND gates.\n\nAND outputs 1 only when both inputs are 1.\n\nHint: NAND is the opposite of AND...',
+      'Build an AND gate using NAND and NOT gates.\n\nAND outputs 1 only when both inputs are 1.\n\nHint: NAND is the opposite of AND...',
     inputs: [
       { name: 'A', bitWidth: 1 },
       { name: 'B', bitWidth: 1 },
@@ -44,6 +45,7 @@ export const LEVELS: Level[] = [
       { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false, canMove: false },
       { type: 'output', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false, canMove: false },
     ],
+    gateConstraints: { allow: ['nand', 'not'] },
     mode: 'combinational',
     test: {
       name: 'AND gate',
@@ -63,7 +65,7 @@ export const LEVELS: Level[] = [
     id: lid('or'),
     name: 'OR',
     description:
-      "Build an OR gate using only NAND gates.\n\nOR outputs 1 when at least one input is 1.\n\nHint: De Morgan's law — you'll need three NAND gates.",
+      "Build an OR gate using NAND and NOT gates.\n\nOR outputs 1 when at least one input is 1.\n\nHint: De Morgan's law — you'll need three NAND gates.",
     inputs: [
       { name: 'A', bitWidth: 1 },
       { name: 'B', bitWidth: 1 },
@@ -74,6 +76,7 @@ export const LEVELS: Level[] = [
       { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false, canMove: false },
       { type: 'output', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false, canMove: false },
     ],
+    gateConstraints: { allow: ['nand', 'not'] },
     mode: 'combinational',
     test: {
       name: 'OR gate',

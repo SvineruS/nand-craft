@@ -175,6 +175,20 @@ body {
   }
 }
 
+.sidebar-item-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+
+  &:hover {
+    background: var(--surface);
+  }
+}
+
+.sidebar-item-count {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
 .sidebar-item-label {
   color: var(--text);
   font-size: 12px;
