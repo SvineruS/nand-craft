@@ -28,7 +28,7 @@ export function runTests(
       }
 
       // Run one tick
-      const outputs = engine.tick(circuit, inputs);
+      const result = engine.tick(circuit, inputs);
 
       // Compare outputs with expected values
       let passed = true;
@@ -37,7 +37,7 @@ export function runTests(
 
       for (let j = 0; j < outputNames.length; j++) {
         const name = outputNames[j];
-        const actual = outputs.get(outputGateIds[j]) ?? null;
+        const actual = result.outputs.get(outputGateIds[j]) ?? null;
         actuals[name] = actual;
 
         if (name in testCase.expected) {
@@ -113,9 +113,9 @@ export function runTests(
 
         // Check current outputs first, then tick up to MAX_TICKS
         for (let t = 0; t < MAX_TICKS && !matched; t++) {
-          const outputs = engine.tick(circuit, currentInputs);
+          const tickResult = engine.tick(circuit, currentInputs);
           tickCount++;
-          actual = outputs.get(outputGateIds[outputIdx]) ?? null;
+          actual = tickResult.outputs.get(outputGateIds[outputIdx]) ?? null;
           if (actual === r.expected) {
             matched = true;
           }

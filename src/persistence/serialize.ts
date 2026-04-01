@@ -8,7 +8,6 @@ import {
   type WireSegment,
   type WireSegmentId,
 } from '../editor/types.ts';
-import { buildNets } from '../simulation/evaluate.ts';
 import type { Gate, Pin } from "../editor/gates.ts";
 
 interface SerializedCircuit {
@@ -75,6 +74,5 @@ export function deserializeCircuit(json: string): Circuit {
   }
   setNextId(maxId + 1);
 
-  buildNets(circuit);
   return circuit;
 }

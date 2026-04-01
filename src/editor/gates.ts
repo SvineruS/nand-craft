@@ -1,28 +1,5 @@
-import type { ComponentId, GateId, PinId, Rotation, Vec2 } from "./types.ts";
-
-
-export interface Gate {
-  id: GateId;
-  type: GateType;
-  pos: Vec2;
-  rotation: Rotation;
-  inputPins: PinId[];
-  outputPins: PinId[];
-  componentId?: ComponentId;
-  label?: string;
-  canRemove?: boolean;
-  canMove?: boolean;
-  status?: 'locked' | 'available' | 'solved';
-}
-
-export interface Pin {
-  id: PinId;
-  gateId: GateId;
-  kind: 'input' | 'output';
-  index: number;
-  bitWidth: number;
-  value: number | null;
-}
+export type { Gate, Pin, GateType } from '../simulation/gateTypes.ts';
+import type { GateType } from '../simulation/gateTypes.ts';
 
 export interface PinDef {
   kind: 'input' | 'output';
@@ -45,33 +22,6 @@ export interface GateDefinition {
   labelX?: number; // label x offset in grid units from center (default 0)
   labelY?: number; // label y offset in grid units from center (default 0)
 }
-
-
-
-// ---------------------------------------------------------------------------
-// Gate Definition Registry
-// ---------------------------------------------------------------------------
-
-// SVG paths are in grid-unit coordinates (0,0 to width,height)
-// They get scaled by GRID_SIZE at render time
-
-
-// Gate types
-export type GateType =
-  | 'nand'
-  | 'and'
-  | 'or'
-  | 'nor'
-  | 'not'
-  | 'delay'
-  | 'tristate'
-  | 'constant'
-  | 'splitter'
-  | 'joiner'
-  | 'input'
-  | 'output'
-  | 'component'
-  | 'level';
 
 
 const GATE_DEFS: Record<GateType, GateDefinition> = {

@@ -10,7 +10,7 @@ import {
   type WireSegmentId,
 } from '../editor/types.ts';
 import { isLevelUnlocked } from '../persistence/storage.ts';
-import { buildNets } from '../simulation/evaluate.ts';
+import { build } from '../simulation/evaluate.ts';
 import type { Gate } from "../editor/gates.ts";
 import type { Level } from "./levelTypes.ts";
 import { GRID_SIZE } from "../editor/consts.ts";
@@ -92,7 +92,7 @@ export function buildLevelMapCircuit(
     }
   }
 
-  buildNets(circuit);
+  build(circuit);
   return { circuit, levelGateMap };
 }
 

@@ -1,4 +1,4 @@
-import type { Circuit } from '../editor/circuit.ts';
+import type { Circuit } from './circuit.ts';
 import type {
   GateId,
   Net,
@@ -8,7 +8,8 @@ import type {
   WireSegmentId,
 } from '../editor/types.ts';
 import { generateId } from '../editor/types.ts';
-import type { Gate, Pin } from "../editor/gates.ts";
+import type { Gate, Pin } from "./gateTypes.ts";
+import type { BuildResult } from './types.ts';
 
 /** Gate types that are part of the combinational subgraph. */
 const COMBINATIONAL_TYPES = new Set([
@@ -33,7 +34,6 @@ class UnionFind<T> {
     while (this.parent.get(root) !== root) {
       root = this.parent.get(root)!;
     }
-    // Path compression
     let current = x;
     while (current !== root) {
       const next = this.parent.get(current)!;
@@ -73,27 +73,21 @@ class UnionFind<T> {
   }
 }
 
-/**
- * Rebuild all nets from wire connectivity using union-find on wire nodes/segments.
- * Updates circuit.nets in place.
- */
-export function buildNets(circuit: Circuit): void {
+// ---------------------------------------------------------------------------
+// Build: structural analysis cached until topology changes
+// ---------------------------------------------------------------------------
+
+/** Rebuild all nets from wire connectivity using union-find. */
+function buildNets(circuit: Circuit): Map<NetId, Net> {
   const uf = new UnionFind<WireNodeId>();
 
-  // Create a set for each wire node
   for (const nodeId of circuit.wireNodes.keys()) {
     uf.makeSet(nodeId);
   }
-
-  // Union nodes that share a wire segment
   for (const segment of circuit.wireSegments.values()) {
     uf.union(segment.from, segment.to);
   }
 
-  // Build nets from union-find groups
-  circuit.nets.clear();
-
-  // Build a lookup: nodeId -> segmentIds it belongs to
   const nodeToSegments = new Map<WireNodeId, WireSegmentId[]>();
   for (const segment of circuit.wireSegments.values()) {
     for (const nid of [segment.from, segment.to]) {
@@ -104,104 +98,71 @@ export function buildNets(circuit: Circuit): void {
     }
   }
 
+  const nets = new Map<NetId, Net>();
   const groups = uf.groups();
   for (const [_root, nodeIds] of groups) {
     const netId = generateId('net') as NetId;
-
-    // Collect unique segment IDs for this group
     const segmentIdSet = new Set<WireSegmentId>();
     for (const nid of nodeIds) {
       const segs = nodeToSegments.get(nid);
       if (segs) {
-        for (const sid of segs) {
-          segmentIdSet.add(sid);
-        }
+        for (const sid of segs) segmentIdSet.add(sid);
       }
     }
-
-    const net: Net = {
-      id: netId,
-      nodeIds,
-      segmentIds: [...segmentIdSet],
-    };
-    circuit.nets.set(netId, net);
+    nets.set(netId, { id: netId, nodeIds, segmentIds: [...segmentIdSet] });
   }
+  return nets;
 }
 
-/**
- * For each net, resolve the driven value from output pins.
- * Multiple non-null drivers = bus contention error.
- * All null = high-Z (null). One active = net value.
- * Sets all connected input pins to the resolved value.
- */
-function resolveNets(circuit: Circuit): NetId[] {
-  const contentionNets: NetId[] = [];
-
-  for (const net of circuit.nets.values()) {
-    // Find all pins connected to this net via wire nodes
-    const connectedPinIds: PinId[] = [];
+/** Build pin-to-net lookup from nets. */
+function buildPinToNet(circuit: Circuit, nets: Map<NetId, Net>): Map<PinId, NetId> {
+  const pinToNet = new Map<PinId, NetId>();
+  for (const net of nets.values()) {
     for (const nodeId of net.nodeIds) {
       const node = circuit.getWireNode(nodeId);
       if (node.pinId) {
-        connectedPinIds.push(node.pinId);
+        pinToNet.set(node.pinId, net.id);
       }
-    }
-
-    // Separate output pins (drivers) and input pins (receivers)
-    const drivers: Pin[] = [];
-    const receivers: Pin[] = [];
-    let widthMismatch = false;
-
-    for (const pinId of connectedPinIds) {
-      const pin = circuit.getPin(pinId);
-
-      if (pin.kind === 'output') {
-        drivers.push(pin);
-      } else {
-        receivers.push(pin);
-      }
-    }
-
-    // Check bit width consistency
-    const allPins = [...drivers, ...receivers];
-    if (allPins.length > 1) {
-      const bw = allPins[0].bitWidth;
-      for (let i = 1; i < allPins.length; i++) {
-        if (allPins[i].bitWidth !== bw) { widthMismatch = true; break; }
-      }
-    }
-
-    // Resolve net value from drivers
-    const activeDrivers = drivers.filter((p) => p.value !== null);
-
-    let netValue: number | null;
-    if (widthMismatch || activeDrivers.length > 1) {
-      // Bus contention or width mismatch — record and set null
-      contentionNets.push(net.id);
-      netValue = null;
-    } else if (activeDrivers.length === 1) {
-      netValue = activeDrivers[0].value;
-    } else {
-      netValue = null; // high-Z
-    }
-
-    // Set all receiver (input) pins to the resolved value
-    for (const receiver of receivers) {
-      receiver.value = netValue;
     }
   }
+  return pinToNet;
+}
 
-  return contentionNets;
+/** Classify pins per net into drivers (output) and receivers (input). */
+function classifyNetPins(
+  circuit: Circuit,
+  nets: Map<NetId, Net>,
+  pinToNet: Map<PinId, NetId>,
+): { netDrivers: Map<NetId, PinId[]>; netReceivers: Map<NetId, PinId[]>; netBitWidths: Map<NetId, number> } {
+  const netDrivers = new Map<NetId, PinId[]>();
+  const netReceivers = new Map<NetId, PinId[]>();
+  const netBitWidths = new Map<NetId, number>();
+
+  for (const netId of nets.keys()) {
+    netDrivers.set(netId, []);
+    netReceivers.set(netId, []);
+    netBitWidths.set(netId, 1);
+  }
+
+  for (const [pinId, netId] of pinToNet) {
+    const pin = circuit.getPin(pinId);
+    if (pin.kind === 'output') {
+      netDrivers.get(netId)!.push(pinId);
+    } else {
+      netReceivers.get(netId)!.push(pinId);
+    }
+    // TODO: if a net has pins with different bitWidths, this takes the last one — should detect mismatch
+    netBitWidths.set(netId, pin.bitWidth);
+  }
+
+  return { netDrivers, netReceivers, netBitWidths };
 }
 
 /**
  * Topological sort of combinational subgraph only.
  * Treats delay gate outputs and input-type gates as fixed sources.
- * Returns sorted gate IDs.
  */
-function topologicalSort(circuit: Circuit): GateId[] {
-  // Build adjacency: for combinational gates, find which gates feed into which
-  // A gate A feeds gate B if A has an output pin connected (via net) to an input pin of B
+function topologicalSort(circuit: Circuit, nets: Map<NetId, Net>, pinToNet: Map<PinId, NetId>): GateId[] {
   const combGateIds = new Set<GateId>();
   for (const gate of circuit.gates.values()) {
     if (COMBINATIONAL_TYPES.has(gate.type)) {
@@ -209,35 +170,20 @@ function topologicalSort(circuit: Circuit): GateId[] {
     }
   }
 
-  // Build pin-to-net lookup
-  const pinToNet = new Map<PinId, Net>();
-  for (const net of circuit.nets.values()) {
-    for (const nodeId of net.nodeIds) {
-      const node = circuit.getWireNode(nodeId);
-      if (node.pinId) {
-        pinToNet.set(node.pinId, net);
-      }
-    }
-  }
-
-  // Build adjacency and in-degree for combinational gates
   const adj = new Map<GateId, GateId[]>();
   const inDegree = new Map<GateId, number>();
-
   for (const gateId of combGateIds) {
     adj.set(gateId, []);
     inDegree.set(gateId, 0);
   }
 
-  // For each combinational gate, look at its input pins.
-  // Find which output pin drives that net; if it belongs to another combinational gate, add edge.
   for (const gateId of combGateIds) {
     const gate = circuit.getGate(gateId);
     for (const inputPinId of gate.inputPins) {
-      const net = pinToNet.get(inputPinId);
-      if (!net) continue;
+      const netId = pinToNet.get(inputPinId);
+      if (!netId) continue;
+      const net = nets.get(netId)!;
 
-      // Find the driver (output pin) on this net
       for (const nodeId of net.nodeIds) {
         const node = circuit.getWireNode(nodeId);
         if (!node.pinId) continue;
@@ -256,9 +202,7 @@ function topologicalSort(circuit: Circuit): GateId[] {
   // Kahn's algorithm
   const queue: GateId[] = [];
   for (const [gateId, deg] of inDegree) {
-    if (deg === 0) {
-      queue.push(gateId);
-    }
+    if (deg === 0) queue.push(gateId);
   }
 
   const sorted: GateId[] = [];
@@ -268,9 +212,7 @@ function topologicalSort(circuit: Circuit): GateId[] {
     for (const neighbor of adj.get(current) ?? []) {
       const newDeg = (inDegree.get(neighbor) ?? 1) - 1;
       inDegree.set(neighbor, newDeg);
-      if (newDeg === 0) {
-        queue.push(neighbor);
-      }
+      if (newDeg === 0) queue.push(neighbor);
     }
   }
 
@@ -281,7 +223,7 @@ function topologicalSort(circuit: Circuit): GateId[] {
  * Find feedback loops in the combinational subgraph (no delay gate breaking the loop).
  * Returns arrays of gate IDs forming cycles.
  */
-export function detectCycles(circuit: Circuit): GateId[][] {
+function detectCycles(circuit: Circuit, nets: Map<NetId, Net>, pinToNet: Map<PinId, NetId>): GateId[][] {
   const combGateIds = new Set<GateId>();
   for (const gate of circuit.gates.values()) {
     if (COMBINATIONAL_TYPES.has(gate.type)) {
@@ -289,18 +231,6 @@ export function detectCycles(circuit: Circuit): GateId[][] {
     }
   }
 
-  // Build pin-to-net lookup
-  const pinToNet = new Map<PinId, Net>();
-  for (const net of circuit.nets.values()) {
-    for (const nodeId of net.nodeIds) {
-      const node = circuit.getWireNode(nodeId);
-      if (node.pinId) {
-        pinToNet.set(node.pinId, net);
-      }
-    }
-  }
-
-  // Build adjacency for combinational gates
   const adj = new Map<GateId, Set<GateId>>();
   for (const gateId of combGateIds) {
     adj.set(gateId, new Set());
@@ -309,8 +239,9 @@ export function detectCycles(circuit: Circuit): GateId[][] {
   for (const gateId of combGateIds) {
     const gate = circuit.getGate(gateId);
     for (const outputPinId of gate.outputPins) {
-      const net = pinToNet.get(outputPinId);
-      if (!net) continue;
+      const netId = pinToNet.get(outputPinId);
+      if (!netId) continue;
+      const net = nets.get(netId)!;
 
       for (const nodeId of net.nodeIds) {
         const node = circuit.getWireNode(nodeId);
@@ -326,16 +257,16 @@ export function detectCycles(circuit: Circuit): GateId[][] {
     }
   }
 
-  // Check for self-loops
+  // Self-loops
   const selfLoops: GateId[][] = [];
   for (const [gateId, neighbors] of adj) {
     if (neighbors.has(gateId)) {
       selfLoops.push([gateId]);
-      neighbors.delete(gateId); // remove to avoid confusing Tarjan's
+      neighbors.delete(gateId);
     }
   }
 
-  // Find all SCCs using Tarjan's algorithm
+  // Tarjan's SCC
   const cycles: GateId[][] = [...selfLoops];
   let index = 0;
   const nodeIndex = new Map<GateId, number>();
@@ -367,26 +298,162 @@ export function detectCycles(circuit: Circuit): GateId[][] {
         onStack.delete(w);
         scc.push(w);
       } while (w !== v);
-
-      if (scc.length > 1) {
-        cycles.push(scc);
-      }
+      if (scc.length > 1) cycles.push(scc);
     }
   }
 
   for (const gateId of combGateIds) {
-    if (!nodeIndex.has(gateId)) {
-      strongConnect(gateId);
-    }
+    if (!nodeIndex.has(gateId)) strongConnect(gateId);
   }
 
   return cycles;
 }
 
+/** Build cached structural analysis from circuit topology. */
+export function build(circuit: Circuit): BuildResult {
+  const nets = buildNets(circuit);
+  const pinToNet = buildPinToNet(circuit, nets);
+  const { netDrivers, netReceivers, netBitWidths } = classifyNetPins(circuit, nets, pinToNet);
+  const evaluationOrder = topologicalSort(circuit, nets, pinToNet);
+  const shortCircuitGates = detectCycles(circuit, nets, pinToNet).flat();
+
+  return { nets, evaluationOrder, pinToNet, netDrivers, netReceivers, netBitWidths, shortCircuitGates };
+}
+
+// ---------------------------------------------------------------------------
+// Tick: value propagation using cached BuildResult
+// ---------------------------------------------------------------------------
+
 /**
- * Evaluate a binary gate (2 inputs, 1 output) with the given operation.
- * Null/disconnected inputs are treated as 0.
+ * Resolve net values from driver pins. Sets receiver pins.
+ * Returns net IDs with bus contention.
  */
+function resolveNets(circuit: Circuit, buildResult: BuildResult): NetId[] {
+  const contentionNets: NetId[] = [];
+
+  for (const [netId, net] of buildResult.nets) {
+    const driverPinIds = buildResult.netDrivers.get(netId) ?? [];
+    const receiverPinIds = buildResult.netReceivers.get(netId) ?? [];
+
+    // Check bit width consistency
+    const allPinIds = [...driverPinIds, ...receiverPinIds];
+    let widthMismatch = false;
+    if (allPinIds.length > 1) {
+      const bw = circuit.getPin(allPinIds[0]).bitWidth;
+      for (let i = 1; i < allPinIds.length; i++) {
+        if (circuit.getPin(allPinIds[i]).bitWidth !== bw) { widthMismatch = true; break; }
+      }
+    }
+
+    // Resolve value from drivers
+    const activeDrivers: Pin[] = [];
+    for (const pinId of driverPinIds) {
+      const pin = circuit.getPin(pinId);
+      if (pin.value !== null) activeDrivers.push(pin);
+    }
+
+    let netValue: number | null;
+    if (widthMismatch || activeDrivers.length > 1) {
+      contentionNets.push(net.id);
+      netValue = null;
+    } else if (activeDrivers.length === 1) {
+      netValue = activeDrivers[0].value;
+    } else {
+      netValue = null;
+    }
+
+    for (const pinId of receiverPinIds) {
+      circuit.getPin(pinId).value = netValue;
+    }
+  }
+
+  return contentionNets;
+}
+
+/**
+ * One tick of combinational propagation using cached build data.
+ * Returns contention net IDs from the final resolution.
+ */
+export function propagate(circuit: Circuit, buildResult: BuildResult): NetId[] {
+  // Initial net resolution to propagate input gate values
+  let contentionNets = resolveNets(circuit, buildResult);
+
+  for (const gateId of buildResult.evaluationOrder) {
+    const gate = circuit.getGate(gateId);
+    evaluateGate(gate, circuit);
+    contentionNets = resolveNets(circuit, buildResult);
+  }
+
+  return contentionNets;
+}
+
+/**
+ * Compute derived rendering data from tick results.
+ * Moved from Editor.updateDerivedState().
+ */
+export function computeDerivedState(
+  circuit: Circuit,
+  buildResult: BuildResult,
+  contentionNets: NetId[],
+): { errorSegmentIds: Set<string>; nodeValues: Map<string, number | null>; nodeBitWidths: Map<string, number> } {
+  // Error segments
+  const errorSegments = new Set<string>();
+
+  if (buildResult.shortCircuitGates.length > 0) {
+    const errorPinIds = new Set<string>();
+    for (const gateId of buildResult.shortCircuitGates) {
+      const gate = circuit.getGate(gateId);
+      for (const p of [...gate.inputPins, ...gate.outputPins])
+        errorPinIds.add(p as string);
+    }
+    for (const net of buildResult.nets.values()) {
+      let touches = false;
+      for (const nid of net.nodeIds) {
+        const node = circuit.getWireNode(nid);
+        if (node.pinId && errorPinIds.has(node.pinId as string)) { touches = true; break; }
+      }
+      if (touches) {
+        for (const sid of net.segmentIds) errorSegments.add(sid as string);
+      }
+    }
+  }
+
+  if (contentionNets.length > 0) {
+    const contentionSet = new Set(contentionNets.map(id => id as string));
+    for (const net of buildResult.nets.values()) {
+      if (contentionSet.has(net.id as string)) {
+        for (const sid of net.segmentIds) errorSegments.add(sid as string);
+      }
+    }
+  }
+
+  // Node values & bit widths
+  const nodeValues = new Map<string, number | null>();
+  const nodeBitWidths = new Map<string, number>();
+  for (const net of buildResult.nets.values()) {
+    let netValue: number | null = null;
+    let netBitWidth = 1;
+    for (const nodeId of net.nodeIds) {
+      const node = circuit.getWireNode(nodeId);
+      if (node.pinId) {
+        const pin = circuit.getPin(node.pinId);
+        if (pin.value !== null) netValue = pin.value;
+        netBitWidth = pin.bitWidth;
+      }
+    }
+    for (const nodeId of net.nodeIds) {
+      nodeValues.set(nodeId as string, netValue);
+      nodeBitWidths.set(nodeId as string, netBitWidth);
+    }
+  }
+
+  return { errorSegmentIds: errorSegments, nodeValues, nodeBitWidths };
+}
+
+// ---------------------------------------------------------------------------
+// Gate evaluation
+// ---------------------------------------------------------------------------
+
 function evaluateBinaryGate(
   gate: Gate,
   circuit: Circuit,
@@ -399,10 +466,6 @@ function evaluateBinaryGate(
   out.value = op(inA.value ?? 0, inB.value ?? 0, mask);
 }
 
-/**
- * Evaluate a unary gate (1 input, 1 output) with the given operation.
- * Null/disconnected input is treated as 0.
- */
 function evaluateUnaryGate(
   gate: Gate,
   circuit: Circuit,
@@ -414,37 +477,28 @@ function evaluateUnaryGate(
   out.value = op(input.value ?? 0, mask);
 }
 
-/**
- * Evaluate a single gate based on its type.
- */
 function evaluateGate(gate: Gate, circuit: Circuit): void {
   switch (gate.type) {
     case 'nand':
       evaluateBinaryGate(gate, circuit, (a, b, mask) => (~(a & b) & mask) >>> 0);
       break;
-
     case 'and':
       evaluateBinaryGate(gate, circuit, (a, b) => a & b);
       break;
-
     case 'or':
       evaluateBinaryGate(gate, circuit, (a, b) => a | b);
       break;
-
     case 'nor':
       evaluateBinaryGate(gate, circuit, (a, b, mask) => (~(a | b) & mask) >>> 0);
       break;
-
     case 'not':
       evaluateUnaryGate(gate, circuit, (a, mask) => (~a & mask) >>> 0);
       break;
-
     case 'constant': {
       const out = circuit.getPin(gate.outputPins[0]);
       if (out.value === null) out.value = 0;
       break;
     }
-
     case 'tristate': {
       const input = circuit.getPin(gate.inputPins[0]);
       const enable = circuit.getPin(gate.inputPins[1]);
@@ -452,7 +506,6 @@ function evaluateGate(gate: Gate, circuit: Circuit): void {
       out.value = (enable.value !== null && enable.value !== 0) ? input.value : null;
       break;
     }
-
     case 'splitter': {
       const input = circuit.getPin(gate.inputPins[0]);
       const inputVal = input.value ?? 0;
@@ -461,7 +514,6 @@ function evaluateGate(gate: Gate, circuit: Circuit): void {
       }
       break;
     }
-
     case 'joiner': {
       const out = circuit.getPin(gate.outputPins[0]);
       let result = 0;
@@ -472,14 +524,12 @@ function evaluateGate(gate: Gate, circuit: Circuit): void {
       out.value = result;
       break;
     }
-
     case 'input':
     case 'output': {
       const valuePin = gate.type === 'input'
         ? circuit.getPin(gate.outputPins[0])
         : circuit.getPin(gate.inputPins[0]);
 
-      // Check for enable pin
       const enablePinId = gate.type === 'input' ? gate.inputPins[0] : gate.inputPins[1];
       if (enablePinId) {
         const enablePin = circuit.getPin(enablePinId);
@@ -491,31 +541,10 @@ function evaluateGate(gate: Gate, circuit: Circuit): void {
         }
       }
 
-      // For input gates, the output pin value is already set externally
-      // For output gates, the input pin value is already set via net resolution
-      // valuePin used to suppress unused warning from TS
       void valuePin;
       break;
     }
-
     default:
       break;
-  }
-}
-
-/**
- * One tick of combinational propagation:
- * topological sort -> evaluate each gate in order -> resolve nets.
- */
-export function propagate(circuit: Circuit): void {
-  // Initial net resolution to propagate input gate values to connected pins
-  resolveNets(circuit);
-
-  const sorted = topologicalSort(circuit);
-
-  for (const gateId of sorted) {
-    const gate = circuit.getGate(gateId);
-    evaluateGate(gate, circuit);
-    resolveNets(circuit);
   }
 }
