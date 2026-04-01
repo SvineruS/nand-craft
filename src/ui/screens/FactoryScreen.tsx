@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import { viewMode } from '../editorStore.ts';
 import type { Camera } from '../../engine/camera.ts';
 import { CanvasInput } from '../../engine/input.ts';
-import { cameraBoundingBox } from "../../editor/utils/geometry.ts";
+import { cameraBoundingBox } from "../../circuit-builder/editor/utils/geometry.ts";
 
 const GRID_SIZE = 32;
 const BG_COLOR = '#181825';

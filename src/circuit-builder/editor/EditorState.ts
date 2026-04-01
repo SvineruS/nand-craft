@@ -2,7 +2,7 @@ import { Circuit } from '../simulation/circuit.ts';
 import type { GateId, Rotation, WireNodeId, WireSegmentId } from './types.ts';
 import type { Vec2 } from './utils/vec2.ts';
 import type { WireEndpoint } from './utils/geometry.ts';
-import type { Camera } from '../engine/camera.ts';
+import type { Camera } from '../../engine/camera.ts';
 import type { GateType } from "./gates.ts";
 import type { TickResult } from '../simulation/types.ts';
 import { WIRE_COLORS } from "./consts.ts";

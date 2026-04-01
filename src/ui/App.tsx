@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { Editor } from '../editor/Editor.ts';
+import { Editor } from '../circuit-builder/editor/Editor.ts';
 import { Toolbar } from './components/Toolbar.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { TestPanel } from './components/TestPanel.tsx';
@@ -19,8 +19,8 @@ import {
   cancelRunAll,
   suppressSimulate,
   resetSuppressSimulate,
-} from '../editor/testRunner.ts';
-import { buildLevelMap, getLevelMapState } from '../levels/levelManager.ts';
+} from '../circuit-builder/editor/testRunner.ts';
+import { buildLevelMap, getLevelMapState } from '../circuit-builder/levels/levelManager.ts';
 import { attachMapInput, detachMapInput, switchToLevelMap } from './screenManager.ts';
 import './style.css';
 

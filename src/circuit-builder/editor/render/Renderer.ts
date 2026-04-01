@@ -3,7 +3,7 @@ import type { GateType } from '../../simulation/gateTypes.ts';
 import { getGateDefinition } from '../gates.ts';
 import { cameraBoundingBox } from '../utils/geometry.ts';
 import { routeCorner, Vec2 } from '../utils/vec2.ts';
-import { screenToWorld as stw, worldToScreen as wts } from '../../engine/camera.ts';
+import { screenToWorld as stw, worldToScreen as wts } from '../../../engine/camera.ts';
 import { COLORS, GRID_DOT_RADIUS, GRID_SIZE, WIRE_DASH_SIZE } from "../consts.ts";
 import type {
   RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin,

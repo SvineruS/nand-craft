@@ -1,4 +1,4 @@
-import type { Vec2 } from '../editor/types.ts';
+import type { Vec2 } from '../circuit-builder/editor/types.ts';
 
 export interface Camera {
   pos: Vec2;

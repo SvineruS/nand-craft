@@ -1,8 +1,8 @@
 import { signal } from '@preact/signals';
-import type { EditorState } from '../editor/EditorState.ts';
-import type { LevelId } from '../editor/types.ts';
-import { getSolvedLevelIds } from '../persistence/storage.ts';
-import type { Level, TestResult } from "../levels/levelTypes.ts";
+import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
+import type { LevelId } from '../circuit-builder/editor/types.ts';
+import { getSolvedLevelIds } from '../circuit-builder/persistence/storage.ts';
+import type { Level, TestResult } from "../circuit-builder/levels/levelTypes.ts";
 
 // ---------------------------------------------------------------------------
 // Signals – reactive app-level state consumed by Preact components

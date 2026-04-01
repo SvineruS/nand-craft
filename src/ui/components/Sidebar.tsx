@@ -1,7 +1,7 @@
 import { useRef } from 'preact/hooks';
-import { type GateType, getAllGateDefinitions } from '../../editor/gates.ts';
+import { type GateType, getAllGateDefinitions } from '../../circuit-builder/editor/gates.ts';
 import { currentLevel, useEditorState } from '../editorStore.ts';
-import { isGateAllowed, getGateCount } from '../../levels/levelTypes.ts';
+import { isGateAllowed, getGateCount } from '../../circuit-builder/levels/levelTypes.ts';
 
 interface SidebarProps {
   onStamp: (type: GateType) => void;

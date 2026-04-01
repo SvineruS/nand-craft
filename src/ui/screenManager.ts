@@ -1,8 +1,8 @@
-import type { Editor } from '../editor/Editor.ts';
+import type { Editor } from '../circuit-builder/editor/Editor.ts';
 import { CanvasInput } from '../engine/input.ts';
-import { LEVELS } from '../levels/registry.ts';
-import { hitTestLevel, loadLevel, buildLevelMap, getLevelMapState, getLevelGateMap } from '../levels/levelManager.ts';
-import { saveCircuit } from '../persistence/storage.ts';
+import { LEVELS } from '../circuit-builder/levels/registry.ts';
+import { hitTestLevel, loadLevel, buildLevelMap, getLevelMapState, getLevelGateMap } from '../circuit-builder/levels/levelManager.ts';
+import { saveCircuit } from '../circuit-builder/persistence/storage.ts';
 import {
   currentLevel,
   viewMode,

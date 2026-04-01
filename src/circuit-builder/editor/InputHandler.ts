@@ -34,8 +34,8 @@ import {
   snapGateCenter
 } from "./utils/hitTests.ts";
 import { copySelection, pasteClipboard } from './clipboard.ts';
-import { CanvasInput, type PointerEvent, type DragDropEvent } from '../engine/input.ts';
-import { KeyMap } from '../engine/keymap.ts';
+import { CanvasInput, type PointerEvent, type DragDropEvent } from '../../engine/input.ts';
+import { KeyMap } from '../../engine/keymap.ts';
 import { WIRE_COLORS } from "./consts.ts";
 
 const MIN_WIRE_DRAG = 5;

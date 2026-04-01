@@ -10,7 +10,7 @@ import {
   warningText,
   solvedLevelIds,
   notifyStateChange,
-} from '../ui/editorStore.ts';
+} from '../../ui/editorStore.ts';
 import { markLevelSolved, getSolvedLevelIds } from '../persistence/storage.ts';
 
 // ---------------------------------------------------------------------------

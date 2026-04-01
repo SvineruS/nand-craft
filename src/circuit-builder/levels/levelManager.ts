@@ -17,7 +17,7 @@ import {
   solvedLevelIds,
   testCaseIndex,
   testResults,
-} from '../ui/editorStore.ts';
+} from '../../ui/editorStore.ts';
 import { Vec2 } from "../editor/utils/vec2.ts";
 import { hitTestGate_ } from "../editor/utils/hitTests.ts";
 
