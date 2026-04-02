@@ -4,7 +4,6 @@ import type { Vec2 } from './utils/vec2.ts';
 import type { WireEndpoint } from './utils/geometry.ts';
 import type { Camera } from '../../engine/camera.ts';
 import type { GateType } from "./gates.ts";
-import type { TickResult } from '../simulation/types.ts';
 import { WIRE_COLORS } from "./consts.ts";
 
 export type { Camera };
@@ -61,8 +60,6 @@ export interface EditorState {
   selectionRect: { pos: Vec2; w: number; h: number } | null;
   dropPreview: { type: PlaceableType; pos: Vec2 } | null;
   clipboard: ClipboardData | null;
-  shortCircuitGates: GateId[];
-  tickResult: TickResult;
   wireColor: string;
   renderDirty: boolean;
   circuitDirty: boolean;
@@ -79,8 +76,6 @@ export function createEditorState(): EditorState {
     selectionRect: null,
     dropPreview: null,
     clipboard: null,
-    shortCircuitGates: [],
-    tickResult: { outputs: new Map(), contentionNets: [], errorSegmentIds: new Set(), nodeValues: new Map(), nodeBitWidths: new Map() },
     wireColor: WIRE_COLORS[0],
     renderDirty: true,
     circuitDirty: true,

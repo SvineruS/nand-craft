@@ -1,6 +1,5 @@
 import { Circuit } from '../simulation/circuit.ts';
 import type { GateId } from '../editor/types.ts';
-import { SimulationEngine } from '../simulation/engine.ts';
 import type { TestDefinition, TestResult } from "../levels/levelTypes.ts";
 
 export function runTests(
@@ -11,7 +10,6 @@ export function runTests(
   inputNames: string[],
   outputNames: string[]
 ): TestResult[] {
-  const engine = new SimulationEngine();
   const results: TestResult[] = [];
 
   if (test.mode === 'combinational' && test.cases) {
@@ -28,7 +26,7 @@ export function runTests(
       }
 
       // Run one tick
-      const result = engine.tick(circuit, inputs);
+      const result = circuit.tick(inputs);
 
       // Compare outputs with expected values
       let passed = true;
@@ -91,7 +89,7 @@ export function runTests(
 
       // Tick once after writes
       if (writes.length > 0) {
-        engine.tick(circuit, currentInputs);
+        circuit.tick(currentInputs);
         tickCount++;
       }
 
@@ -113,7 +111,7 @@ export function runTests(
 
         // Check current outputs first, then tick up to MAX_TICKS
         for (let t = 0; t < MAX_TICKS && !matched; t++) {
-          const tickResult = engine.tick(circuit, currentInputs);
+          const tickResult = circuit.tick(currentInputs);
           tickCount++;
           actual = tickResult.outputs.get(outputGateIds[outputIdx]) ?? null;
           if (actual === r.expected) {

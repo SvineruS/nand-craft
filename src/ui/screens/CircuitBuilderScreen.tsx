@@ -29,8 +29,7 @@ export function CircuitBuilderScreen() {
     renderer.startLoop(
       () => editor.getState(),
       () => {
-        editor.invalidateBuild();
-        editor.resetSimulation();
+        editor.onCircuitChanged();
         notifyStateChange();
       },
     );

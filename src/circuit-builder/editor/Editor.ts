@@ -3,8 +3,6 @@ import type { EditorState } from './EditorState.ts';
 import { createEditorState } from './EditorState.ts';
 import type { Command } from './commands.ts';
 import { AddGateCommand, CommandHistory } from './commands.ts';
-import { SimulationEngine } from '../simulation/engine.ts';
-import type { TickResult } from '../simulation/types.ts';
 import { Vec2 } from './utils/vec2.ts';
 import type { Level } from "../levels/levelTypes.ts";
 import { LevelTests } from "./LevelTests.ts";
@@ -19,14 +17,12 @@ import { saveCircuit } from "../persistence/storage.ts";
 export class Editor {
   private state: EditorState;
   private history: CommandHistory;
-  private engine: SimulationEngine;
   readonly level: Level;
   readonly tests: LevelTests;
 
   private constructor(level: Level, circuit: Circuit) {
     this.state = createEditorState();
     this.history = new CommandHistory();
-    this.engine = new SimulationEngine();
     this.level = level;
     this.state.circuit = circuit;
     this.state.circuitDirty = true;
@@ -41,14 +37,13 @@ export class Editor {
 
   /** Reset to the level's default circuit, discarding user changes. */
   resetLevel(): void {
-    const circuit = buildLevelCircuit(this.level);
-    this.state.circuit = circuit;
     this.history = new CommandHistory();
-    this.engine.invalidateBuild();
+    this.state.circuit = buildLevelCircuit(this.level);
     this.state.selection = [];
     this.state.mode = { kind: 'normal' };
     this.state.circuitDirty = true;
     this.tests.rebuild();
+
   }
 
   getCircuit(): Circuit {
@@ -76,19 +71,16 @@ export class Editor {
   }
 
   hasShortCircuit(): boolean {
-    return (this.engine.getBuild()?.shortCircuitGates.length ?? 0) > 0;
+    return (this.getCircuit().getBuild()?.shortCircuitGates.length ?? 0) > 0;
   }
 
   hasContention(): boolean {
-    return this.state.tickResult.contentionNets.length > 0;
+    return this.getCircuit().tickResult.contentionNets.length > 0;
   }
 
-  /** Clear all pin values and delay state (reset simulation visuals). */
-  resetSimulation(): void {
-    for (const pin of this.state.circuit.pins.values()) {
-      pin.value = 0;
-    }
-    this.state.circuit.delayState.clear();
+  onCircuitChanged() {
+    this.getCircuit().invalidateBuild()
+    this.tests.runCase(0);
     this.state.renderDirty = true;
   }
 
@@ -97,23 +89,14 @@ export class Editor {
     if (resetDelay) {
       this.state.circuit.delayState.clear();
     }
-    const result = this.engine.tick(this.state.circuit, inputs);
-    this.applyTickResult(result);
+    this.getCircuit().tick(inputs);
     this.state.renderDirty = true;
   }
 
-  invalidateBuild(): void {
-    this.engine.invalidateBuild();
-  }
+
 
   save() {
     saveCircuit(this.level.id, this.getCircuit());
-  }
-
-
-  private applyTickResult(result: TickResult): void {
-    this.state.shortCircuitGates = this.engine.getBuild()?.shortCircuitGates ?? [];
-    this.state.tickResult = result;
   }
 }
 

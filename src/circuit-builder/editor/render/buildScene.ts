@@ -28,7 +28,8 @@ export function buildScene(
 // ---------------------------------------------------------------------------
 
 function buildWireSegments(state: EditorState): RenderWireSegment[] {
-  const { circuit, tickResult: { nodeValues, nodeBitWidths } } = state;
+  const { circuit } = state;
+  const { nodeValues, nodeBitWidths } = circuit.tickResult;
   const result: RenderWireSegment[] = [];
 
   for (const segment of circuit.wireSegments.values()) {
@@ -37,12 +38,12 @@ function buildWireSegments(state: EditorState): RenderWireSegment[] {
     const from = fromNode.pos;
     const to = toNode.pos;
 
-    const bitWidth = nodeBitWidths.get(segment.from as string) ?? nodeBitWidths.get(segment.to as string) ?? 1;
+    const bitWidth = nodeBitWidths.get(segment.from) ?? nodeBitWidths.get(segment.to) ?? 1;
     const thickness = bitWidth > 1 ? 8 : 6;
     const bodyColor = segment.color ?? COLORS.wireDefault;
 
     // Signal
-    const value = nodeValues.get(segment.from as string) ?? nodeValues.get(segment.to as string) ?? null;
+    const value = nodeValues.get(segment.from) ?? nodeValues.get(segment.to) ?? null;
     const sc = value !== null ? signalColor(value, bitWidth) : null;
 
     // Value labels (only for segments with signal and sufficient length)
@@ -78,28 +79,29 @@ function buildWireSegments(state: EditorState): RenderWireSegment[] {
 // ---------------------------------------------------------------------------
 
 function buildWireNodes(state: EditorState): RenderWireNode[] {
-  const { circuit, tickResult: { nodeValues, nodeBitWidths } } = state;
+  const { circuit } = state;
+  const { nodeValues, nodeBitWidths } = circuit.tickResult;
   const result: RenderWireNode[] = [];
 
   // Count segments per node + find first connected segment color
   const segmentCount = new Map<string, number>();
   const nodeColor = new Map<string, string>();
   for (const seg of circuit.wireSegments.values()) {
-    segmentCount.set(seg.from as string, (segmentCount.get(seg.from as string) ?? 0) + 1);
-    segmentCount.set(seg.to as string, (segmentCount.get(seg.to as string) ?? 0) + 1);
+    segmentCount.set(seg.from, (segmentCount.get(seg.from) ?? 0) + 1);
+    segmentCount.set(seg.to, (segmentCount.get(seg.to) ?? 0) + 1);
     if (seg.color) {
-      if (!nodeColor.has(seg.from as string)) nodeColor.set(seg.from as string, seg.color);
-      if (!nodeColor.has(seg.to as string)) nodeColor.set(seg.to as string, seg.color);
+      if (!nodeColor.has(seg.from)) nodeColor.set(seg.from, seg.color);
+      if (!nodeColor.has(seg.to)) nodeColor.set(seg.to, seg.color);
     }
   }
 
   for (const node of circuit.wireNodes.values()) {
-    const count = segmentCount.get(node.id as string) ?? 0;
+    const count = segmentCount.get(node.id) ?? 0;
     if (count === 0 && !node.pinId) continue;
 
     const pin = node.pinId ? circuit.getPin(node.pinId) : null;
-    const value = pin?.value ?? nodeValues.get(node.id as string) ?? null;
-    const customColor = nodeColor.get(node.id as string);
+    const value = pin?.value ?? nodeValues.get(node.id) ?? null;
+    const customColor = nodeColor.get(node.id);
     const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
     const radius = isHovered ? 7 : 5;
@@ -108,7 +110,7 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
 
     let sc: string | null = null;
     if (value !== null) {
-      const bw = pin?.bitWidth ?? nodeBitWidths.get(node.id as string) ?? 1;
+      const bw = pin?.bitWidth ?? nodeBitWidths.get(node.id) ?? 1;
       sc = signalColor(value, bw);
     }
 
@@ -123,7 +125,7 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
 // ---------------------------------------------------------------------------
 
 function buildGates(state: EditorState): RenderGate[] {
-  const { circuit, shortCircuitGates } = state;
+  const { circuit } = state;
   const result: RenderGate[] = [];
 
   for (const gate of circuit.gates.values()) {
@@ -168,7 +170,7 @@ function buildGates(state: EditorState): RenderGate[] {
       labelPos = { x: labelX, y: labelY };
     }
 
-    const errorGlow = shortCircuitGates.includes(gate.id);
+    const errorGlow = circuit.getBuild()?.shortCircuitGates.includes(gate.id) ?? false;
 
     result.push({
       type: gate.type,
@@ -217,7 +219,8 @@ function buildPins(state: EditorState): RenderPin[] {
 // ---------------------------------------------------------------------------
 
 function buildErrorSegments(state: EditorState): RenderErrorSegment[] {
-  const { tickResult: { errorSegmentIds }, circuit } = state;
+  const { circuit } = state;
+  const {errorSegmentIds} = circuit.tickResult;
   if (errorSegmentIds.size === 0) return [];
 
   const result: RenderErrorSegment[] = [];

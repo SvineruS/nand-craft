@@ -74,6 +74,7 @@ export class Renderer {
       }
       if (state.renderDirty || state.circuitDirty) {
         const scene = buildScene(state, this.mouseWorld);
+        console.log(scene)
         this.render(scene, state.camera);
         state.renderDirty = false;
         state.circuitDirty = false;
