@@ -19,6 +19,7 @@ export class Renderer {
   private wireAnimProgress = 0;
   private dpr = 1;
   private mouseWorld: Vec2 = { x: 0, y: 0 };
+  private lastScene: RenderScene | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -73,11 +74,12 @@ export class Renderer {
         onCircuitDirty?.();
       }
       if (state.renderDirty || state.circuitDirty) {
-        const scene = buildScene(state, this.mouseWorld);
-        console.log(scene)
-        this.render(scene, state.camera);
+        this.lastScene = buildScene(state, this.mouseWorld);
         state.renderDirty = false;
         state.circuitDirty = false;
+      }
+      if (this.lastScene) {
+        this.render(this.lastScene, state.camera);
       }
       this.animationId = requestAnimationFrame(tick);
     };
