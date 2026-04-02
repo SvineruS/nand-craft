@@ -2,20 +2,18 @@ import { currentLevel, useEditorState, viewMode } from '../editorStore.ts';
 import { WIRE_COLORS } from "../../circuit-builder/editor/consts.ts";
 
 interface ToolbarProps {
-  onUndo: () => void;
-  onRedo: () => void;
-  onColorChange: (color: string) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onColorChange?: (color: string) => void;
   onShowLevels: () => void;
   onMenu: () => void;
-  onResetLevel: () => void;
+  onResetLevel?: () => void;
 }
 
 export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, onResetLevel }: ToolbarProps) {
   const state = useEditorState();
   const level = currentLevel.value;
   const isMapView = viewMode.value === 'levelSelect';
-
-  if (!state) return null;
 
   return (
     <div class="toolbar">
@@ -54,7 +52,7 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
                 borderColor: state.wireColor === color ? '#ffffff' : 'transparent',
               }}
               title="Wire color (E to apply, Shift+E for all connected)"
-              onClick={() => onColorChange(color)}
+              onClick={() => onColorChange?.(color)}
             />
           ))}
         </>

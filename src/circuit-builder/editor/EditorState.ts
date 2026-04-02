@@ -61,7 +61,6 @@ export interface EditorState {
   selectionRect: { pos: Vec2; w: number; h: number } | null;
   dropPreview: { type: PlaceableType; pos: Vec2 } | null;
   clipboard: ClipboardData | null;
-  simulationRunning: boolean;
   shortCircuitGates: GateId[];
   tickResult: TickResult;
   wireColor: string;
@@ -80,7 +79,6 @@ export function createEditorState(): EditorState {
     selectionRect: null,
     dropPreview: null,
     clipboard: null,
-    simulationRunning: false,
     shortCircuitGates: [],
     tickResult: { outputs: new Map(), contentionNets: [], errorSegmentIds: new Set(), nodeValues: new Map(), nodeBitWidths: new Map() },
     wireColor: WIRE_COLORS[0],

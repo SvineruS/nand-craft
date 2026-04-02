@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { viewMode } from '../editorStore.ts';
-import type { Camera } from '../../engine/camera.ts';
 import { CanvasInput } from '../../engine/input.ts';
 import { createTerrainRenderer } from '../../factory/terrainShader.ts';
+import { factoryState } from '../../factory/factoryState.ts';
 
 const GRID_SIZE = 64;
 
@@ -16,27 +16,27 @@ export function FactoryScreen() {
     container.appendChild(canvas);
 
     const terrain = createTerrainRenderer(canvas, GRID_SIZE);
-    const camera: Camera = { pos: { x: 0, y: 0 }, zoom: 1 };
-    let dirty = true;
-    let animId = 0;
+    const { camera } = factoryState;
+    factoryState.dirty = true;
 
     const input = new CanvasInput(canvas, {}, {
       getCamera: () => camera,
-      onCameraChange() { dirty = true; },
+      onCameraChange() { factoryState.dirty = true; },
       shouldPan: (e) => e.button === 0 || e.button === 1,
     });
     input.attach();
 
+    let animId = 0;
     const tick = () => {
-      if (dirty) {
+      if (factoryState.dirty) {
         terrain.render(camera);
-        dirty = false;
+        factoryState.dirty = false;
       }
       animId = requestAnimationFrame(tick);
     };
     animId = requestAnimationFrame(tick);
 
-    const onResize = () => { dirty = true; };
+    const onResize = () => { factoryState.dirty = true; };
     window.addEventListener('resize', onResize);
 
     return () => {

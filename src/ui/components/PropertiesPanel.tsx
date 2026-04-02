@@ -12,7 +12,6 @@ interface PropertiesPanelProps {
 
 export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
   const state = useEditorState();
-  if (!state) return null;
 
   // Check for selected gate (IO/constant only)
   const gateItem = state.selection.find(s => s.type === 'gate');

@@ -3,6 +3,7 @@ import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import type { LevelId } from '../circuit-builder/editor/types.ts';
 import { getSolvedLevelIds } from '../circuit-builder/persistence/storage.ts';
 import type { Level, TestResult } from "../circuit-builder/levels/levelTypes.ts";
+import { getEditor } from '../circuit-builder/editorInstance.ts';
 
 // ---------------------------------------------------------------------------
 // Signals – reactive app-level state consumed by Preact components
@@ -40,13 +41,6 @@ export const solvedLevelIds = signal<Set<LevelId>>(getSolvedLevelIds());
 // State bridge – lets Preact read the mutable EditorState on demand
 // ---------------------------------------------------------------------------
 
-let getStateFn: (() => EditorState) | null = null;
-
-/** Register the getter so useEditorState() works. Called once from App. */
-export function setStateGetter(fn: () => EditorState): void {
-  getStateFn = fn;
-}
-
 /** Bump the version counter so any component reading stateVersion re-renders. */
 export function notifyStateChange(): void {
   stateVersion.value++;
@@ -58,9 +52,9 @@ export function notifyStateChange(): void {
  * Accessing `stateVersion.value` inside this call subscribes the calling
  * component to future `notifyStateChange()` bumps.
  */
-export function useEditorState(): EditorState | null {
+export function useEditorState(): EditorState {
   // Subscribe to version changes so Preact knows to re-render.
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   stateVersion.value;
-  return getStateFn ? getStateFn() : null;
+  return getEditor().getState();
 }

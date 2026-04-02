@@ -1,103 +1,82 @@
-import type { RefObject } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
-import type { Editor } from '../circuit-builder/editor/Editor.ts';
+import { getEditor } from '../circuit-builder/editorInstance.ts';
 import type { Command } from '../circuit-builder/editor/commands.ts';
 import { notifyStateChange, currentLevel, viewMode } from './editorStore.ts';
 import { simulateFirstCase, stepTestCase, runAllAnimated, resetTests } from '../circuit-builder/editor/testRunner.ts';
-import { switchToLevelMap, switchToEditor, detachMapInput } from './screenManager.ts';
+import { switchToLevelMap } from './screenManager.ts';
 import { saveCircuit } from '../circuit-builder/persistence/storage.ts';
 import type { GateType } from "../circuit-builder/editor/gates.ts";
 
-export function useEditorCallbacks(editorRef: RefObject<Editor | null>) {
+export function useEditorCallbacks() {
   const [showLevelComplete, setShowLevelComplete] = useState(false);
 
   const onLevelComplete = useCallback(() => setShowLevelComplete(true), []);
 
   // Toolbar
   const handleUndo = useCallback(() => {
-    editorRef.current?.undo();
+    getEditor().undo();
   }, []);
   const handleRedo = useCallback(() => {
-    editorRef.current?.redo();
+    getEditor().redo();
   }, []);
 
   const handleColorChange = useCallback((color: string) => {
-    const editor = editorRef.current;
-    if (editor) {
-      editor.getState().wireColor = color;
-      notifyStateChange();
-    }
+    getEditor().getState().wireColor = color;
+    notifyStateChange();
   }, []);
 
   const handleShowLevels = useCallback(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    if (viewMode.value === 'levelSelect') {
-      if (currentLevel.value) switchToEditor(editor);
-    } else {
-      switchToLevelMap(editor);
-    }
+    switchToLevelMap();
   }, []);
 
   const handleMenu = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor && viewMode.value === 'editor' && currentLevel.value) {
-      saveCircuit(currentLevel.value.id, editor.getCircuit());
+    if (currentLevel.value) {
+      saveCircuit(currentLevel.value.id, getEditor().getCircuit());
     }
-    detachMapInput();
-    if (editor) editor.detachInput();
     viewMode.value = 'mainMenu';
     notifyStateChange();
   }, []);
 
   const handleResetLevel = useCallback(() => {
-    const editor = editorRef.current;
+    const editor = getEditor();
     const level = currentLevel.value;
-    if (!editor || !level) return;
+    if (!level) return;
     editor.loadLevel(level);
     simulateFirstCase(editor);
   }, []);
 
   // Sidebar
   const handleStamp = useCallback((type: GateType) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const state = editor.getState();
+    const state = getEditor().getState();
     state.mode = { kind: 'stamping', gateType: type };
     state.renderDirty = true;
   }, []);
 
   const handleDragStart = useCallback((type: GateType) => {
-    const editor = editorRef.current;
-    if (editor) editor.getState().mode = { kind: 'stamping', gateType: type };
+    getEditor().getState().mode = { kind: 'stamping', gateType: type };
   }, []);
 
   const handleDragEnd = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) editor.getState().mode = { kind: 'normal' };
+    getEditor().getState().mode = { kind: 'normal' };
   }, []);
 
   const handleExecuteCommand = useCallback((cmd: Command) => {
-    const editor = editorRef.current;
-    if (!editor) return;
+    const editor = getEditor();
     editor.executeCommand(cmd);
     simulateFirstCase(editor);
   }, []);
 
   // Test panel
   const handleReset = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) resetTests(editor);
+    resetTests(getEditor());
   }, []);
 
   const handleStep = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) stepTestCase(editor, onLevelComplete);
+    stepTestCase(getEditor(), onLevelComplete);
   }, []);
 
   const handleRunAll = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) runAllAnimated(editor, onLevelComplete);
+    runAllAnimated(getEditor(), onLevelComplete);
   }, []);
 
   return {

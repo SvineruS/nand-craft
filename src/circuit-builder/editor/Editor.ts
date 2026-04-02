@@ -1,8 +1,6 @@
 import type { GateId } from './types.ts';
 import type { EditorState } from './EditorState.ts';
 import { createEditorState } from './EditorState.ts';
-import { Renderer } from './render/Renderer.ts';
-import { InputHandler } from './InputHandler.ts';
 import type { Command } from './commands.ts';
 import { AddGateCommand, CommandHistory } from './commands.ts';
 import { SimulationEngine } from '../simulation/engine.ts';
@@ -12,59 +10,19 @@ import type { Level } from "../levels/levelTypes.ts";
 import { GRID_SIZE } from "./consts.ts";
 import { Circuit } from "../simulation/circuit.ts";
 
+/**
+ * Pure state + logic holder for the circuit editor.
+ * No DOM, canvas, or rendering dependencies — screen components handle those.
+ */
 export class Editor {
   private state: EditorState;
-  private renderer: Renderer;
-  private input: InputHandler;
   private history: CommandHistory;
   private engine: SimulationEngine;
-  private canvas: HTMLCanvasElement;
-  private simulationInterval: ReturnType<typeof setInterval> | null = null;
-  private resizeHandler: () => void;
-  onCircuitChange: (() => void) | null = null;
-  private stateOverride: EditorState | null = null;
 
-  constructor(container: HTMLElement) {
-    // Create canvas filling the container
-    this.canvas = document.createElement('canvas');
-    Object.assign(this.canvas.style, {
-      width: '100%',
-      height: '100%',
-      display: 'block',
-    });
-    container.appendChild(this.canvas);
-
-    // Initialize state
+  constructor() {
     this.state = createEditorState();
     this.history = new CommandHistory();
     this.engine = new SimulationEngine();
-    this.renderer = new Renderer(this.canvas);
-
-    // InputHandler uses getters so it always sees current state/history
-  this.input = new InputHandler(
-      this.canvas,
-      () => this.state,
-      () => this.history,
-      this.renderer,
-    );
-    this.input.attach();
-
-    // Start render loop — onCircuitDirty triggers simulation + UI updates
-    this.renderer.startLoop(
-      () => this.stateOverride ?? this.state,
-      () => {
-        if (!this.stateOverride) {
-          this.engine.invalidateBuild();
-          this.onCircuitChange?.();
-        }
-      },
-    );
-
-    // Handle resize
-    this.resizeHandler = () => {
-      (this.stateOverride ?? this.state).renderDirty = true;
-    };
-    window.addEventListener('resize', this.resizeHandler);
   }
 
   loadLevel(level: Level): void {
@@ -96,30 +54,16 @@ export class Editor {
     this.resetEditor(circuit);
   }
 
-  setStateOverride(state: EditorState | null): void {
-    this.stateOverride = state;
-    if (state) state.renderDirty = true;
-    else this.state.renderDirty = true;
-  }
-
-  detachInput(): void {
-    this.input.detach();
-  }
-
-  attachInput(): void {
-    this.input.attach();
-  }
-
-  getCanvas(): HTMLCanvasElement {
-    return this.canvas;
-  }
-
   getCircuit(): Circuit {
     return this.state.circuit;
   }
 
   getState(): EditorState {
     return this.state;
+  }
+
+  getHistory(): CommandHistory {
+    return this.history;
   }
 
   undo(): void {
@@ -210,14 +154,8 @@ export class Editor {
     return actuals;
   }
 
-  destroy(): void {
-    this.renderer.stopLoop();
-    this.input.detach();
-    window.removeEventListener('resize', this.resizeHandler);
-    if (this.simulationInterval !== null) {
-      clearInterval(this.simulationInterval);
-      this.simulationInterval = null;
-    }
+  invalidateBuild(): void {
+    this.engine.invalidateBuild();
   }
 
   private gatherInputs(): Map<GateId, number> {
@@ -233,11 +171,7 @@ export class Editor {
   private resetEditor(circuit: Circuit): void {
     this.state.circuit = circuit;
     this.history = new CommandHistory();
-    if (this.simulationInterval !== null) {
-      clearInterval(this.simulationInterval);
-      this.simulationInterval = null;
-      this.state.simulationRunning = false;
-    }
+    this.engine.invalidateBuild();
     this.state.selection = [];
     this.state.mode = { kind: 'normal' };
     this.state.circuitDirty = true;
