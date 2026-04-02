@@ -1,4 +1,4 @@
-import { currentLevel } from '../editorStore.ts';
+import { getEditor } from '../../circuit-builder/editorInstance.ts';
 
 interface LevelCompleteDialogProps {
   onLevelMap: () => void;
@@ -6,8 +6,7 @@ interface LevelCompleteDialogProps {
 }
 
 export function LevelCompleteDialog({ onLevelMap, onClose }: LevelCompleteDialogProps) {
-  const level = currentLevel.value;
-  if (!level) return null;
+  const { level } = getEditor();
 
   return (
     <div class="level-dialog-overlay">

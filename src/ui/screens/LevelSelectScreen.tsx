@@ -1,29 +1,27 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { getEditor, hasEditor } from '../../circuit-builder/editorInstance.ts';
 import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
 import { CanvasInput } from '../../engine/input.ts';
-import { Toolbar } from '../components/Toolbar.tsx';
-import { viewMode, notifyStateChange, solvedLevelIds, currentLevel } from '../editorStore.ts';
+import { notifyStateChange, solvedLevelIds, viewMode } from '../editorStore.ts';
 import {
   buildLevelMap,
-  getLevelMapState,
   getLevelGateMap,
+  getLevelMapState,
   hitTestLevel,
   loadLevel,
 } from '../../circuit-builder/levels/levelManager.ts';
 import { LEVELS } from '../../circuit-builder/levels/registry.ts';
-import { saveCircuit } from '../../circuit-builder/persistence/storage.ts';
 
 export function LevelSelectScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = containerRef.current!;
-    const editor = getEditor();
 
     // Save current circuit before showing level map
-    if (currentLevel.value) {
-      saveCircuit(currentLevel.value.id, editor.getCircuit());
+    if (hasEditor()) {
+      const editor = getEditor();
+      editor.save();
     }
 
     // Build level map state (persistent in levelManager)
@@ -44,7 +42,7 @@ export function LevelSelectScreen() {
       onPointerUp(e) {
         const idx = hitTestLevel(levelMapState, getLevelGateMap(), LEVELS, solvedLevelIds.value, e.world.x, e.world.y);
         if (idx !== null) {
-          loadLevel(editor, idx);
+          loadLevel(idx);
           viewMode.value = 'editor';
           notifyStateChange();
         }
@@ -70,15 +68,11 @@ export function LevelSelectScreen() {
 
   return (
     <>
-      <Toolbar
-        onShowLevels={() => {
-          if (currentLevel.value) {
-            viewMode.value = 'editor';
-            notifyStateChange();
-          }
-        }}
-        onMenu={() => { viewMode.value = 'mainMenu'; notifyStateChange(); }}
-      />
+      <div class="toolbar">
+        <button class="toolbar-btn" onClick={() => { viewMode.value = 'mainMenu'; notifyStateChange(); }}>Menu</button>
+        <button class="toolbar-btn" style={{ fontWeight: 'bold' }}>Levels</button>
+        <div class="toolbar-spacer" />
+      </div>
       <div class="main-row">
         <div id="editor-container" ref={containerRef} />
       </div>

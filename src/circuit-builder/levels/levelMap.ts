@@ -14,6 +14,8 @@ import { build } from '../simulation/evaluate.ts';
 import type { Gate } from "../editor/gates.ts";
 import type { Level } from "./levelTypes.ts";
 import { GRID_SIZE } from "../editor/consts.ts";
+import { getPinPositions } from "../editor/utils/geometry.ts";
+import { Vec2 } from "../editor/utils/vec2.ts";
 
 /** Map from LevelId to the GateId representing it on the level map. */
 export type LevelGateMap = Map<LevelId, GateId>;
@@ -40,7 +42,7 @@ export function buildLevelMapCircuit(
     const gateId = generateId('gate') as GateId;
     const inputPinId = generateId('pin') as PinId;
     const outputPinId = generateId('pin') as PinId;
-    const pos = { x: level.mapPosition.x * GRID_SIZE, y: level.mapPosition.y * GRID_SIZE };
+    const pos = Vec2.scale(level.mapPosition, GRID_SIZE)
 
     const gate: Gate = {
       id: gateId,
@@ -68,24 +70,23 @@ export function buildLevelMapCircuit(
 
     for (const prereqId of level.prerequisites) {
       const prereqGateId = levelGateMap.get(prereqId);
-      if (!prereqGateId) continue;
+      if (!prereqGateId)
+        throw new Error(`Prerequisite level ${prereqId} not found for level ${level.id}`);
       const prereqGate = circuit.gates.get(prereqGateId)!;
       const prereqPinId = prereqGate.outputPins[0];
 
       // Create wire nodes at pin positions
       const fromNodeId = generateId('wn') as WireNodeId;
-      const toNodeId = generateId('wn') as WireNodeId;
-
-      // Get pin world positions (output of prereq, input of target)
-      const prereqDef = { width: 4, height: 2 }; // match level gate def
-      const fromPos = { x: prereqGate.pos.x + prereqDef.width * GRID_SIZE, y: prereqGate.pos.y + 1 * GRID_SIZE };
-      const toPos = { x: targetGate.pos.x, y: targetGate.pos.y + 1 * GRID_SIZE };
-
+      const fromPos = getPinPositions(prereqGate).get(prereqPinId)!;
       const fromNode: WireNode = { id: fromNodeId, pos: fromPos, pinId: prereqPinId };
-      const toNode: WireNode = { id: toNodeId, pos: toPos, pinId: targetPinId };
       circuit.wireNodes.set(fromNodeId, fromNode);
+
+      const toNodeId = generateId('wn') as WireNodeId;
+      const toPos = getPinPositions(targetGate).get(targetPinId)!;
+      const toNode: WireNode = { id: toNodeId, pos: toPos, pinId: targetPinId };
       circuit.wireNodes.set(toNodeId, toNode);
 
+      // Connect with a wire segment
       const segId = generateId('ws') as WireSegmentId;
       const seg: WireSegment = { id: segId, from: fromNodeId, to: toNodeId };
       circuit.wireSegments.set(segId, seg);
@@ -94,21 +95,6 @@ export function buildLevelMapCircuit(
 
   build(circuit);
   return { circuit, levelGateMap };
-}
-
-/** Update gate statuses on an existing level map circuit without rebuilding. */
-export function updateLevelMapStatus(
-  circuit: Circuit,
-  levels: Level[],
-  solvedIds: Set<LevelId>,
-  levelGateMap: LevelGateMap,
-): void {
-  for (const level of levels) {
-    const gateId = levelGateMap.get(level.id);
-    if (!gateId) continue;
-    const gate = circuit.gates.get(gateId);
-    if (gate) gate.status = levelStatus(level, solvedIds);
-  }
 }
 
 /** Find which LevelId a gate belongs to, given the reverse map. */

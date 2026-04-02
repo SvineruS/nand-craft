@@ -7,51 +7,48 @@ import { SimulationEngine } from '../simulation/engine.ts';
 import type { TickResult } from '../simulation/types.ts';
 import { Vec2 } from './utils/vec2.ts';
 import type { Level } from "../levels/levelTypes.ts";
+import { LevelTests } from "./LevelTests.ts";
 import { GRID_SIZE } from "./consts.ts";
 import { Circuit } from "../simulation/circuit.ts";
+import { saveCircuit } from "../persistence/storage.ts";
 
 /**
  * Pure state + logic holder for the circuit editor.
- * No DOM, canvas, or rendering dependencies — screen components handle those.
+ * Always associated with a level. Create via Editor.loadLevel().
  */
 export class Editor {
   private state: EditorState;
   private history: CommandHistory;
   private engine: SimulationEngine;
+  readonly level: Level;
+  readonly tests: LevelTests;
 
-  constructor() {
+  private constructor(level: Level, circuit: Circuit) {
     this.state = createEditorState();
     this.history = new CommandHistory();
     this.engine = new SimulationEngine();
+    this.level = level;
+    this.state.circuit = circuit;
+    this.state.circuitDirty = true;
+    this.tests = new LevelTests(this, level);
   }
 
-  loadLevel(level: Level): void {
-    this.resetEditor(new Circuit());
+  /** Create an editor for a level, using a saved circuit or building from the level definition. */
+  static loadLevel(level: Level, savedCircuit?: Circuit): Editor {
+    const circuit = savedCircuit ?? buildLevelCircuit(level);
+    return new Editor(level, circuit);
+  }
 
-    if (level.predefinedGates) {
-      for (const pg of level.predefinedGates) {
-        const cmd = new AddGateCommand(
-          this.state,
-          pg.type,
-          Vec2.scale(pg.pos, GRID_SIZE),
-          pg.rotation ?? 0,
-          pg.bitWidth ?? 1,
-        );
-        cmd.execute();
-
-        const gate = this.state.circuit.getGate(cmd.getGateId());
-        if (pg.label !== undefined) gate.label = pg.label;
-        if (pg.canRemove !== undefined) gate.canRemove = pg.canRemove;
-        if (pg.canMove !== undefined) gate.canMove = pg.canMove;
-      }
-    }
-
-    // Reset history so predefined gate placements aren't undoable
+  /** Reset to the level's default circuit, discarding user changes. */
+  resetLevel(): void {
+    const circuit = buildLevelCircuit(this.level);
+    this.state.circuit = circuit;
     this.history = new CommandHistory();
-  }
-
-  loadCircuitFromSave(circuit: Circuit): void {
-    this.resetEditor(circuit);
+    this.engine.invalidateBuild();
+    this.state.selection = [];
+    this.state.mode = { kind: 'normal' };
+    this.state.circuitDirty = true;
+    this.tests.rebuild();
   }
 
   getCircuit(): Circuit {
@@ -78,27 +75,6 @@ export class Editor {
     this.history.execute(cmd);
   }
 
-  /** Force a simulation tick with current input pin values. */
-  resimulate(): void {
-    const result = this.engine.tick(this.state.circuit, this.gatherInputs());
-    this.applyTickResult(result);
-    this.state.circuitDirty = true;
-  }
-
-  canUndo(): boolean {
-    return this.history.canUndo();
-  }
-
-  canRedo(): boolean {
-    return this.history.canRedo();
-  }
-
-  stepTick(): void {
-    const result = this.engine.tick(this.state.circuit, this.gatherInputs());
-    this.applyTickResult(result);
-    this.state.circuitDirty = true;
-  }
-
   hasShortCircuit(): boolean {
     return (this.engine.getBuild()?.shortCircuitGates.length ?? 0) > 0;
   }
@@ -110,10 +86,10 @@ export class Editor {
   /** Clear all pin values and delay state (reset simulation visuals). */
   resetSimulation(): void {
     for (const pin of this.state.circuit.pins.values()) {
-      pin.value = null;
+      pin.value = 0;
     }
     this.state.circuit.delayState.clear();
-    this.state.circuitDirty = true;
+    this.state.renderDirty = true;
   }
 
   /** Tick the live circuit with given input values. Updates pins, detects errors. */
@@ -123,62 +99,47 @@ export class Editor {
     }
     const result = this.engine.tick(this.state.circuit, inputs);
     this.applyTickResult(result);
-    this.state.circuitDirty = true;
-  }
-
-  /** Get ordered input gate IDs (matched by insertion order). */
-  getInputGateIds(): GateId[] {
-    const ids: GateId[] = [];
-    for (const [id, gate] of this.state.circuit.gates) {
-      if (gate.type === 'input') ids.push(id);
-    }
-    return ids;
-  }
-
-  /** Get ordered output gate IDs (matched by insertion order). */
-  getOutputGateIds(): GateId[] {
-    const ids: GateId[] = [];
-    for (const [id, gate] of this.state.circuit.gates) {
-      if (gate.type === 'output') ids.push(id);
-    }
-    return ids;
-  }
-
-  /** Read current output pin values by name. */
-  readOutputs(outputGateIds: GateId[], outputNames: string[]): Record<string, number | null> {
-    const actuals: Record<string, number | null> = {};
-    for (let j = 0; j < outputNames.length; j++) {
-      const gate = this.state.circuit.getGate(outputGateIds[j]);
-      actuals[outputNames[j]] = this.state.circuit.getPin(gate.inputPins[0]).value ?? null;
-    }
-    return actuals;
+    this.state.renderDirty = true;
   }
 
   invalidateBuild(): void {
     this.engine.invalidateBuild();
   }
 
-  private gatherInputs(): Map<GateId, number> {
-    const inputs = new Map<GateId, number>();
-    for (const gate of this.state.circuit.gates.values()) {
-      if (gate.type === 'input') {
-        inputs.set(gate.id, this.state.circuit.getPin(gate.outputPins[0]).value ?? 0);
-      }
-    }
-    return inputs;
+  save() {
+    saveCircuit(this.level.id, this.getCircuit());
   }
 
-  private resetEditor(circuit: Circuit): void {
-    this.state.circuit = circuit;
-    this.history = new CommandHistory();
-    this.engine.invalidateBuild();
-    this.state.selection = [];
-    this.state.mode = { kind: 'normal' };
-    this.state.circuitDirty = true;
-  }
 
   private applyTickResult(result: TickResult): void {
     this.state.shortCircuitGates = this.engine.getBuild()?.shortCircuitGates ?? [];
     this.state.tickResult = result;
   }
+}
+
+/** Build a circuit from a level definition's predefined gates. */
+function buildLevelCircuit(level: Level): Circuit {
+  const circuit = new Circuit();
+  if (!level.predefinedGates) return circuit;
+
+  const state = createEditorState();
+  state.circuit = circuit;
+
+  for (const pg of level.predefinedGates) {
+    const cmd = new AddGateCommand(
+      state,
+      pg.type,
+      Vec2.scale(pg.pos, GRID_SIZE),
+      pg.rotation ?? 0,
+      pg.bitWidth ?? 1,
+    );
+    cmd.execute();
+
+    const gate = circuit.getGate(cmd.getGateId());
+    if (pg.label !== undefined) gate.label = pg.label;
+    if (pg.canRemove !== undefined) gate.canRemove = pg.canRemove;
+    if (pg.canMove !== undefined) gate.canMove = pg.canMove;
+  }
+
+  return circuit;
 }

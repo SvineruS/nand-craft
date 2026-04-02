@@ -2,30 +2,14 @@ import { signal } from '@preact/signals';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import type { LevelId } from '../circuit-builder/editor/types.ts';
 import { getSolvedLevelIds } from '../circuit-builder/persistence/storage.ts';
-import type { Level, TestResult } from "../circuit-builder/levels/levelTypes.ts";
 import { getEditor } from '../circuit-builder/editorInstance.ts';
 
 // ---------------------------------------------------------------------------
 // Signals – reactive app-level state consumed by Preact components
 // ---------------------------------------------------------------------------
 
-/** Incremented every time the mutable EditorState changes structurally. */
+/** Incremented every time mutable state changes. Components read this to re-render. */
 export const stateVersion = signal(0);
-
-/** The level definition currently being played. */
-export const currentLevel = signal<Level | null>(null);
-
-/** Index into LEVELS[]. */
-export const currentLevelIndex = signal(0);
-
-/** Results for each test case (sparse array keyed by case index). */
-export const testResults = signal<TestResult[]>([]);
-
-/** Which test case is "current" (-1 = none). */
-export const testCaseIndex = signal(-1);
-
-/** Warning text (short-circuit / contention), or null when clean. */
-export const warningText = signal<string | null>(null);
 
 /** Whether the level-intro dialog is visible. */
 export const levelDialogVisible = signal(false);
@@ -53,7 +37,6 @@ export function notifyStateChange(): void {
  * component to future `notifyStateChange()` bumps.
  */
 export function useEditorState(): EditorState {
-  // Subscribe to version changes so Preact knows to re-render.
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   stateVersion.value;
   return getEditor().getState();

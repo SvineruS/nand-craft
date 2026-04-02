@@ -1,4 +1,5 @@
-import { currentLevel, testResults, testCaseIndex } from '../editorStore.ts';
+import { stateVersion } from '../editorStore.ts';
+import { getEditor } from '../../circuit-builder/editorInstance.ts';
 
 function rowBg(passed?: boolean, isCurrent?: boolean): string {
   if (isCurrent) return 'var(--current-bg)';
@@ -7,11 +8,11 @@ function rowBg(passed?: boolean, isCurrent?: boolean): string {
 }
 
 export function TruthTable() {
-  const level = currentLevel.value;
-  const results = testResults.value;
-  const currentCase = testCaseIndex.value;
+  stateVersion.value; // subscribe to updates
+  const { tests } = getEditor();
+  const { level, results, caseIndex } = tests;
 
-  if (!level || !level.test.cases || level.test.cases.length === 0) {
+  if (!level.test.cases || level.test.cases.length === 0) {
     return null;
   }
 
@@ -44,7 +45,7 @@ export function TruthTable() {
         </thead>
         <tbody>
         {cases.map((tc, c) => {
-          const isCurrent = currentCase >= 0 && currentCase === c;
+          const isCurrent = caseIndex >= 0 && caseIndex === c;
           const result = results[c];
           return (
             <tr key={c} style={{ background: rowBg(result?.passed, isCurrent) }}>

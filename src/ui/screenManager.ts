@@ -1,15 +1,9 @@
 import { getEditor } from '../circuit-builder/editorInstance.ts';
-import { saveCircuit } from '../circuit-builder/persistence/storage.ts';
-import {
-  currentLevel,
-  viewMode,
-  notifyStateChange,
-} from './editorStore.ts';
+import { notifyStateChange, viewMode } from './editorStore.ts';
 
 export function switchToLevelMap(): void {
-  if (currentLevel.value) {
-    saveCircuit(currentLevel.value.id, getEditor().getCircuit());
-  }
+  const editor = getEditor();
+  editor.save();
   viewMode.value = 'levelSelect';
   notifyStateChange();
 }

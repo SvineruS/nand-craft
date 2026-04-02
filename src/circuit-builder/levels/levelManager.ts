@@ -1,4 +1,4 @@
-import type { Editor } from '../editor/Editor.ts';
+import { Editor } from '../editor/Editor.ts';
 import type { EditorState } from '../editor/EditorState.ts';
 import { createEditorState } from '../editor/EditorState.ts';
 import type { LevelId } from '../editor/types.ts';
@@ -7,16 +7,12 @@ import type { LevelGateMap } from './levelMap.ts';
 import { buildLevelMapCircuit, gateIdToLevelId } from './levelMap.ts';
 import type { Level } from './levelTypes.ts';
 import { LEVELS } from './registry.ts';
-import { cancelRunAll, simulateFirstCase } from '../editor/testRunner.ts';
-import { isLevelUnlocked, loadCircuit, saveCircuit } from '../persistence/storage.ts';
+import { isLevelUnlocked, loadCircuit } from '../persistence/storage.ts';
+import { getEditor, hasEditor, setEditor } from '../editorInstance.ts';
 import {
-  currentLevel,
-  currentLevelIndex,
   levelDialogVisible,
   notifyStateChange,
   solvedLevelIds,
-  testCaseIndex,
-  testResults,
 } from '../../ui/editorStore.ts';
 import { Vec2 } from "../editor/utils/vec2.ts";
 import { hitTestGate_ } from "../editor/utils/hitTests.ts";
@@ -28,33 +24,25 @@ import { hitTestGate_ } from "../editor/utils/hitTests.ts";
 let levelMapState: EditorState | null = null;
 let levelGateMap: LevelGateMap = new Map();
 
-export function loadLevel(editor: Editor, index: number): void {
-  const prevLevel = currentLevel.value;
-  if (prevLevel) {
-    saveCircuit(prevLevel.id, editor.getCircuit());
+export function loadLevel(index: number): void {
+  // Save previous level's circuit
+  if (hasEditor()) {
+    const prev = getEditor();
+    prev.tests.cancelRunAll();
+    prev.save();
   }
 
-  cancelRunAll();
-  currentLevelIndex.value = index;
-  testCaseIndex.value = -1;
-  testResults.value = [];
   const level = LEVELS[index];
-  currentLevel.value = level;
+  const savedCircuit = loadCircuit(level.id) ?? undefined;
+  const editor = Editor.loadLevel(level, savedCircuit);
 
-  const savedCircuit = loadCircuit(level.id);
-  if (savedCircuit) {
-    editor.loadCircuitFromSave(savedCircuit);
-  } else {
-    editor.loadLevel(level);
-  }
+  setEditor(editor);
 
-  simulateFirstCase(editor);
   levelDialogVisible.value = true;
   notifyStateChange();
 }
 
 export function buildLevelMap(): void {
-
   const { circuit, levelGateMap: levelGateMap_ } = buildLevelMapCircuit(LEVELS, solvedLevelIds.value);
   const state = createEditorState();
   state.circuit = circuit;
@@ -76,11 +64,9 @@ export function getLevelGateMap(): LevelGateMap {
   return levelGateMap;
 }
 
-
 // ---------------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------------
-
 
 export function hitTestLevel(
   state: EditorState,

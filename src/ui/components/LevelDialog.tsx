@@ -1,10 +1,11 @@
-import { currentLevel, levelDialogVisible } from '../editorStore.ts';
+import { levelDialogVisible } from '../editorStore.ts';
+import { getEditor } from '../../circuit-builder/editorInstance.ts';
 
 export function LevelDialog() {
-  const level = currentLevel.value;
+  const { level } = getEditor();
   const visible = levelDialogVisible.value;
 
-  if (!visible || !level) return null;
+  if (!visible) return null;
 
   return (
     <div class="level-dialog-overlay">

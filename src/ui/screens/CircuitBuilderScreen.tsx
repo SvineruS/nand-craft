@@ -8,12 +8,6 @@ import { TestPanel } from '../components/TestPanel.tsx';
 import { LevelDialog } from '../components/LevelDialog.tsx';
 import { LevelCompleteDialog } from '../components/LevelCompleteDialog.tsx';
 import { useEditorCallbacks } from '../useEditorCallbacks.ts';
-import {
-  simulateFirstCase,
-  resetSuppressSimulate,
-  suppressSimulate,
-  cancelRunAll,
-} from '../../circuit-builder/editor/testRunner.ts';
 import { notifyStateChange } from '../editorStore.ts';
 import { switchToLevelMap } from '../screenManager.ts';
 
@@ -36,28 +30,29 @@ export function CircuitBuilderScreen() {
       () => editor.getState(),
       () => {
         editor.invalidateBuild();
-        if (suppressSimulate) {
-          resetSuppressSimulate();
-        } else {
-          simulateFirstCase(editor);
-        }
+        editor.resetSimulation();
         notifyStateChange();
       },
     );
 
     // Input
-    const input = new InputHandler(canvas, () => editor.getState(), () => editor.getHistory(), renderer);
+    const input = new InputHandler(canvas,
+      () => editor.getState(),
+      () => editor.getHistory(),
+      renderer);
     input.attach();
 
     // Mark dirty so the first frame renders
     editor.getState().renderDirty = true;
 
     // Resize
-    const onResize = () => { editor.getState().renderDirty = true; };
+    const onResize = () => {
+      editor.getState().renderDirty = true;
+    };
     window.addEventListener('resize', onResize);
 
     return () => {
-      cancelRunAll();
+      editor.tests.cancelRunAll();
       renderer.stopLoop();
       input.detach();
       window.removeEventListener('resize', onResize);
@@ -82,13 +77,16 @@ export function CircuitBuilderScreen() {
           onRunAll={cb.handleRunAll}
           onExecuteCommand={cb.handleExecuteCommand}
         />
-        <div id="editor-container" ref={containerRef} />
-        <Sidebar onStamp={cb.handleStamp} onDragStart={cb.handleDragStart} onDragEnd={cb.handleDragEnd} />
+        <div id="editor-container" ref={containerRef}/>
+        <Sidebar onStamp={cb.handleStamp} onDragStart={cb.handleDragStart} onDragEnd={cb.handleDragEnd}/>
       </div>
-      <LevelDialog />
+      <LevelDialog/>
       {cb.showLevelComplete && (
         <LevelCompleteDialog
-          onLevelMap={() => { switchToLevelMap(); cb.setShowLevelComplete(false); }}
+          onLevelMap={() => {
+            switchToLevelMap();
+            cb.setShowLevelComplete(false);
+          }}
           onClose={() => cb.setShowLevelComplete(false)}
         />
       )}

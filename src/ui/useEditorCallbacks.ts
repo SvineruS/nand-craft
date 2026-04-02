@@ -1,16 +1,22 @@
 import { useCallback, useState } from 'preact/hooks';
 import { getEditor } from '../circuit-builder/editorInstance.ts';
 import type { Command } from '../circuit-builder/editor/commands.ts';
-import { notifyStateChange, currentLevel, viewMode } from './editorStore.ts';
-import { simulateFirstCase, stepTestCase, runAllAnimated, resetTests } from '../circuit-builder/editor/testRunner.ts';
+import { notifyStateChange, solvedLevelIds, viewMode } from './editorStore.ts';
 import { switchToLevelMap } from './screenManager.ts';
-import { saveCircuit } from '../circuit-builder/persistence/storage.ts';
+import { getSolvedLevelIds, markLevelSolved } from '../circuit-builder/persistence/storage.ts';
 import type { GateType } from "../circuit-builder/editor/gates.ts";
 
 export function useEditorCallbacks() {
   const [showLevelComplete, setShowLevelComplete] = useState(false);
 
   const onLevelComplete = useCallback(() => setShowLevelComplete(true), []);
+
+  const handleLevelComplete = useCallback(() => {
+    const editor = getEditor();
+    markLevelSolved(editor.level.id);
+    solvedLevelIds.value = getSolvedLevelIds();
+    onLevelComplete();
+  }, []);
 
   // Toolbar
   const handleUndo = useCallback(() => {
@@ -30,19 +36,17 @@ export function useEditorCallbacks() {
   }, []);
 
   const handleMenu = useCallback(() => {
-    if (currentLevel.value) {
-      saveCircuit(currentLevel.value.id, getEditor().getCircuit());
-    }
+    const editor = getEditor();
+    editor.save();
     viewMode.value = 'mainMenu';
     notifyStateChange();
   }, []);
 
   const handleResetLevel = useCallback(() => {
     const editor = getEditor();
-    const level = currentLevel.value;
-    if (!level) return;
-    editor.loadLevel(level);
-    simulateFirstCase(editor);
+    editor.resetLevel();
+    editor.tests.reset();
+    notifyStateChange();
   }, []);
 
   // Sidebar
@@ -61,22 +65,27 @@ export function useEditorCallbacks() {
   }, []);
 
   const handleExecuteCommand = useCallback((cmd: Command) => {
-    const editor = getEditor();
-    editor.executeCommand(cmd);
-    simulateFirstCase(editor);
+    getEditor().executeCommand(cmd);
   }, []);
 
   // Test panel
   const handleReset = useCallback(() => {
-    resetTests(getEditor());
+    getEditor().tests.reset();
+    notifyStateChange();
   }, []);
 
   const handleStep = useCallback(() => {
-    stepTestCase(getEditor(), onLevelComplete);
+    const { tests } = getEditor();
+    tests.step();
+    if (tests.allPassed()) handleLevelComplete();
+    notifyStateChange();
   }, []);
 
   const handleRunAll = useCallback(() => {
-    runAllAnimated(getEditor(), onLevelComplete);
+    getEditor().tests.runAllAnimated(
+      () => notifyStateChange(),
+      handleLevelComplete,
+    );
   }, []);
 
   return {

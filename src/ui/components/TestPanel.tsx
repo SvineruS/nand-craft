@@ -1,7 +1,9 @@
-import { currentLevel, testResults, warningText } from '../editorStore.ts';
+import { stateVersion } from '../editorStore.ts';
+import { getEditor } from '../../circuit-builder/editorInstance.ts';
 import { TruthTable } from './TruthTable.tsx';
 import { PropertiesPanel } from './PropertiesPanel.tsx';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
+import type { Editor } from "../../circuit-builder/editor/Editor.ts";
 
 interface TestPanelProps {
   onReset: () => void;
@@ -11,9 +13,10 @@ interface TestPanelProps {
 }
 
 export function TestPanel({ onReset, onStep, onRunAll, onExecuteCommand }: TestPanelProps) {
-  const level = currentLevel.value;
-  const results = testResults.value;
-  const warning = warningText.value;
+  stateVersion.value; // subscribe to updates
+  const editor = getEditor();
+  const { level, results } = editor.tests;
+  const warning = getWarning(editor)
 
   // Summary computation
   let summaryText = '';
@@ -69,4 +72,11 @@ export function TestPanel({ onReset, onStep, onRunAll, onExecuteCommand }: TestP
       <PropertiesPanel onExecute={onExecuteCommand} />
     </div>
   );
+}
+
+function getWarning(editor: Editor): string | null {
+  const warnings: string[] = [];
+  if (editor.hasShortCircuit()) warnings.push('Short circuit \u2014 feedback loop without delay gate');
+  if (editor.hasContention()) warnings.push('Bus contention \u2014 multiple drivers on same net');
+  return warnings.length > 0 ? warnings.join(' | ') : null;
 }
