@@ -4,7 +4,6 @@ import { CanvasInput } from '../../engine/input.ts';
 import { createTerrainRenderer } from '../../factory/terrainShader.ts';
 import { factoryState } from '../../factory/factoryState.ts';
 
-const GRID_SIZE = 64;
 
 export function FactoryScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -15,7 +14,7 @@ export function FactoryScreen() {
     Object.assign(canvas.style, { width: '100%', height: '100%', display: 'block' });
     container.appendChild(canvas);
 
-    const terrain = createTerrainRenderer(canvas, GRID_SIZE);
+    const terrain = createTerrainRenderer(canvas);
     const { camera } = factoryState;
     factoryState.dirty = true;
 

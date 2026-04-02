@@ -1,39 +1,11 @@
 import type { Camera } from '../engine/camera.ts';
 import VERT from './shaders/terrain.vert.glsl?raw';
 import FRAG from './shaders/terrain.frag.glsl?raw';
+import { createProgram } from "./webGlHelper.ts";
 
-// ---------------------------------------------------------------
-// WebGL helper
-// ---------------------------------------------------------------
 
-function compileShader(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
-  const shader = gl.createShader(type)!;
-  gl.shaderSource(shader, src);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const log = gl.getShaderInfoLog(shader);
-    gl.deleteShader(shader);
-    throw new Error(`Shader compile error:\n${log}`);
-  }
-  return shader;
-}
+const GRID_SIZE = 32;
 
-function createProgram(gl: WebGL2RenderingContext): WebGLProgram {
-  const vs = compileShader(gl, gl.VERTEX_SHADER, VERT);
-  const fs = compileShader(gl, gl.FRAGMENT_SHADER, FRAG);
-  const prog = gl.createProgram()!;
-  gl.attachShader(prog, vs);
-  gl.attachShader(prog, fs);
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    const log = gl.getProgramInfoLog(prog);
-    gl.deleteProgram(prog);
-    throw new Error(`Program link error:\n${log}`);
-  }
-  gl.deleteShader(vs);
-  gl.deleteShader(fs);
-  return prog;
-}
 
 // ---------------------------------------------------------------
 // Public API
@@ -45,11 +17,11 @@ export interface TerrainRenderer {
   destroy(): void;
 }
 
-export function createTerrainRenderer(canvas: HTMLCanvasElement, gridSize: number): TerrainRenderer {
+export function createTerrainRenderer(canvas: HTMLCanvasElement): TerrainRenderer {
   const gl = canvas.getContext('webgl2', { antialias: false, alpha: false })!;
   if (!gl) throw new Error('WebGL2 not supported');
 
-  const program = createProgram(gl);
+  const program = createProgram(gl, VERT, FRAG);
 
   // Full-screen quad (two triangles)
   const vao = gl.createVertexArray()!;
@@ -91,7 +63,7 @@ export function createTerrainRenderer(canvas: HTMLCanvasElement, gridSize: numbe
       gl.uniform2f(uCamera, camera.pos.x, camera.pos.y);
       gl.uniform1f(uZoom, camera.zoom);
       gl.uniform2f(uViewport, canvas.clientWidth, canvas.clientHeight);
-      gl.uniform1f(uGridSize, gridSize);
+      gl.uniform1f(uGridSize, GRID_SIZE);
 
       gl.bindVertexArray(vao);
       gl.drawArrays(gl.TRIANGLES, 0, 6);

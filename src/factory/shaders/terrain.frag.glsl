@@ -47,8 +47,8 @@ uniform float u_gridSize;
 
 // World coordinate prescalers — divide world coords before multiplying by freq,
 // so frequency constants stay in a precision-friendly range (0.1–10.0).
-const float BIOME_SCALE  = 1.0 / 2000.0; // biome-level
-const float DETAIL_SCALE = 1.0 / 100.0;  // detail-level
+const float BIOME_SCALE  = 1.0 / 4000.0; // biome-level
+const float DETAIL_SCALE = 1.0 / 500.0;  // detail-level
 const float MICRO_SCALE  = 4.0;    // micro-level
 
 // Biome parameter noise frequencies (applied after BIOME_SCALE)
@@ -293,9 +293,15 @@ vec3 desertColor(vec2 dw, vec2 mw, float ms, float zoom) {
 // ---------------------------------------------------------------
 
 float gridLine(vec2 world, float cellSize, float lineWidth) {
+  // Size of one screen pixel in world units
+  float pixelSize = 1.0 / u_zoom;
+  // Fade out when cell is smaller than ~4 screen pixels
+  float fade = smoothstep(2.0, 6.0, cellSize * u_zoom);
+  // Anti-alias: smoothstep over at least one screen pixel
+  float aa = max(lineWidth, pixelSize);
   vec2 grid = abs(fract(world / cellSize + 0.5) - 0.5);
   float dist = min(grid.x * cellSize, grid.y * cellSize);
-  return 1.0 - smoothstep(0.0, lineWidth, dist);
+  return (1.0 - smoothstep(0.0, aa, dist)) * fade;
 }
 
 
