@@ -13,7 +13,13 @@ import type { BuildResult } from './types.ts';
 
 /** Gate types that are part of the combinational subgraph. */
 const COMBINATIONAL_TYPES = new Set([
-  'nand', 'and', 'or', 'nor', 'not', 'constant', 'tristate', 'splitter', 'joiner',
+  'nand', 'and', 'or', 'nor', 'xor', 'xnor', 'not',
+  '8bit-or', '8bit-nor', '8bit-not',
+  '3bit-or', '3bit-and',
+  '2bit-adder', '3bit-adder',
+  '1bit-decoder', '3bit-decoder',
+  '8bit-negative',
+  'switch', 'constant', 'tristate', 'splitter', 'joiner',
 ]);
 
 // --- Union-Find for building nets ---
@@ -491,12 +497,85 @@ function evaluateGate(gate: Gate, circuit: Circuit): void {
     case 'nor':
       evaluateBinaryGate(gate, circuit, (a, b, mask) => (~(a | b) & mask) >>> 0);
       break;
+    case 'xor':
+      evaluateBinaryGate(gate, circuit, (a, b) => a ^ b);
+      break;
+    case 'xnor':
+      evaluateBinaryGate(gate, circuit, (a, b, mask) => (~(a ^ b) & mask) >>> 0);
+      break;
     case 'not':
+    case '8bit-not':
       evaluateUnaryGate(gate, circuit, (a, mask) => (~a & mask) >>> 0);
       break;
+    case '8bit-or':
+      evaluateBinaryGate(gate, circuit, (a, b) => a | b);
+      break;
+    case '8bit-nor':
+      evaluateBinaryGate(gate, circuit, (a, b, mask) => (~(a | b) & mask) >>> 0);
+      break;
+    case '3bit-or': {
+      const inA = circuit.getPin(gate.inputPins[0]);
+      const inB = circuit.getPin(gate.inputPins[1]);
+      const inC = circuit.getPin(gate.inputPins[2]);
+      circuit.getPin(gate.outputPins[0]).value = (inA.value ?? 0) | (inB.value ?? 0) | (inC.value ?? 0);
+      break;
+    }
+    case '3bit-and': {
+      const inA = circuit.getPin(gate.inputPins[0]);
+      const inB = circuit.getPin(gate.inputPins[1]);
+      const inC = circuit.getPin(gate.inputPins[2]);
+      circuit.getPin(gate.outputPins[0]).value = (inA.value ?? 0) & (inB.value ?? 0) & (inC.value ?? 0);
+      break;
+    }
+    case '2bit-adder': {
+      const a = circuit.getPin(gate.inputPins[0]).value ?? 0;
+      const b = circuit.getPin(gate.inputPins[1]).value ?? 0;
+      const sum = a + b;
+      circuit.getPin(gate.outputPins[0]).value = sum & 1;        // S
+      circuit.getPin(gate.outputPins[1]).value = (sum >> 1) & 1; // C
+      break;
+    }
+    case '3bit-adder': {
+      const a = circuit.getPin(gate.inputPins[0]).value ?? 0;
+      const b = circuit.getPin(gate.inputPins[1]).value ?? 0;
+      const cin = circuit.getPin(gate.inputPins[2]).value ?? 0;
+      const sum = a + b + cin;
+      circuit.getPin(gate.outputPins[0]).value = sum & 1;        // S
+      circuit.getPin(gate.outputPins[1]).value = (sum >> 1) & 1; // Cout
+      break;
+    }
+    case '1bit-decoder': {
+      const a = circuit.getPin(gate.inputPins[0]).value ?? 0;
+      circuit.getPin(gate.outputPins[0]).value = a === 0 ? 1 : 0;
+      circuit.getPin(gate.outputPins[1]).value = a === 0 ? 0 : 1;
+      break;
+    }
+    case '3bit-decoder': {
+      const a = circuit.getPin(gate.inputPins[0]).value ?? 0;
+      const b = circuit.getPin(gate.inputPins[1]).value ?? 0;
+      const c = circuit.getPin(gate.inputPins[2]).value ?? 0;
+      const idx = (a << 2) | (b << 1) | c;
+      for (let i = 0; i < 8; i++) {
+        circuit.getPin(gate.outputPins[i]).value = i === idx ? 1 : 0;
+      }
+      break;
+    }
+    case '8bit-negative': {
+      const a = circuit.getPin(gate.inputPins[0]).value ?? 0;
+      circuit.getPin(gate.outputPins[0]).value = (-a & 0xFF) >>> 0;
+      break;
+    }
     case 'constant': {
       const out = circuit.getPin(gate.outputPins[0]);
       if (out.value === null) out.value = 0;
+      break;
+    }
+    case 'switch': {
+      const sel = circuit.getPin(gate.inputPins[0]);
+      const inA = circuit.getPin(gate.inputPins[1]);
+      const inB = circuit.getPin(gate.inputPins[2]);
+      const out = circuit.getPin(gate.outputPins[0]);
+      out.value = (sel.value !== null && sel.value !== 0) ? (inB.value ?? 0) : (inA.value ?? 0);
       break;
     }
     case 'tristate': {

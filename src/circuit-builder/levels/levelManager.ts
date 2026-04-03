@@ -16,6 +16,8 @@ import {
 } from '../../ui/editorStore.ts';
 import { Vec2 } from "../editor/utils/vec2.ts";
 import { hitTestGate_ } from "../editor/utils/hitTests.ts";
+import { CommandHistory } from '../editor/commands.ts';
+import { serializeCircuit } from '../persistence/serialize.ts';
 
 // ---------------------------------------------------------------------------
 // Level state management
@@ -67,6 +69,37 @@ export function getLevelGateMap(): LevelGateMap {
 // ---------------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Level map editor
+// ---------------------------------------------------------------------------
+
+let mapEditorState: EditorState | null = null;
+let mapEditorHistory: CommandHistory | null = null;
+
+export function buildLevelMapEditable(): void {
+  const { circuit } = buildLevelMapCircuit(LEVELS, solvedLevelIds.value, true);
+  const state = createEditorState();
+  state.circuit = circuit;
+  state.circuitDirty = false;
+
+  const points: Vec2[] = [...circuit.gates.values()].map(g => gateCenter(g));
+  const center = Vec2.avg(points);
+  state.camera.pos = center;
+
+  mapEditorState = state;
+  mapEditorHistory = new CommandHistory();
+}
+
+export function getMapEditorState(): EditorState | null { return mapEditorState; }
+export function getMapEditorHistory(): CommandHistory | null { return mapEditorHistory; }
+
+export function exportLevelMap(): void {
+  if (!mapEditorState) return;
+  const json = serializeCircuit(mapEditorState.circuit);
+  console.log('// Paste this into src/circuit-builder/levels/levelMapData.ts as the default export:');
+  console.log(`export const LEVEL_MAP_CIRCUIT = ${json};`);
+}
 
 export function hitTestLevel(
   state: EditorState,

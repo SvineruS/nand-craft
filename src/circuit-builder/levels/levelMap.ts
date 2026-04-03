@@ -15,6 +15,8 @@ import type { Level } from "./levelTypes.ts";
 import { GRID_SIZE } from "../editor/consts.ts";
 import { getPinPositions } from "../editor/utils/geometry.ts";
 import { Vec2 } from "../editor/utils/vec2.ts";
+import { deserializeCircuit } from '../persistence/serialize.ts';
+import { LEVEL_MAP_CIRCUIT } from './levelMapData.ts';
 
 /** Map from LevelId to the GateId representing it on the level map. */
 export type LevelGateMap = Map<LevelId, GateId>;
@@ -27,11 +29,54 @@ function levelStatus(level: Level, solvedIds: Set<LevelId>): 'locked' | 'availab
 
 /**
  * Build a virtual circuit representing the level map.
- * Each level becomes a gate of type 'level', wired by prerequisites.
+ * If LEVEL_MAP_CIRCUIT is set (and not in editor mode), load from saved data.
+ * Otherwise generate from level definitions + prerequisites.
  */
 export function buildLevelMapCircuit(
   levels: Level[],
   solvedIds: Set<LevelId>,
+  editable = false,
+): { circuit: Circuit; levelGateMap: LevelGateMap } {
+  if (LEVEL_MAP_CIRCUIT && !editable) {
+    return loadSavedLevelMap(LEVEL_MAP_CIRCUIT, levels, solvedIds);
+  }
+  return generateLevelMapCircuit(levels, solvedIds, editable);
+}
+
+/** Load level map from serialized circuit data. Updates gate statuses from current solve state. */
+function loadSavedLevelMap(
+  json: string,
+  levels: Level[],
+  solvedIds: Set<LevelId>,
+): { circuit: Circuit; levelGateMap: LevelGateMap } {
+  const circuit = deserializeCircuit(json);
+  const levelGateMap: LevelGateMap = new Map();
+
+  // Build label → Level lookup
+  const nameToLevel = new Map<string, Level>();
+  for (const level of levels) nameToLevel.set(level.name, level);
+
+  // Map gates to levels by label, update statuses
+  const outputPinsMap = new Map<GateId, number>();
+  for (const gate of circuit.gates.values()) {
+    if (gate.type !== 'level' || !gate.label) continue;
+    const level = nameToLevel.get(gate.label);
+    if (!level) continue;
+    const status = levelStatus(level, solvedIds);
+    gate.status = status;
+    levelGateMap.set(level.id, gate.id);
+    outputPinsMap.set(gate.id, status === 'solved' ? 1 : 0);
+  }
+
+  circuit.tick(outputPinsMap);
+  return { circuit, levelGateMap };
+}
+
+/** Generate level map circuit from scratch using level definitions and prerequisites. */
+function generateLevelMapCircuit(
+  levels: Level[],
+  solvedIds: Set<LevelId>,
+  editable: boolean,
 ): { circuit: Circuit; levelGateMap: LevelGateMap } {
   const circuit = new Circuit();
   const levelGateMap: LevelGateMap = new Map();
@@ -58,7 +103,7 @@ export function buildLevelMapCircuit(
       label: level.name,
       status,
       canRemove: false,
-      canMove: false,
+      canMove: editable,
     };
     circuit.gates.set(gateId, gate);
     circuit.pins.set(inputPinId, { id: inputPinId, gateId, kind: 'input', index: 0, bitWidth: 1, value: null });
@@ -101,10 +146,7 @@ export function buildLevelMapCircuit(
     }
   }
 
-
-  circuit.tick(outputPinsMap); // Set initial gate statuses based on solved levels
-  console.log(circuit)
-
+  circuit.tick(outputPinsMap);
   return { circuit, levelGateMap };
 }
 

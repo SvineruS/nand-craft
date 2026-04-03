@@ -72,6 +72,7 @@ export function LevelSelectScreen() {
         <button class="toolbar-btn" onClick={() => { viewMode.value = 'mainMenu'; notifyStateChange(); }}>Menu</button>
         <button class="toolbar-btn" style={{ fontWeight: 'bold' }}>Levels</button>
         <div class="toolbar-spacer" />
+        <button class="toolbar-btn" onClick={() => { viewMode.value = 'levelMapEditor'; notifyStateChange(); }}>Edit Map</button>
       </div>
       <div class="main-row">
         <div id="editor-container" ref={containerRef} />
