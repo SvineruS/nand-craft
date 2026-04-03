@@ -1,5 +1,6 @@
 export type { Gate, Pin, GateType } from '../simulation/gateTypes.ts';
 import type { GateType } from '../simulation/gateTypes.ts';
+import * as SVG from './gateSvg.ts';
 
 export interface PinDef {
   kind: 'input' | 'output';
@@ -33,7 +34,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.2,0.1 L 0.2,1.9 L 1.5,1.9 A 0.9,0.9 0 0,0 1.5,0.1 Z M 2.6,1 m -0.15,0 a 0.15,0.15 0 1,0 0.3,0 a 0.15,0.15 0 1,0 -0.3,0',
+    svg: SVG.NAND,
   },
   and: {
     label: 'AND', description: 'Bitwise AND gate', width: 3, height: 2, placeable: true,
@@ -43,7 +44,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.2,0.1 L 0.2,1.9 L 1.5,1.9 A 0.9,0.9 0 0,0 1.5,0.1 Z',
+    svg: SVG.AND,
   },
   or: {
     label: 'OR', description: 'Bitwise OR gate', width: 3, height: 2, placeable: true,
@@ -53,7 +54,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.3,1.9 2.8,1 Q 2.3,0.1 1.2,0.1 Z',
+    svg: SVG.OR,
   },
   nor: {
     label: 'NOR', description: 'Bitwise NOR gate', width: 3, height: 2, placeable: true,
@@ -63,7 +64,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.1,1.9 2.5,1 Q 2.1,0.1 1.2,0.1 Z M 2.6,1 m -0.15,0 a 0.15,0.15 0 1,0 0.3,0 a 0.15,0.15 0 1,0 -0.3,0',
+    svg: SVG.NOR,
   },
   xor: {
     label: 'XOR', description: 'Bitwise XOR gate', width: 3, height: 2, placeable: true,
@@ -73,7 +74,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.3,1.9 2.8,1 Q 2.3,0.1 1.2,0.1 Z M 0.0,0.1 Q 0.6,1 0.0,1.9',
+    svg: SVG.XOR,
   },
   xnor: {
     label: 'XNOR', description: 'Bitwise XNOR gate', width: 3, height: 2, placeable: true,
@@ -83,7 +84,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.1,1.9 2.5,1 Q 2.1,0.1 1.2,0.1 Z M 0.0,0.1 Q 0.6,1 0.0,1.9 M 2.6,1 m -0.15,0 a 0.15,0.15 0 1,0 0.3,0 a 0.15,0.15 0 1,0 -0.3,0',
+    svg: SVG.XNOR,
   },
   not: {
     label: 'NOT', description: 'Inverter', width: 2, height: 2, placeable: true,
@@ -92,7 +93,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 1 },
       { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.2,0.3 L 0.2,1.7 L 1.5,1 Z M 1.65,1 m -0.18,0 a 0.18,0.18 0 1,0 0.36,0 a 0.18,0.18 0 1,0 -0.36,0',
+    svg: SVG.NOT,
   },
   '8bit-or': {
     label: 'OR8', description: '8-bit OR gate', width: 3, height: 2, placeable: true,
@@ -102,7 +103,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2, bitWidth: 8 },
       { kind: 'output', x: 3, y: 1, bitWidth: 8 },
     ],
-    svg: 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.3,1.9 2.8,1 Q 2.3,0.1 1.2,0.1 Z',
+    svg: SVG.OR,
   },
   '8bit-nor': {
     label: 'NOR8', description: '8-bit NOR gate', width: 3, height: 2, placeable: true,
@@ -112,7 +113,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2, bitWidth: 8 },
       { kind: 'output', x: 3, y: 1, bitWidth: 8 },
     ],
-    svg: 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.1,1.9 2.5,1 Q 2.1,0.1 1.2,0.1 Z M 2.6,1 m -0.15,0 a 0.15,0.15 0 1,0 0.3,0 a 0.15,0.15 0 1,0 -0.3,0',
+    svg: SVG.NOR,
   },
   '8bit-not': {
     label: 'NOT8', description: '8-bit inverter', width: 2, height: 2, placeable: true,
@@ -121,7 +122,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 1, bitWidth: 8 },
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
     ],
-    svg: 'M 0.2,0.3 L 0.2,1.7 L 1.5,1 Z M 1.65,1 m -0.18,0 a 0.18,0.18 0 1,0 0.36,0 a 0.18,0.18 0 1,0 -0.36,0',
+    svg: SVG.NOT,
   },
   '3bit-or': {
     label: 'OR3', description: '3-input OR gate', width: 3, height: 2, placeable: true,
@@ -132,7 +133,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.3,1.9 2.8,1 Q 2.3,0.1 1.2,0.1 Z',
+    svg: SVG.OR,
   },
   '3bit-and': {
     label: 'AND3', description: '3-input AND gate', width: 3, height: 2, placeable: true,
@@ -143,7 +144,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.2,0.1 L 0.2,1.9 L 1.5,1.9 A 0.9,0.9 0 0,0 1.5,0.1 Z',
+    svg: SVG.AND,
   },
   '2bit-adder': {
     label: 'HA', description: 'Half adder', width: 3, height: 3, placeable: true,
@@ -154,7 +155,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'output', x: 3, y: 0, label: 'S' },
       { kind: 'output', x: 3, y: 3, label: 'C' },
     ],
-    svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,2.7 L 0.3,2.7 Z M 1.1,1.5 L 1.9,1.5 M 1.5,1.1 L 1.5,1.9',
+    svg: SVG.ADDER,
   },
   '3bit-adder': {
     label: 'FA', description: 'Full adder', width: 3, height: 3, placeable: true,
@@ -166,7 +167,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'output', x: 3, y: 0, label: 'S' },
       { kind: 'output', x: 3, y: 3, label: 'Co' },
     ],
-    svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,2.7 L 0.3,2.7 Z M 1.1,1.5 L 1.9,1.5 M 1.5,1.1 L 1.5,1.9',
+    svg: SVG.ADDER,
   },
   '1bit-decoder': {
     label: 'DEC1', description: '1-to-2 decoder', width: 3, height: 2, placeable: true,
@@ -176,7 +177,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'output', x: 3, y: 0, label: '0' },
       { kind: 'output', x: 3, y: 2, label: '1' },
     ],
-    svg: 'M 0.3,0.5 L 0.3,1.5 L 2.7,1.9 L 2.7,0.1 Z',
+    svg: SVG.DECODER_2,
   },
   '3bit-decoder': {
     label: 'DEC3', description: '3-to-8 decoder', width: 3, height: 8, placeable: true,
@@ -194,7 +195,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'output', x: 3, y: 6, label: '6' },
       { kind: 'output', x: 3, y: 7, label: '7' },
     ],
-    svg: 'M 0.3,0.5 L 0.3,7.5 L 2.7,7.9 L 2.7,0.1 Z',
+    svg: SVG.DECODER_8,
   },
   '8bit-negative': {
     label: 'NEG', description: '8-bit negate', width: 2, height: 2, placeable: true,
@@ -203,7 +204,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 1, bitWidth: 8 },
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
     ],
-    svg: 'M 0.3,0.3 L 1.7,0.3 L 1.7,1.7 L 0.3,1.7 Z M 0.7,1.0 L 1.3,1.0',
+    svg: SVG.NEGATE,
   },
   switch: {
     label: 'MUX', description: '2-to-1 multiplexer', width: 3, height: 3, placeable: true,
@@ -214,7 +215,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 3, label: 'B' },
       { kind: 'output', x: 3, y: 1.5 },
     ],
-    svg: 'M 0.3,0.5 L 2.7,1.0 L 2.7,2.0 L 0.3,2.5 Z',
+    svg: SVG.MUX,
   },
   delay: {
     label: 'DLY', description: '1-tick delay', width: 3, height: 2, placeable: true,
@@ -223,7 +224,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 1 },
       { kind: 'output', x: 3, y: 1 },
     ],
-    svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,1.7 L 0.3,1.7 Z M 1.0,1.3 L 1.5,0.5 L 2.0,1.3 Z',
+    svg: SVG.DELAY,
   },
   'rs-latch': {
     label: 'RS', description: 'RS latch', width: 3, height: 3, placeable: true,
@@ -233,7 +234,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 3, label: 'R' },
       { kind: 'output', x: 3, y: 1.5, label: 'Q' },
     ],
-    svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,2.7 L 0.3,2.7 Z',
+    svg: SVG.BOX_3x3,
   },
   '8bit-memory': {
     label: 'MEM', description: '8-bit register', width: 3, height: 3, placeable: true,
@@ -243,7 +244,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 1, y: 0, label: 'W', bitWidth: 1 },
       { kind: 'output', x: 3, y: 1.5, label: 'Q', bitWidth: 8 },
     ],
-    svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,2.7 L 0.3,2.7 Z',
+    svg: SVG.BOX_3x3,
   },
   '8bit-counter': {
     label: 'CTR', description: '8-bit counter', width: 3, height: 2, placeable: true,
@@ -251,7 +252,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     pins: [
       { kind: 'output', x: 3, y: 1, label: 'Q', bitWidth: 8 },
     ],
-    svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,1.7 L 0.3,1.7 Z M 1.0,1.3 L 1.5,0.5 L 2.0,1.3 Z',
+    svg: SVG.COUNTER,
   },
   '8bit-counter-reset': {
     label: 'CRST', description: '8-bit counter with reset', width: 3, height: 2, placeable: true,
@@ -260,7 +261,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 1, label: 'R', bitWidth: 1 },
       { kind: 'output', x: 3, y: 1, label: 'Q', bitWidth: 8 },
     ],
-    svg: 'M 0.3,0.3 L 2.7,0.3 L 2.7,1.7 L 0.3,1.7 Z M 1.0,1.3 L 1.5,0.5 L 2.0,1.3 Z',
+    svg: SVG.COUNTER,
   },
   tristate: {
     label: 'TRI', description: 'Tri-state buffer', width: 2, height: 2, placeable: true,
@@ -270,7 +271,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 1, y: 0, label: 'en', bitWidth: 1 },
       { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.15,0.1 L 0.15,1.9 L 1.7,1 Z',
+    svg: SVG.TRISTATE,
   },
   constant: {
     label: 'C', description: 'Constant value', width: 2, height: 2, placeable: true,
@@ -278,7 +279,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     pins: [
       { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.3,0.3 L 1.7,0.3 L 1.7,1.7 L 0.3,1.7 Z',
+    svg: SVG.BOX_2x2,
   },
   input: {
     label: 'IN', description: 'Level input', width: 2, height: 2,
@@ -286,7 +287,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     pins: [
       { kind: 'output', x: 2, y: 1 },
     ],
-    svg: 'M 0.2,0.3 L 1.3,0.3 L 1.8,1 L 1.3,1.7 L 0.2,1.7 Z',
+    svg: SVG.INPUT,
   },
   output: {
     label: 'OUT', description: 'Level output', width: 2, height: 2,
@@ -294,7 +295,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     pins: [
       { kind: 'input', x: 0, y: 1 },
     ],
-    svg: 'M 1.8,0.3 L 0.7,0.3 L 0.2,1 L 0.7,1.7 L 1.8,1.7 Z',
+    svg: SVG.OUTPUT,
   },
   splitter: {
     label: 'SPL', description: '8-bit bus splitter', width: 2, height: 7, placeable: true,
