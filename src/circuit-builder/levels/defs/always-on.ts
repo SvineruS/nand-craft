@@ -7,7 +7,7 @@ const level: Level = {
   name: 'Always On',
   description: 'Build a circuit that always outputs 1, with no inputs.\n\nHint: What does a NAND gate output when both inputs have no signal?',
   inputs: [],
-  outputs: [{ name: 'Out', bitWidth: 1 }],
+  outputs: [{ name: 'Out' }],
   predefinedGates: [
     { type: 'output', pos: { x: 8, y: 3 }, label: 'Out', canRemove: false, canMove: false },
   ],

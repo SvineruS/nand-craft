@@ -1,4 +1,4 @@
-export type { Gate, Pin, GateType } from '../simulation/gateTypes.ts';
+export type { Gate, GateType } from '../simulation/gateTypes.ts';
 import type { GateType } from '../simulation/gateTypes.ts';
 import * as SVG from './gateSvg.ts';
 
@@ -289,11 +289,43 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     ],
     svg: SVG.INPUT,
   },
+  'input-8bit': {
+    label: 'IN8', description: '8-bit level input', width: 2, height: 2,
+    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
+    pins: [
+      { kind: 'output', x: 2, y: 1, bitWidth: 8 },
+    ],
+    svg: SVG.INPUT,
+  },
+  'input-16bit': {
+    label: 'IN16', description: '16-bit level input', width: 2, height: 2,
+    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
+    pins: [
+      { kind: 'output', x: 2, y: 1, bitWidth: 16 },
+    ],
+    svg: SVG.INPUT,
+  },
   output: {
     label: 'OUT', description: 'Level output', width: 2, height: 2,
     color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
     pins: [
       { kind: 'input', x: 0, y: 1 },
+    ],
+    svg: SVG.OUTPUT,
+  },
+  'output-8bit': {
+    label: 'OUT8', description: '8-bit level output', width: 2, height: 2,
+    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
+    pins: [
+      { kind: 'input', x: 0, y: 1, bitWidth: 8 },
+    ],
+    svg: SVG.OUTPUT,
+  },
+  'output-16bit': {
+    label: 'OUT16', description: '16-bit level output', width: 2, height: 2,
+    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
+    pins: [
+      { kind: 'input', x: 0, y: 1, bitWidth: 16 },
     ],
     svg: SVG.OUTPUT,
   },
@@ -354,4 +386,22 @@ export function getGateDefinition(type: GateType): GateDefinition {
 /** All gate type entries for iteration (e.g. sidebar). */
 export function getAllGateDefinitions(): [GateType, GateDefinition][] {
   return Object.entries(GATE_DEFS) as [GateType, GateDefinition][];
+}
+
+/** Get bitWidth for a specific pin from the gate definition. */
+export function getPinBitWidth(gateType: GateType, kind: 'input' | 'output', index: number): number {
+  const def = getGateDefinition(gateType);
+  const pins = def.pins.filter(p => p.kind === kind);
+  return pins[index]?.bitWidth ?? 1;
+}
+
+/** Count input/output pins from gate definition. */
+export function getPinCounts(gateType: GateType): { inputs: number; outputs: number } {
+  const def = getGateDefinition(gateType);
+  let inputs = 0, outputs = 0;
+  for (const p of def.pins) {
+    if (p.kind === 'input') inputs++;
+    else outputs++;
+  }
+  return { inputs, outputs };
 }

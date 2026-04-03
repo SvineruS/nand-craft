@@ -1,7 +1,8 @@
 import type { EditorState } from '../EditorState.ts';
 import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderErrorSegment, RenderSelectionItem, RenderDropPreview, RenderPastePreview } from './renderScene.ts';
-import { getGateDefinition } from '../gates.ts';
-import { gateCenter, gateGridOffset, getGateDims, getPinPositions } from '../utils/geometry.ts';
+import { getGateDefinition, getPinBitWidth } from '../gates.ts';
+import { isInputGate, pinValue } from '../../simulation/gateTypes.ts';
+import { gateCenter, gateGridOffset, getGateDims, iteratePinPositions, pinRefsEqual } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
 import { COLORS, GRID_SIZE, WIRE_COLORS, WIRE_LABEL_MIN_LENGTH, WIRE_LABEL_SPACING } from '../consts.ts';
 
@@ -97,10 +98,18 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
 
   for (const node of circuit.wireNodes.values()) {
     const count = segmentCount.get(node.id) ?? 0;
-    if (count === 0 && !node.pinId) continue;
+    if (count === 0 && !node.pin) continue;
 
-    const pin = node.pinId ? circuit.getPin(node.pinId) : null;
-    const value = pin?.value ?? nodeValues.get(node.id) ?? null;
+    let nodePinValue: number | null = null;
+    let pinBitWidth: number | undefined;
+    if (node.pin) {
+      const gate = circuit.gates.get(node.pin.gateId);
+      if (gate) {
+        nodePinValue = pinValue(gate, node.pin.kind, node.pin.index);
+        pinBitWidth = getPinBitWidth(gate.type, node.pin.kind, node.pin.index);
+      }
+    }
+    const value = nodePinValue ?? nodeValues.get(node.id) ?? null;
     const customColor = nodeColor.get(node.id);
     const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
@@ -110,7 +119,7 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
 
     let sc: string | null = null;
     if (value !== null) {
-      const bw = pin?.bitWidth ?? nodeBitWidths.get(node.id) ?? 1;
+      const bw = pinBitWidth ?? nodeBitWidths.get(node.id) ?? 1;
       sc = signalColor(value, bw);
     }
 
@@ -152,14 +161,13 @@ function buildGates(state: EditorState): RenderGate[] {
     let labelPos: Vec2;
     let valueLabel: RenderGate['valueLabel'] = null;
 
-    if (gate.type === 'input' || gate.type === 'constant') {
+    if (isInputGate(gate.type) || gate.type === 'constant') {
       label = gate.label ?? '';
       labelFont = 'bold 10px monospace';
       labelColor = COLORS.gateText;
       labelPos = { x: labelX, y: labelY - 0.6 * GRID_SIZE };
 
-      const outPin = circuit.getPin(gate.outputPins[0]);
-      const val = outPin.value;
+      const val = gate.outputValues[0];
       const valText = val !== null && val !== undefined ? String(val) : '?';
       const valColor = val !== null && val !== undefined ? signalColor(val) : COLORS.gateText;
       valueLabel = { text: valText, color: valColor, pos: { x: labelX, y: labelY } };
@@ -196,15 +204,16 @@ function buildPins(state: EditorState): RenderPin[] {
   const result: RenderPin[] = [];
 
   for (const gate of circuit.gates.values()) {
-    const positions = getPinPositions(gate);
-    for (const [pinId, pos] of positions) {
-      const pin = circuit.getPin(pinId);
-      const isHovered = state.hoveredEndpoint?.kind === 'pin' && state.hoveredEndpoint.pinId === pin.id;
+    for (const [pinRef, pos] of iteratePinPositions(gate)) {
+      const value = pinValue(gate, pinRef.kind, pinRef.index);
+      const bitWidth = getPinBitWidth(gate.type, pinRef.kind, pinRef.index);
+      const isHovered = state.hoveredEndpoint?.kind === 'pin'
+        && pinRefsEqual(state.hoveredEndpoint.pin, pinRef);
 
       result.push({
         pos,
-        fillColor: pinColorForValue(pin.value),
-        strokeColor: isHovered ? COLORS.selection : pinStrokeForWidth(pin.bitWidth),
+        fillColor: pinColorForValue(value),
+        strokeColor: isHovered ? COLORS.selection : pinStrokeForWidth(bitWidth),
         radius: isHovered ? 5 : 3.5,
         strokeWidth: isHovered ? 1.5 : 1,
       });

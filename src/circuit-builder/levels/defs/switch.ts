@@ -7,11 +7,11 @@ const level: Level = {
   name: 'Switch',
   description: 'Build a 2-to-1 multiplexer (switch) using tri-state buffers.\n\nWhen S=0, output A. When S=1, output B.\n\nHint: Use two tri-state buffers — enable one with S, the other with NOT S. Connect both outputs to the same wire.',
   inputs: [
-    { name: 'S', bitWidth: 1 },
-    { name: 'A', bitWidth: 1 },
-    { name: 'B', bitWidth: 1 },
+    { name: 'S' },
+    { name: 'A' },
+    { name: 'B' },
   ],
-  outputs: [{ name: 'Out', bitWidth: 1 }],
+  outputs: [{ name: 'Out' }],
   predefinedGates: [
     { type: 'input', pos: { x: 2, y: 1 }, label: 'S', canRemove: false, canMove: false },
     { type: 'input', pos: { x: 2, y: 4 }, label: 'A', canRemove: false, canMove: false },

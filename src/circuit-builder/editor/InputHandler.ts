@@ -1,15 +1,15 @@
-import type { GateId, PinId, WireNodeId, WireSegmentId } from './types.ts';
+import type { GateId, PinRef, WireNodeId, WireSegmentId } from './types.ts';
 import type { EditorState, PlaceableType } from './EditorState.ts';
 import { getSelectedIds } from './EditorState.ts';
 import type { Renderer } from './render/Renderer.ts';
 import { rotateBy, type WireEndpoint } from './utils/geometry.ts';
 import {
   findNodeForPin,
-  getAllPinIds,
   getAnchoredNodeIds,
+  pinRefsEqual,
 } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
-import { getGateDefinition } from './gates.ts';
+import { getGateDefinition, getPinBitWidth } from './gates.ts';
 import {
   AddGateCommand,
   AddWireNodeCommand,
@@ -49,8 +49,8 @@ const MIN_WIRE_DRAG = 5;
 
 type DragState =
   | { kind: 'none' }
-  | { kind: 'gates'; disconnected: boolean; detachedPins: { nodeId: WireNodeId; pinId: PinId }[] }
-  | { kind: 'wireNode'; nodeId: WireNodeId; fromSplit: boolean; detachPinId?: PinId; moved: boolean };
+  | { kind: 'gates'; disconnected: boolean; detachedPins: { nodeId: WireNodeId; pin: PinRef }[] }
+  | { kind: 'wireNode'; nodeId: WireNodeId; fromSplit: boolean; detachPin?: PinRef; moved: boolean };
 
 export class InputHandler {
   private input: CanvasInput;
@@ -365,13 +365,13 @@ export class InputHandler {
     if (isDblClick) {
       const gate = state.circuit.getGate(gateHit);
       if (gate.type === 'constant') {
-        const outPinId = gate.outputPins[0];
-        if (!outPinId) return;
-        const pin = state.circuit.getPin(outPinId);
-        const mask = ((1 << pin.bitWidth) >>> 0) - 1;
-        let newValue = pin.value === null ? 1 : ((pin.value + 1) & mask) >>> 0;
+        const bitWidth = getPinBitWidth(gate.type, 'output', 0);
+        const mask = ((1 << bitWidth) >>> 0) - 1;
+        const currentValue = gate.outputValues[0];
+        let newValue = currentValue === null ? 1 : ((currentValue + 1) & mask) >>> 0;
         if (newValue > mask) newValue = 0;
-        this.getHistory().execute(new ChangePinCommand(state, [outPinId], { value: newValue }));
+        const pinRef: PinRef = { gateId: gateHit, kind: 'output', index: 0 };
+        this.getHistory().execute(new ChangePinCommand(state, [pinRef], { value: newValue }));
         return;
       }
     }
@@ -466,13 +466,13 @@ export class InputHandler {
 
     // Wire node dragging (snapped to grid)
     if (this.drag.kind === 'wireNode') {
-      const { nodeId: dragId, detachPinId } = this.drag;
+      const { nodeId: dragId, detachPin } = this.drag;
       const snapped = Vec2.snap(world);
       const node = state.circuit.getWireNode(dragId);
       if (!Vec2.equal(snapped, node.pos)) {
         this.drag.moved = true;
         this.getHistory().undo();
-        this.getHistory().execute(new MoveWireNodeCommand(state, dragId, snapped, detachPinId));
+        this.getHistory().execute(new MoveWireNodeCommand(state, dragId, snapped, detachPin));
       }
       state.hoveredEndpoint = hitTestEndpoint(world, state, dragId);
       state.renderDirty = true;
@@ -556,11 +556,11 @@ export class InputHandler {
   private completeNodeDrag(state: EditorState, e: PointerEvent): void {
     if (this.drag.kind !== 'wireNode') return;
     const world = e.world;
-    const { nodeId, moved: didMove, fromSplit, detachPinId } = this.drag;
+    const { nodeId, moved: didMove, fromSplit, detachPin } = this.drag;
     this.drag = { kind: 'none' };
 
     // Click without movement on a free 2-segment node → merge it away
-    if (!didMove && !fromSplit && !detachPinId) {
+    if (!didMove && !fromSplit && !detachPin) {
       this.getHistory().undo();
       if (this.tryMergeWireNode(state, nodeId)) {
         state.selection = [];
@@ -575,11 +575,11 @@ export class InputHandler {
     const target = hitTestEndpoint(world, state, nodeId);
 
     if (fromSplit)
-      this.finalizeSplitDrag(state, nodeId, finalPos, target, detachPinId);
+      this.finalizeSplitDrag(state, nodeId, finalPos, target, detachPin);
     else if (target)
-      this.finalizeMergeDrag(state, nodeId, target, detachPinId);
+      this.finalizeMergeDrag(state, nodeId, target, detachPin);
     else
-      this.finalizeMoveDrag(state, nodeId, finalPos, detachPinId);
+      this.finalizeMoveDrag(state, nodeId, finalPos, detachPin);
 
     state.selection = [];
     state.renderDirty = true;
@@ -587,7 +587,7 @@ export class InputHandler {
 
   /** Finalize a split-and-drag: undo split+move, replay as single batch. */
   private finalizeSplitDrag(state: EditorState, nodeId: WireNodeId, finalPos: Vec2,
-      target: WireEndpoint | null, detachPinId?: PinId): void {
+      target: WireEndpoint | null, detachPin?: PinRef): void {
     this.getHistory().undo(); // undo move
     const splitPos = Vec2.copy(state.circuit.getWireNode(nodeId).pos);
     this.getHistory().undo(); // undo split
@@ -596,40 +596,40 @@ export class InputHandler {
     this.getHistory().beginBatch('Split and move wire');
     const newNodeId = this.splitWireSegment(state, segId, splitPos);
     if (target)
-      this.mergeNodeOnto(state, newNodeId, target, detachPinId);
+      this.mergeNodeOnto(state, newNodeId, target, detachPin);
     else
-      this.getHistory().execute(new MoveWireNodeCommand(state, newNodeId, finalPos, detachPinId));
+      this.getHistory().execute(new MoveWireNodeCommand(state, newNodeId, finalPos, detachPin));
     this.getHistory().endBatch();
   }
 
   /** Finalize a drag that merges the node onto another endpoint. */
   private finalizeMergeDrag(state: EditorState, nodeId: WireNodeId,
-      target: WireEndpoint, detachPinId?: PinId): void {
+      target: WireEndpoint, detachPin?: PinRef): void {
     const targetNodeId = this.ensureWireNode(state, target);
     if (!targetNodeId || targetNodeId === nodeId) return;
     this.getHistory().undo(); // undo live move
     this.getHistory().beginBatch('Merge wire node');
-    this.mergeNodeOnto(state, nodeId, target, detachPinId);
+    this.mergeNodeOnto(state, nodeId, target, detachPin);
     this.getHistory().endBatch();
   }
 
   /** Finalize a simple move drag (snap to grid). */
   private finalizeMoveDrag(state: EditorState, nodeId: WireNodeId,
-      finalPos: Vec2, detachPinId?: PinId): void {
+      finalPos: Vec2, detachPin?: PinRef): void {
     const node = state.circuit.getWireNode(nodeId);
     if (!Vec2.equal(finalPos, node.pos)) {
       this.getHistory().undo();
-      this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, finalPos, detachPinId));
+      this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, finalPos, detachPin));
     }
   }
 
   /** Merge a node onto a target endpoint: move, repoint segments, delete source. */
   private mergeNodeOnto(state: EditorState, nodeId: WireNodeId,
-      target: WireEndpoint, detachPinId?: PinId): void {
+      target: WireEndpoint, detachPin?: PinRef): void {
     const targetNodeId = this.ensureWireNode(state, target);
     if (!targetNodeId || targetNodeId === nodeId) return;
     const targetNode = state.circuit.getWireNode(targetNodeId);
-    this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, targetNode.pos, detachPinId));
+    this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, targetNode.pos, detachPin));
     // Repoint segments: remove old, add new (skip self-loops and duplicates)
     const segments = [...state.circuit.wireSegments.values()];
     const seen = new Set<string>();
@@ -739,7 +739,7 @@ export class InputHandler {
 
     // Include free wire nodes in area selection
     for (const node of state.circuit.wireNodes.values()) {
-      if (node.pinId) continue; // skip anchored nodes
+      if (node.pin) continue; // skip anchored nodes
       if (posInRect(node.pos, normRect))
         selected.push({ type: 'wireNode', id: node.id });
     }
@@ -803,11 +803,11 @@ export class InputHandler {
 
   /** Common setup for all node drag starts. Executes an initial MoveWireNodeCommand. */
   private startNodeDrag(state: EditorState, nodeId: WireNodeId, world: Vec2,
-      opts: { detachPinId?: PinId; fromSplit?: boolean } = {}): void {
-    this.drag = { kind: 'wireNode', nodeId, fromSplit: opts.fromSplit ?? false, detachPinId: opts.detachPinId, moved: false };
+      opts: { detachPin?: PinRef; fromSplit?: boolean } = {}): void {
+    this.drag = { kind: 'wireNode', nodeId, fromSplit: opts.fromSplit ?? false, detachPin: opts.detachPin, moved: false };
     this.lastWorld = Vec2.copy(world);
     const node = state.circuit.getWireNode(nodeId);
-    this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, node.pos, opts.detachPinId));
+    this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, node.pos, opts.detachPin));
     state.renderDirty = true;
   }
 
@@ -818,9 +818,9 @@ export class InputHandler {
       state.mode = { kind: 'normal' };
       return true;
     }
-    const anchoredNode = this.findAnchoredNode(ep.pinId, state);
+    const anchoredNode = this.findAnchoredNode(ep.pin, state);
     if (!anchoredNode) return false;
-    this.startNodeDrag(state, anchoredNode, world, { detachPinId: ep.pinId });
+    this.startNodeDrag(state, anchoredNode, world, { detachPin: ep.pin });
     state.mode = { kind: 'normal' };
     return true;
   }
@@ -837,30 +837,27 @@ export class InputHandler {
   }
 
   /** Detach all wire nodes anchored to pins of the given gates. Returns detached mappings for undo. */
-  private detachPinNodes(state: EditorState, gateIds: GateId[]): { nodeId: WireNodeId; pinId: PinId }[] {
-    const pinIds = new Set<string>();
-    for (const gateId of gateIds) {
-      for (const p of getAllPinIds(state.circuit.getGate(gateId))) pinIds.add(p as string);
-    }
-    const detached: { nodeId: WireNodeId; pinId: PinId }[] = [];
+  private detachPinNodes(state: EditorState, gateIds: GateId[]): { nodeId: WireNodeId; pin: PinRef }[] {
+    const gateIdSet = new Set<string>(gateIds as string[]);
+    const detached: { nodeId: WireNodeId; pin: PinRef }[] = [];
     for (const node of state.circuit.wireNodes.values()) {
-      if (node.pinId && pinIds.has(node.pinId as string)) {
-        detached.push({ nodeId: node.id, pinId: node.pinId });
-        node.pinId = undefined;
+      if (node.pin && gateIdSet.has(node.pin.gateId as string)) {
+        detached.push({ nodeId: node.id, pin: node.pin });
+        node.pin = undefined;
       }
     }
-    // Clear pin values so disconnected wires don't show stale signals
-    for (const pin of state.circuit.pins.values()) {
-      if (pinIds.has(pin.id as string)) {
-        pin.value = null;
-      }
+    // Clear gate pin values so disconnected wires don't show stale signals
+    for (const gateId of gateIds) {
+      const gate = state.circuit.getGate(gateId);
+      gate.inputValues.fill(null);
+      gate.outputValues.fill(null);
     }
     return detached;
   }
 
-  private findAnchoredNode(pinId: PinId, state: EditorState): WireNodeId | null {
+  private findAnchoredNode(pin: PinRef, state: EditorState): WireNodeId | null {
     for (const node of state.circuit.wireNodes.values()) {
-      if (node.pinId === pinId) {
+      if (node.pin && pinRefsEqual(node.pin, pin)) {
         for (const seg of state.circuit.wireSegments.values()) {
           if (seg.from === node.id || seg.to === node.id) return node.id;
         }
@@ -877,10 +874,10 @@ export class InputHandler {
   private ensureWireNode(state: EditorState, ep: WireEndpoint): WireNodeId | null {
     if (ep.kind === 'node') return ep.nodeId;
     // Pin: find existing or create
-    const existing = findNodeForPin(state.circuit, ep.pinId);
+    const existing = findNodeForPin(state.circuit, ep.pin);
     if (existing) return existing;
 
-    const cmd = new AddWireNodeCommand(state, ep.pos, ep.pinId);
+    const cmd = new AddWireNodeCommand(state, ep.pos, ep.pin);
     this.getHistory().execute(cmd);
     return cmd.getNodeId();
   }
@@ -925,7 +922,7 @@ export class InputHandler {
   /** If a free wire node has exactly 2 segments, remove the node and join the segments. Returns true if merged. */
   private tryMergeWireNode(state: EditorState, nodeId: WireNodeId): boolean {
     const node = state.circuit.getWireNode(nodeId);
-    if (node.pinId) return false; // only free nodes
+    if (node.pin) return false; // only free nodes
 
     // Find connected segments
     const connected: { segId: WireSegmentId; otherId: WireNodeId }[] = [];

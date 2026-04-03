@@ -1,15 +1,13 @@
-import type { GateId, PinId, WireNode, WireNodeId, WireSegment, WireSegmentId } from '../editor/types.ts';
-import type { Gate, Pin } from "./gateTypes.ts";
+import type { GateId, WireNode, WireNodeId, WireSegment, WireSegmentId } from '../editor/types.ts';
+import type { Gate } from "./gateTypes.ts";
 import type { BuildResult, TickResult } from "./types.ts";
 import { build } from "./buildCircuit.ts";
 import { tick } from "./tickCircuit.ts";
 
 export class Circuit {
   gates = new Map<GateId, Gate>();
-  pins = new Map<PinId, Pin>();
   wireNodes = new Map<WireNodeId, WireNode>();
   wireSegments = new Map<WireSegmentId, WireSegment>();
-  delayState = new Map<GateId, number | null>();
 
   cachedBuild: BuildResult | null = null;
   tickResult: TickResult = {
@@ -25,12 +23,6 @@ export class Circuit {
     const gate = this.gates.get(id);
     if (!gate) throw new Error(`Gate ${id} not found`);
     return gate;
-  }
-
-  getPin(id: PinId): Pin {
-    const pin = this.pins.get(id);
-    if (!pin) throw new Error(`Pin ${id} not found`);
-    return pin;
   }
 
   getWireNode(id: WireNodeId): WireNode {

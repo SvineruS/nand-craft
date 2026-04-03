@@ -87,7 +87,9 @@ export class Editor {
   /** Tick the live circuit with given input values. Updates pins, detects errors. */
   applyInputs(inputs: Map<GateId, number>, resetDelay = false): void {
     if (resetDelay) {
-      this.state.circuit.delayState.clear();
+      for (const gate of this.state.circuit.gates.values()) {
+        gate.state = undefined;
+      }
     }
     this.getCircuit().tick(inputs);
     this.state.renderDirty = true;
@@ -114,7 +116,6 @@ function buildLevelCircuit(level: Level): Circuit {
       pg.type,
       Vec2.scale(pg.pos, GRID_SIZE),
       pg.rotation ?? 0,
-      pg.bitWidth ?? 1,
     );
     cmd.execute();
 

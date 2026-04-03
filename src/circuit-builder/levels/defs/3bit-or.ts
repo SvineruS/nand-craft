@@ -7,11 +7,11 @@ const level: Level = {
   name: '3-bit OR',
   description: 'Build a 3-input OR gate.\n\nOutput 1 if any of the three inputs is 1.\n\nHint: Chain two OR gates.',
   inputs: [
-    { name: 'A', bitWidth: 1 },
-    { name: 'B', bitWidth: 1 },
-    { name: 'C', bitWidth: 1 },
+    { name: 'A' },
+    { name: 'B' },
+    { name: 'C' },
   ],
-  outputs: [{ name: 'Out', bitWidth: 1 }],
+  outputs: [{ name: 'Out' }],
   predefinedGates: [
     { type: 'input', pos: { x: 2, y: 1 }, label: 'A', canRemove: false, canMove: false },
     { type: 'input', pos: { x: 2, y: 4 }, label: 'B', canRemove: false, canMove: false },

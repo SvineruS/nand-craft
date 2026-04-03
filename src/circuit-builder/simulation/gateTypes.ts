@@ -1,12 +1,13 @@
-import type { ComponentId, GateId, PinId, Rotation, Vec2 } from "../editor/types.ts";
+import type { ComponentId, GateId, Rotation, Vec2 } from "../editor/types.ts";
 
 export interface Gate {
   id: GateId;
   type: GateType;
   pos: Vec2;
   rotation: Rotation;
-  inputPins: PinId[];
-  outputPins: PinId[];
+  inputValues: (number | null)[];
+  outputValues: (number | null)[];
+  state?: unknown;
   componentId?: ComponentId;
   label?: string;
   canRemove?: boolean;
@@ -14,13 +15,15 @@ export interface Gate {
   status?: 'locked' | 'available' | 'solved';
 }
 
-export interface Pin {
-  id: PinId;
-  gateId: GateId;
-  kind: 'input' | 'output';
-  index: number;
-  bitWidth: number;
-  value: number | null;
+const INPUT_TYPES = new Set<GateType>(['input', 'input-8bit', 'input-16bit']);
+const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit']);
+
+export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(type); }
+export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
+
+/** Read a pin value from a gate by kind and index. */
+export function pinValue(gate: Gate, kind: 'input' | 'output', index: number): number | null {
+  return kind === 'output' ? gate.outputValues[index] : gate.inputValues[index];
 }
 
 export type GateType =
@@ -52,6 +55,10 @@ export type GateType =
   | 'splitter'
   | 'joiner'
   | 'input'
+  | 'input-8bit'
+  | 'input-16bit'
   | 'output'
+  | 'output-8bit'
+  | 'output-16bit'
   | 'component'
   | 'level';

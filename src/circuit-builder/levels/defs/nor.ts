@@ -7,10 +7,10 @@ const level: Level = {
   name: 'NOR',
   description: 'Build a NOR gate.\n\nNOR outputs 1 only when both inputs are 0. It is the complement of OR.\n\nHint: OR then NOT.',
   inputs: [
-    { name: 'A', bitWidth: 1 },
-    { name: 'B', bitWidth: 1 },
+    { name: 'A' },
+    { name: 'B' },
   ],
-  outputs: [{ name: 'Out', bitWidth: 1 }],
+  outputs: [{ name: 'Out' }],
   predefinedGates: [
     { type: 'input', pos: { x: 2, y: 2 }, label: 'A', canRemove: false, canMove: false },
     { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false, canMove: false },

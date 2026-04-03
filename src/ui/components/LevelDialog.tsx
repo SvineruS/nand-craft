@@ -37,13 +37,13 @@ export function LevelDialog() {
   );
 }
 
-function PinList({ heading, pins }: { heading: string; pins: { name: string; bitWidth: number }[] }) {
+function PinList({ heading, pins }: { heading: string; pins: { name: string }[] }) {
   return (
     <div class="level-dialog-pin-list">
       <div class="level-dialog-pin-heading">{heading}</div>
       {pins.map((pin) => (
         <div class="level-dialog-pin-item" key={pin.name}>
-          {pin.bitWidth > 1 ? `${pin.name} [${pin.bitWidth}-bit]` : pin.name}
+          {pin.name}
         </div>
       ))}
     </div>

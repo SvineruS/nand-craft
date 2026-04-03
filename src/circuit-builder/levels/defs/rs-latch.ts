@@ -7,10 +7,10 @@ const level: Level = {
   name: 'RS Latch',
   description: 'Build a 1-bit RS latch using delay gates.\n\nS (set) = 1 sets Q to 1. R (reset) = 1 sets Q to 0. When both are 0, Q holds its value.\n\nHint: Use NOR gates with delay feedback to break the combinational loop.',
   inputs: [
-    { name: 'S', bitWidth: 1 },
-    { name: 'R', bitWidth: 1 },
+    { name: 'S' },
+    { name: 'R' },
   ],
-  outputs: [{ name: 'Q', bitWidth: 1 }],
+  outputs: [{ name: 'Q' }],
   predefinedGates: [
     { type: 'input', pos: { x: 2, y: 2 }, label: 'S', canRemove: false, canMove: false },
     { type: 'input', pos: { x: 2, y: 7 }, label: 'R', canRemove: false, canMove: false },

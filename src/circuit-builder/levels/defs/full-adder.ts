@@ -7,13 +7,13 @@ const level: Level = {
   name: 'Full Adder',
   description: 'Build a full adder.\n\nAdd three 1-bit numbers A, B, and Cin (carry in). Output the sum S and carry Cout.\n\nHint: Use two half adders and an OR gate for the carry.',
   inputs: [
-    { name: 'A', bitWidth: 1 },
-    { name: 'B', bitWidth: 1 },
-    { name: 'Cin', bitWidth: 1 },
+    { name: 'A' },
+    { name: 'B' },
+    { name: 'Cin' },
   ],
   outputs: [
-    { name: 'S', bitWidth: 1 },
-    { name: 'Cout', bitWidth: 1 },
+    { name: 'S' },
+    { name: 'Cout' },
   ],
   predefinedGates: [
     { type: 'input', pos: { x: 2, y: 2 }, label: 'A', canRemove: false, canMove: false },

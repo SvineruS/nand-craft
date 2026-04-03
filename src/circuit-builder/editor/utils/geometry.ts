@@ -1,6 +1,6 @@
 import { Circuit } from '../../simulation/circuit.ts';
-import type { GateId, PinId, Rotation, WireNode, WireNodeId } from '../types.ts';
-import { type Gate, getGateDefinition } from '../gates.ts';
+import { pinRefKey, type GateId, type PinRef, type Rotation, type WireNode, type WireNodeId } from '../types.ts';
+import { type Gate, getGateDefinition, getPinCounts } from '../gates.ts';
 import { Vec2 } from './vec2.ts';
 import { GRID_SIZE } from "../consts.ts";
 
@@ -19,9 +19,20 @@ export function cameraBoundingBox(camera: { pos: Vec2; zoom: number }, canvasSiz
 // Gate geometry helpers
 // ---------------------------------------------------------------------------
 
-/** All pin IDs for a gate (inputs then outputs). */
-export function getAllPinIds(gate: Gate): PinId[] {
-  return [...gate.inputPins, ...gate.outputPins];
+/** All PinRefs for a gate (inputs then outputs). */
+export function getPinRefs(gate: Gate): PinRef[] {
+  const { inputs, outputs } = getPinCounts(gate.type);
+  const refs: PinRef[] = [];
+  for (let i = 0; i < inputs; i++)
+    refs.push({ gateId: gate.id, kind: 'input', index: i });
+  for (let i = 0; i < outputs; i++)
+    refs.push({ gateId: gate.id, kind: 'output', index: i });
+  return refs;
+}
+
+/** Check if two PinRefs refer to the same pin. */
+export function pinRefsEqual(a: PinRef, b: PinRef): boolean {
+  return pinRefKey(a) === pinRefKey(b);
 }
 
 /** Get gate pixel dimensions from definition. */
@@ -36,23 +47,42 @@ export function gateCenter(gate: Gate): Vec2 {
   return { x: gate.pos.x + w / 2, y: gate.pos.y + h / 2 };
 }
 
+export interface PinPositions {
+  inputs: Vec2[];
+  outputs: Vec2[];
+}
+
 /**
  * Pin positions for a gate — reads from definition, applies gate position + rotation.
+ * Returns { inputs: Vec2[], outputs: Vec2[] } indexed by pin index.
  */
-export function getPinPositions(gate: Gate): Map<PinId, Vec2> {
+export function getPinPositions(gate: Gate): PinPositions {
   const center = gateCenter(gate);
-  const allPinIds = getAllPinIds(gate);
-  const defPins = getGateDefinition(gate.type).pins;
+  const def = getGateDefinition(gate.type);
 
-  const pinPositions = new Map<PinId, Vec2>();
+  const inputs: Vec2[] = [];
+  const outputs: Vec2[] = [];
 
-  for (let i = 0; i < Math.min(allPinIds.length, defPins.length); i++) {
-    const pinWorld = Vec2.add(gate.pos, Vec2.scale(defPins[i], GRID_SIZE));
+  for (const pinDef of def.pins) {
+    const pinWorld = Vec2.add(gate.pos, Vec2.scale(pinDef, GRID_SIZE));
     const rotated = rotatePoint(pinWorld, center, gate.rotation);
-    pinPositions.set(allPinIds[i], rotated);
+    if (pinDef.kind === 'input') inputs.push(rotated);
+    else outputs.push(rotated);
   }
 
-  return pinPositions;
+  return { inputs, outputs };
+}
+
+/**
+ * Iterate all pin positions as (PinRef, Vec2) pairs.
+ * Convenience for code that needs to check every pin of a gate.
+ */
+export function* iteratePinPositions(gate: Gate): Generator<[PinRef, Vec2]> {
+  const positions = getPinPositions(gate);
+  for (let i = 0; i < positions.inputs.length; i++)
+    yield [{ gateId: gate.id, kind: 'input', index: i }, positions.inputs[i]];
+  for (let i = 0; i < positions.outputs.length; i++)
+    yield [{ gateId: gate.id, kind: 'output', index: i }, positions.outputs[i]];
 }
 
 // ---------------------------------------------------------------------------
@@ -103,12 +133,12 @@ export function gateGridOffset(rotation: Rotation, w: number, h: number): number
 // ---------------------------------------------------------------------------
 
 export type WireEndpoint =
-  | { kind: 'pin'; pinId: PinId; pos: Vec2 }
+  | { kind: 'pin'; pin: PinRef; pos: Vec2 }
   | { kind: 'node'; nodeId: WireNodeId; pos: Vec2 };
 
-export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | null {
+export function findNodeForPin(circuit: Circuit, pin: PinRef): WireNodeId | null {
   for (const node of circuit.wireNodes.values()) {
-    if (node.pinId === pinId)
+    if (node.pin && pinRefsEqual(node.pin, pin))
       return node.id;
   }
   return null;
@@ -116,22 +146,18 @@ export function findNodeForPin(circuit: Circuit, pinId: PinId): WireNodeId | nul
 
 /** Sync anchored wire-node positions to their gate's current pin positions. */
 export function updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
-  const positions = getPinPositions(gate);
-
-  for (const [pinId, pos] of positions) {
+  for (const [pinRef, pos] of iteratePinPositions(gate)) {
     for (const node of circuit.wireNodes.values()) {
-
-      if (node.pinId === pinId)
+      if (node.pin && pinRefsEqual(node.pin, pinRef))
         node.pos = pos;
-
     }
   }
 }
 
 export interface ReconnectedNode {
   nodeId: WireNodeId;
-  pinId: PinId;
-  prevPos: Vec2
+  pin: PinRef;
+  prevPos: Vec2;
 }
 
 /** Anchor free wire nodes that are near gate pins. Returns what changed (for undo). */
@@ -139,14 +165,13 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
   const result: ReconnectedNode[] = [];
   for (const gateId of gateIds) {
     const gate = circuit.getGate(gateId);
-    const positions = getPinPositions(gate);
 
-    for (const [pinId, pos] of positions) {
+    for (const [pinRef, pos] of iteratePinPositions(gate)) {
       for (const node of circuit.wireNodes.values()) {
-        if (node.pinId) continue;
+        if (node.pin) continue;
         if (Vec2.near(node.pos, pos, 2)) {
-          result.push({ nodeId: node.id, pinId, prevPos: Vec2.copy(node.pos) });
-          node.pinId = pinId;
+          result.push({ nodeId: node.id, pin: pinRef, prevPos: Vec2.copy(node.pos) });
+          node.pin = pinRef;
           node.pos = pos;
           break;
         }
@@ -157,11 +182,11 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
   return result;
 }
 
-/** Undo reconnectPinNodes: clear pinId and restore original positions. */
+/** Undo reconnectPinNodes: clear pin and restore original positions. */
 export function undoReconnectPinNodes(circuit: Circuit, reconnected: ReconnectedNode[]): void {
   for (const r of reconnected) {
     const node = circuit.getWireNode(r.nodeId);
-    node.pinId = undefined;
+    node.pin = undefined;
     node.pos = Vec2.copy(r.prevPos);
   }
 }
@@ -201,14 +226,10 @@ export function rotateGroup(
 }
 
 export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
-  const pinIdSet = new Set<string>();
-  for (const gateId of gateIds) {
-    for (const p of getAllPinIds(circuit.getGate(gateId)))
-      pinIdSet.add(p);
-  }
+  const gateIdSet = new Set<string>(gateIds as string[]);
   const result: WireNodeId[] = [];
   for (const node of circuit.wireNodes.values()) {
-    if (node.pinId && pinIdSet.has(node.pinId)) {
+    if (node.pin && gateIdSet.has(node.pin.gateId as string)) {
       result.push(node.id);
     }
   }
@@ -220,7 +241,7 @@ export function cleanupOrphanNodes(circuit: Circuit, nodeIds: Iterable<WireNodeI
   const removed: WireNode[] = [];
   for (const nid of nodeIds) {
     const node = circuit.wireNodes.get(nid);
-    if (!node || node.pinId) continue;
+    if (!node || node.pin) continue;
     let hasSegments = false;
     for (const s of circuit.wireSegments.values()) {
       if (s.from === nid || s.to === nid) {

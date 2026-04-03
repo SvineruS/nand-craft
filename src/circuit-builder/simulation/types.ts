@@ -1,12 +1,13 @@
-import type { GateId, Net, NetId, PinId } from '../editor/types.ts';
+import type { GateId, Net, NetId, PinRef } from '../editor/types.ts';
+export { pinRefKey } from '../editor/types.ts';
 
 /** Cached structural analysis — recomputed only when circuit topology changes. */
 export interface BuildResult {
   nets: Map<NetId, Net>;
   evaluationOrder: GateId[];
-  pinToNet: Map<PinId, NetId>;
-  netDrivers: Map<NetId, PinId[]>;
-  netReceivers: Map<NetId, PinId[]>;
+  pinToNet: Map<string, NetId>;  // key is pinRefKey(PinRef)
+  netDrivers: Map<NetId, PinRef[]>;
+  netReceivers: Map<NetId, PinRef[]>;
   netBitWidths: Map<NetId, number>;
   shortCircuitGates: GateId[];
 }

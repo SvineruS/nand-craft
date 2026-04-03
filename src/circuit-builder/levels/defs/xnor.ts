@@ -7,10 +7,10 @@ const level: Level = {
   name: 'XNOR',
   description: 'Build an XNOR gate.\n\nXNOR outputs 1 when both inputs are the same.\n\nHint: Just invert XOR.',
   inputs: [
-    { name: 'A', bitWidth: 1 },
-    { name: 'B', bitWidth: 1 },
+    { name: 'A' },
+    { name: 'B' },
   ],
-  outputs: [{ name: 'Out', bitWidth: 1 }],
+  outputs: [{ name: 'Out' }],
   predefinedGates: [
     { type: 'input', pos: { x: 2, y: 2 }, label: 'A', canRemove: false, canMove: false },
     { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false, canMove: false },

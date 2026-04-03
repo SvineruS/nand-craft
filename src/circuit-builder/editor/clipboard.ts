@@ -1,4 +1,4 @@
-import type { PinId, WireNodeId } from './types.ts';
+import type { PinRef, WireNodeId } from './types.ts';
 import type { ClipboardGate, ClipboardNode, ClipboardWire, EditorState } from './EditorState.ts';
 import { getSelectedIds } from './EditorState.ts';
 import { getGateDefinition } from './gates.ts';
@@ -8,7 +8,7 @@ import {
   AddWireSegmentCommand,
   type CommandHistory,
 } from './commands.ts';
-import { getAllPinIds, gateCenter, gateGridOffset } from './utils/geometry.ts';
+import { gateCenter, gateGridOffset } from './utils/geometry.ts';
 import { snapGateCenter } from './utils/hitTests.ts';
 import { Vec2 } from './utils/vec2.ts';
 import { GRID_SIZE } from "./consts.ts";
@@ -37,21 +37,16 @@ export function copySelection(state: EditorState): void {
     const g = state.circuit.getGate(gid);
     gateIdxMap.set(gid as string, gates.length);
     const c = gateCenter(g);
-    const allPids = getAllPinIds(g);
-    const pinBitWidths = allPids.map(pid => state.circuit.getPin(pid).bitWidth);
-    const pinValues = allPids.map(pid => state.circuit.getPin(pid).value);
-    gates.push({ type: g.type, delta: Vec2.sub(c, center), rotation: g.rotation, pinBitWidths, pinValues });
+    const pinValues = [...g.inputValues, ...g.outputValues];
+    gates.push({ type: g.type, delta: Vec2.sub(c, center), rotation: g.rotation, pinValues });
   }
 
   // Collect relevant wire nodes (anchored to selected gates or explicitly selected free nodes)
   // Also collect nodes referenced by selected wire segments
   const relevantNodeIds = new Set<string>(selectedNodeIds);
   for (const node of state.circuit.wireNodes.values()) {
-    if (node.pinId) {
-      const pin = state.circuit.getPin(node.pinId);
-      if (gateIdxMap.has(pin.gateId as string)) {
-        relevantNodeIds.add(node.id as string);
-      }
+    if (node.pin && gateIdxMap.has(node.pin.gateId as string)) {
+      relevantNodeIds.add(node.id as string);
     }
   }
   for (const seg of state.circuit.wireSegments.values()) {
@@ -68,16 +63,14 @@ export function copySelection(state: EditorState): void {
     const n = state.circuit.getWireNode(nid as WireNodeId);
     nodeIdxMap.set(nid, nodes.length);
     let gateIdx: number | undefined;
-    let pinIdx: number | undefined;
-    if (n.pinId) {
-      const pin = state.circuit.getPin(n.pinId);
-      if (gateIdxMap.has(pin.gateId as string)) {
-        gateIdx = gateIdxMap.get(pin.gateId as string);
-        const allPins = getAllPinIds(state.circuit.getGate(pin.gateId));
-        pinIdx = allPins.indexOf(n.pinId);
-      }
+    let pinKind: 'input' | 'output' | undefined;
+    let pinIndex: number | undefined;
+    if (n.pin && gateIdxMap.has(n.pin.gateId as string)) {
+      gateIdx = gateIdxMap.get(n.pin.gateId as string);
+      pinKind = n.pin.kind;
+      pinIndex = n.pin.index;
     }
-    nodes.push({ delta: Vec2.sub(n.pos, center), gateIdx, pinIdx });
+    nodes.push({ delta: Vec2.sub(n.pos, center), gateIdx, pinKind, pinIndex });
   }
 
   // Collect wire segments between relevant nodes (or explicitly selected)
@@ -103,24 +96,28 @@ export function pasteClipboard(state: EditorState, pos: Vec2, history: CommandHi
   const center = Vec2.snap(pos);
   history.beginBatch('Paste');
 
-  // Create gates and collect new pin IDs
-  const newAllPinIds: PinId[][] = [];
+  // Create gates and collect new gate IDs for pin reconstruction
+  const newGateIds: string[] = [];
   for (const cg of clip.gates) {
     const def = getGateDefinition(cg.type);
     const gc = Vec2.add(center, cg.delta);
     const offset = gateGridOffset(cg.rotation, def.width * GRID_SIZE, def.height * GRID_SIZE);
     const gatePos = snapGateCenter(gc, def.width, def.height, offset);
-    const cmd = new AddGateCommand(state, cg.type, gatePos, cg.rotation, cg.pinBitWidths[0] ?? 1);
+    const cmd = new AddGateCommand(state, cg.type, gatePos, cg.rotation);
     history.execute(cmd);
+    newGateIds.push(cmd.getGateId() as string);
 
-    // Collect pin IDs and restore properties
+    // Restore pin values from clipboard
     const gate = state.circuit.getGate(cmd.getGateId());
-    const allPins = getAllPinIds(gate);
-    newAllPinIds.push(allPins);
-    for (let p = 0; p < allPins.length; p++) {
-      const pin = state.circuit.getPin(allPins[p]);
-      if (cg.pinBitWidths[p] !== undefined) pin.bitWidth = cg.pinBitWidths[p];
-      if (cg.pinValues[p] !== undefined) pin.value = cg.pinValues[p];
+    const inputCount = gate.inputValues.length;
+    for (let p = 0; p < cg.pinValues.length; p++) {
+      if (cg.pinValues[p] !== undefined && cg.pinValues[p] !== null) {
+        if (p < inputCount) {
+          gate.inputValues[p] = cg.pinValues[p];
+        } else {
+          gate.outputValues[p - inputCount] = cg.pinValues[p];
+        }
+      }
     }
   }
 
@@ -129,13 +126,16 @@ export function pasteClipboard(state: EditorState, pos: Vec2, history: CommandHi
   for (const cn of clip.nodes) {
     const nodePos = Vec2.snap(Vec2.add(center, cn.delta));
 
-    // If anchored to a gate pin, find the new pin ID
-    let pinId: PinId | undefined;
-    if (cn.gateIdx !== undefined && cn.pinIdx !== undefined) {
-      pinId = newAllPinIds[cn.gateIdx]?.[cn.pinIdx];
+    // If anchored to a gate pin, build PinRef from clipboard data
+    let pin: PinRef | undefined;
+    if (cn.gateIdx !== undefined && cn.pinKind !== undefined && cn.pinIndex !== undefined) {
+      const gateId = newGateIds[cn.gateIdx];
+      if (gateId) {
+        pin = { gateId: gateId as any, kind: cn.pinKind, index: cn.pinIndex };
+      }
     }
 
-    const cmd = new AddWireNodeCommand(state, nodePos, pinId);
+    const cmd = new AddWireNodeCommand(state, nodePos, pin);
     history.execute(cmd);
     newNodeIds.push(cmd.getNodeId());
   }

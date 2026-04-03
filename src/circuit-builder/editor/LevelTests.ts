@@ -44,7 +44,7 @@ export class LevelTests {
     const actuals: Record<string, number | null> = {};
     for (const [name, gateId] of this.outputMap) {
       const gate = this.editor.getState().circuit.getGate(gateId);
-      actuals[name] = this.editor.getState().circuit.getPin(gate.inputPins[0]).value ?? null;
+      actuals[name] = gate.inputValues[0] ?? null;
     }
 
     let passed = true;

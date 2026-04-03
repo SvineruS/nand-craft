@@ -1,7 +1,7 @@
 import type { EditorState } from "../EditorState.ts";
 import type { GateId, WireNodeId, WireSegmentId } from "../types.ts";
 import { Vec2, routeCorner } from "./vec2.ts";
-import { getGateDims, getPinPositions, snapToGrid, type WireEndpoint } from "./geometry.ts";
+import { getGateDims, iteratePinPositions, snapToGrid, type WireEndpoint } from "./geometry.ts";
 import type { Gate } from "../gates.ts";
 import { GRID_SIZE } from "../consts.ts";
 
@@ -76,7 +76,7 @@ export function hitTestEndpoint(pos: Vec2, state: EditorState, excludeNode?: Wir
 
   // Check free wire nodes
   for (const node of state.circuit.wireNodes.values()) {
-    if (node.pinId) continue; // anchored nodes are hit via their pin
+    if (node.pin) continue; // anchored nodes are hit via their pin
     if (excludeNode && node.id === excludeNode) continue;
     const d = Vec2.dist(pos, node.pos);
     if (d < bestDist) {
@@ -87,12 +87,11 @@ export function hitTestEndpoint(pos: Vec2, state: EditorState, excludeNode?: Wir
 
   // Check pins (computed positions)
   for (const gate of state.circuit.gates.values()) {
-    const positions = getPinPositions(gate);
-    for (const [pinId, pinPos] of positions) {
+    for (const [pinRef, pinPos] of iteratePinPositions(gate)) {
       const d = Vec2.dist(pos, pinPos);
       if (d < bestDist) {
         bestDist = d;
-        best = { kind: 'pin', pinId, pos: Vec2.copy(pinPos) };
+        best = { kind: 'pin', pin: pinRef, pos: Vec2.copy(pinPos) };
       }
     }
   }

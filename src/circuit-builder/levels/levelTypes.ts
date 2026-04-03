@@ -41,8 +41,7 @@ export interface TestResult {
 /** Gate spec in a level definition — same fields as Gate minus runtime-only ones (id, pins). */
 export type LevelGate =
   Pick<Gate, 'type' | 'pos'> &
-  Partial<Pick<Gate, 'rotation' | 'label' | 'canRemove' | 'canMove'>> &
-  { bitWidth?: number };
+  Partial<Pick<Gate, 'rotation' | 'label' | 'canRemove' | 'canMove'>>;
 
 export interface GateConstraints {
   /** If set, only these gate types can be placed (whitelist). */
@@ -57,8 +56,8 @@ export interface Level {
   id: LevelId;
   name: string;
   description: string;
-  inputs: { name: string; bitWidth: number }[];
-  outputs: { name: string; bitWidth: number }[];
+  inputs: { name: string }[];
+  outputs: { name: string }[];
   mode: 'combinational' | 'sequential';
   test: TestDefinition;
   predefinedGates?: LevelGate[];

@@ -7,9 +7,9 @@ const level: Level = {
   name: '8-bit Counter',
   description: 'Build an 8-bit increment counter.\n\nThe output increments by 1 each tick. Starts at 0, wraps around at 255.\n\nHint: Feed the output back through an adder (+1) and delays to create a counter loop.',
   inputs: [],
-  outputs: [{ name: 'Q', bitWidth: 8 }],
+  outputs: [{ name: 'Q' }],
   predefinedGates: [
-    { type: 'output', pos: { x: 24, y: 5 }, label: 'Q', canRemove: false, canMove: false, bitWidth: 8 },
+    { type: 'output-8bit', pos: { x: 24, y: 5 }, label: 'Q', canRemove: false, canMove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', 'nor', '8bit-or', '8bit-nor', '8bit-not', '2bit-adder', 'switch', 'delay', 'rs-latch', '8bit-memory', 'constant', 'splitter', 'joiner'] },
   mode: 'sequential',

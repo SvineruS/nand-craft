@@ -32,12 +32,13 @@ export interface ClipboardGate {
   type: GateType;
   delta: Vec2;
   rotation: Rotation;
-  pinBitWidths: number[];
   pinValues: (number | null)[];
 }
 export interface ClipboardNode {
   delta: Vec2;
-  gateIdx?: number; pinIdx?: number;
+  gateIdx?: number;
+  pinKind?: 'input' | 'output';
+  pinIndex?: number;
 }
 export interface ClipboardWire {
   fromNodeIdx: number;

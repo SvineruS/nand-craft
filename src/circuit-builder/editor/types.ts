@@ -4,7 +4,6 @@ export interface Vec2 { x: number; y: number }
 
 // Branded types for type-safe IDs
 export type GateId = string & { __brand: 'GateId' };
-export type PinId = string & { __brand: 'PinId' };
 export type WireNodeId = string & { __brand: 'WireNodeId' };
 export type WireSegmentId = string & { __brand: 'WireSegmentId' };
 export type NetId = string & { __brand: 'NetId' };
@@ -22,10 +21,21 @@ export function setNextId(value: number): void {
 
 export type Rotation = 0 | 90 | 180 | 270;
 
+export interface PinRef {
+  gateId: GateId;
+  kind: 'input' | 'output';
+  index: number;
+}
+
+/** String key for PinRef comparison and Map keys: "gateId:kind:index" */
+export function pinRefKey(ref: PinRef): string {
+  return `${ref.gateId}:${ref.kind}:${ref.index}`;
+}
+
 export interface WireNode {
   id: WireNodeId;
   pos: Vec2;
-  pinId?: PinId;
+  pin?: PinRef;
 }
 
 export interface WireSegment {

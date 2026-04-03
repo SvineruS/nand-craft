@@ -7,10 +7,10 @@ const level: Level = {
   name: 'AND',
   description: 'Build an AND gate using NAND and NOT gates.\n\nAND outputs 1 only when both inputs are 1.\n\nHint: NAND is the opposite of AND...',
   inputs: [
-    { name: 'A', bitWidth: 1 },
-    { name: 'B', bitWidth: 1 },
+    { name: 'A' },
+    { name: 'B' },
   ],
-  outputs: [{ name: 'Out', bitWidth: 1 }],
+  outputs: [{ name: 'Out' }],
   predefinedGates: [
     { type: 'input', pos: { x: 2, y: 2 }, label: 'A', canRemove: false, canMove: false },
     { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false, canMove: false },

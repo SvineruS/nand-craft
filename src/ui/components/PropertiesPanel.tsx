@@ -1,10 +1,10 @@
 import { useEditorState } from '../editorStore.ts';
-import { getGateDefinition } from '../../circuit-builder/editor/gates.ts';
+import { getGateDefinition, getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { ChangePinCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
-import type { PinId } from '../../circuit-builder/editor/types.ts';
+import type { PinRef } from '../../circuit-builder/editor/types.ts';
+import { isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
 
-const BIT_OPTIONS = [1, 8, 16, 32];
 
 interface PropertiesPanelProps {
   onExecute: (cmd: Command) => void;
@@ -17,17 +17,17 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
   const gateItem = state.selection.find(s => s.type === 'gate');
   if (gateItem?.type === 'gate') {
     const gate = state.circuit.gates.get(gateItem.id);
-    if (gate && (gate.type === 'input' || gate.type === 'output' || gate.type === 'constant')) {
+    if (gate && (isInputGate(gate.type) || isOutputGate(gate.type) || gate.type === 'constant')) {
       const def = getGateDefinition(gate.type);
-      const allPinIds: PinId[] = [...gate.inputPins, ...gate.outputPins];
-      const firstPin = allPinIds.length > 0 ? state.circuit.pins.get(allPinIds[0]) : undefined;
 
       // Value field for input/constant
-      const outPinId = (gate.type === 'input' || gate.type === 'constant')
-        ? gate.outputPins[0]
+      const hasOutput = isInputGate(gate.type) || gate.type === 'constant';
+      const outValue = hasOutput ? gate.outputValues[0] : undefined;
+      const outPinRef: PinRef | undefined = hasOutput
+        ? { gateId: gate.id, kind: 'output', index: 0 }
         : undefined;
-      const outPin = outPinId ? state.circuit.pins.get(outPinId) : undefined;
-      const mask = outPin ? ((1 << outPin.bitWidth) >>> 0) - 1 : 0;
+      const outBitWidth = outPinRef ? getPinBitWidth(gate.type, 'output', 0) : 1;
+      const mask = ((1 << outBitWidth) >>> 0) - 1;
 
       return (
         <div class="props-section" style={{ display: 'block' }}>
@@ -38,48 +38,31 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
               <span class="prop-value">{def.label}</span>
             </div>
 
-            {outPin && outPinId && (
+            {outPinRef && outValue !== undefined && (
               <div class="prop-row">
                 <span class="prop-label">Value</span>
                 <input
                   type="number"
                   class="prop-input prop-input-number"
-                  value={outPin.value ?? 0}
+                  value={outValue ?? 0}
                   min={0}
                   max={mask}
                   onChange={(e) => {
                     let v = parseInt((e.target as HTMLInputElement).value, 10);
                     if (isNaN(v)) v = 0;
                     v = Math.max(0, Math.min(mask, v));
-                    onExecute(new ChangePinCommand(state, [outPinId], { value: v }));
+                    onExecute(new ChangePinCommand(state, [outPinRef], { value: v }));
                   }}
                   onInput={(e) => {
                     let v = parseInt((e.target as HTMLInputElement).value, 10);
                     if (isNaN(v)) return;
                     v = Math.max(0, Math.min(mask, v));
-                    onExecute(new ChangePinCommand(state, [outPinId], { value: v }));
+                    onExecute(new ChangePinCommand(state, [outPinRef], { value: v }));
                   }}
                 />
               </div>
             )}
 
-            {firstPin && (
-              <div class="prop-row">
-                <span class="prop-label">Bits</span>
-                <select
-                  class="prop-select"
-                  value={firstPin.bitWidth}
-                  onChange={(e) => {
-                    const v = parseInt((e.target as HTMLSelectElement).value, 10);
-                    onExecute(new ChangePinCommand(state, allPinIds, { bitWidth: v }));
-                  }}
-                >
-                  {BIT_OPTIONS.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
         </div>
       );
