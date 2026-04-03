@@ -15,7 +15,7 @@ import type { Level } from "./levelTypes.ts";
 import { GRID_SIZE } from "../editor/consts.ts";
 import { getPinPositions } from "../editor/utils/geometry.ts";
 import { Vec2 } from "../editor/utils/vec2.ts";
-import { deserializeCircuit } from '../persistence/serialize.ts';
+import { deserializeCircuit, type SerializedCircuit } from '../persistence/serialize.ts';
 import { LEVEL_MAP_CIRCUIT } from './levelMapData.ts';
 
 /** Map from LevelId to the GateId representing it on the level map. */
@@ -45,7 +45,7 @@ export function buildLevelMapCircuit(
 
 /** Load level map from serialized circuit data. Updates gate statuses from current solve state. */
 function loadSavedLevelMap(
-  json: string,
+  json: SerializedCircuit,
   levels: Level[],
   solvedIds: Set<LevelId>,
 ): { circuit: Circuit; levelGateMap: LevelGateMap } {

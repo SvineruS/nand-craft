@@ -10,7 +10,7 @@ import {
 } from '../editor/types.ts';
 import type { Gate, Pin } from "../editor/gates.ts";
 
-interface SerializedCircuit {
+export interface SerializedCircuit {
   version: 1;
   gates: [string, Omit<Gate, 'id'>][];
   pins: [string, Omit<Pin, 'id' | 'value'>][];
@@ -41,8 +41,12 @@ export function serializeCircuit(circuit: Circuit): string {
   return JSON.stringify(data);
 }
 
-export function deserializeCircuit(json: string): Circuit {
+export function deserializeCircuitFromJson(json: string): Circuit {
   const data: SerializedCircuit = JSON.parse(json);
+  return deserializeCircuit(data);
+}
+
+export function deserializeCircuit(data: SerializedCircuit): Circuit {
   const circuit = new Circuit();
 
   for (const [id, gate] of data.gates) {

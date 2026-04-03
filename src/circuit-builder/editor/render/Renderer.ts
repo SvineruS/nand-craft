@@ -145,6 +145,19 @@ export class Renderer {
 
   // --- Draw methods ---
 
+  private drawTextMultiline(text: string, x: number, y: number): void {
+    const lines = text.split('\n');
+    if (lines.length === 1) {
+      this.ctx.fillText(text, x, y);
+      return;
+    }
+    const lineHeight = 13;
+    const startY = y - (lines.length - 1) * lineHeight / 2;
+    for (let i = 0; i < lines.length; i++) {
+      this.ctx.fillText(lines[i], x, startY + i * lineHeight);
+    }
+  }
+
   private drawGrid(camera: Camera): void {
     const { ctx } = this;
     const { left, top, right, bottom } = cameraBoundingBox(camera, {
@@ -286,7 +299,7 @@ export class Renderer {
       if (gate.label) {
         ctx.fillStyle = gate.labelColor;
         ctx.font = gate.labelFont;
-        ctx.fillText(gate.label, gate.labelPos.x, gate.labelPos.y);
+        this.drawTextMultiline(gate.label, gate.labelPos.x, gate.labelPos.y);
       }
 
       // Value label (input/constant gates)
@@ -450,7 +463,7 @@ export class Renderer {
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(preview.label, preview.labelPos.x, preview.labelPos.y);
+    this.drawTextMultiline(preview.label, preview.labelPos.x, preview.labelPos.y);
 
     for (const pin of preview.pins) {
       ctx.fillStyle = COLORS.pinHighZ;
@@ -497,7 +510,7 @@ export class Renderer {
       ctx.font = 'bold 11px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(gate.label, gate.labelPos.x, gate.labelPos.y);
+      this.drawTextMultiline(gate.label, gate.labelPos.x, gate.labelPos.y);
 
       for (const pin of gate.pins) {
         ctx.fillStyle = COLORS.pinHighZ;

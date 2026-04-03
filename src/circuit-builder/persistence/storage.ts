@@ -1,6 +1,6 @@
 import { Circuit } from '../simulation/circuit.ts';
 import type { LevelId } from '../editor/types.ts';
-import { serializeCircuit, deserializeCircuit } from './serialize.ts';
+import { serializeCircuit, deserializeCircuitFromJson } from './serialize.ts';
 import type { Level } from "../levels/levelTypes.ts";
 
 const PREFIX = 'nand-craft';
@@ -18,7 +18,7 @@ export function loadCircuit(levelId: LevelId): Circuit | null {
   const json = localStorage.getItem(circuitKey(levelId));
   if (!json) return null;
   try {
-    return deserializeCircuit(json);
+    return deserializeCircuitFromJson(json);
   } catch {
     return null;
   }
