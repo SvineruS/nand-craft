@@ -76,8 +76,9 @@ export function useEditorCallbacks() {
 
   const handleStep = useCallback(() => {
     const { tests } = getEditor();
-    tests.step();
-    if (tests.allPassed()) handleLevelComplete();
+    tests.cancelRunAll();
+    const result = tests.step();
+    if (result && tests.allPassed()) handleLevelComplete();
     notifyStateChange();
   }, []);
 

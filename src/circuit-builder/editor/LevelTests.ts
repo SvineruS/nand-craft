@@ -1,6 +1,7 @@
 import type { Editor } from './Editor.ts';
 import type { GateId } from './types.ts';
 import type { Level, TestResult } from '../levels/levelTypes.ts';
+import { isInputGate, isOutputGate } from '../simulation/gateTypes.ts';
 
 export class LevelTests {
   readonly level: Level;
@@ -65,48 +66,46 @@ export class LevelTests {
     };
   }
 
-  /** Run the first case (index 0) with delay reset. */
+  /** Reset tests to initial state (no active case). */
   reset(): void {
     this.cancelRunAll();
-    if (this.caseCount === 0) return;
-    this.caseIndex = 0;
-    this.results = [this.runCase(0, true)];
+    this.caseIndex = -1;
+    this.results = [];
   }
 
-  /** Advance to next case. Wraps around and clears results. */
+  /** Run next test case. Returns null if already finished. */
   step(): TestResult | null {
-    this.cancelRunAll();
     if (this.caseCount === 0) return null;
-    let idx = this.caseIndex + 1;
-    if (idx >= this.caseCount) {
-      idx = 0;
-      this.results = [];
-    }
+
+    // Already ran all cases
+    if (this.caseIndex >= this.caseCount - 1) return null;
+
+    const idx = this.caseIndex + 1;
     this.caseIndex = idx;
-    const result = this.runCase(idx);
+    const result = this.runCase(idx, idx === 0);
     this.results[idx] = result;
     return result;
   }
 
-  /** Run all cases with animated stepping (200ms interval). Calls onStep after each case. */
+  /** Run all cases with animated stepping (200ms interval). Stops on first failure. */
   runAllAnimated(onStep: () => void, onComplete: () => void): void {
     this.cancelRunAll();
     if (this.caseCount === 0) return;
 
-    this.reset();
-    onStep();
-
-    if (this.caseCount <= 1) {
-      if (this.allPassed()) onComplete();
-      return;
-    }
+    // Reset to beginning
+    this.caseIndex = -1;
+    this.results = [];
 
     this.runAllInterval = setInterval(() => {
       const result = this.step();
-      if (!result) { this.cancelRunAll(); return; }
       onStep();
 
-      if (this.caseIndex === this.caseCount - 1 || this.caseIndex === 0) {
+      if (!result || !result.passed) {
+        this.cancelRunAll();
+        return;
+      }
+
+      if (this.caseIndex >= this.caseCount - 1) {
         this.cancelRunAll();
         if (this.allPassed()) onComplete();
       }
@@ -133,13 +132,17 @@ export class LevelTests {
     return this.results.length === this.caseCount && this.results.every(r => r.passed);
   }
 
-
+  /** Whether all cases have been stepped through. */
+  get finished(): boolean {
+    return this.caseCount > 0 && this.caseIndex >= this.caseCount - 1;
+  }
 }
 
 function buildLabelMap(editor: Editor, type: 'input' | 'output'): Map<string, GateId> {
+  const check = type === 'input' ? isInputGate : isOutputGate;
   const map = new Map<string, GateId>();
   for (const [id, gate] of editor.getState().circuit.gates) {
-    if (gate.type === type && gate.label) {
+    if (check(gate.type) && gate.label) {
       map.set(gate.label, id);
     }
   }

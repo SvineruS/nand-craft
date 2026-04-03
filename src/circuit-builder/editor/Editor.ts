@@ -80,7 +80,7 @@ export class Editor {
 
   onCircuitChanged() {
     this.getCircuit().invalidateBuild()
-    this.tests.runCase(0);
+    this.tests.rebuild();
     this.state.renderDirty = true;
   }
 
