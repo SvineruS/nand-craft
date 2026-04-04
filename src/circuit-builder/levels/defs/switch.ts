@@ -19,11 +19,9 @@ const level: Level = {
     { type: 'output', pos: { x: 19, y: 4 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'tristate'] },
-  mode: 'combinational',
   test: {
     name: 'Switch (Mux)',
     description: 'S=0 selects A, S=1 selects B',
-    mode: 'combinational',
     cases: [
       { inputs: { S: 0, A: 0, B: 0 }, expected: { Out: 0 } },
       { inputs: { S: 0, A: 0, B: 1 }, expected: { Out: 0 } },

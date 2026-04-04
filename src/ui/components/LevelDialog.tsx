@@ -18,10 +18,6 @@ export function LevelDialog() {
           <PinList heading="Outputs" pins={level.outputs} />
         </div>
 
-        <div class="level-dialog-mode-badge">
-          {level.mode === 'combinational' ? 'Combinational' : 'Sequential'}
-        </div>
-
         <div class="level-dialog-btn-row">
           <button
             class="level-dialog-start-btn"

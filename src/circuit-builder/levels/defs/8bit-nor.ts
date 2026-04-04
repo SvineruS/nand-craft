@@ -17,11 +17,9 @@ const level: Level = {
     { type: 'output-8bit', pos: { x: 17, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'or', 'nor', 'splitter', 'joiner'] },
-  mode: 'combinational',
   test: {
     name: '8-bit NOR',
     description: 'Bitwise NOR on two 8-bit values',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0b00000000, B: 0b00000000 }, expected: { Out: 0b11111111 } },
       { inputs: { A: 0b11111111, B: 0b00000000 }, expected: { Out: 0b00000000 } },

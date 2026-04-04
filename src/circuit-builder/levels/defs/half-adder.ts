@@ -21,11 +21,9 @@ const level: Level = {
     { type: 'output', pos: { x: 19, y: 5 }, label: 'C', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor'] },
-  mode: 'combinational',
   test: {
     name: 'Half Adder',
     description: 'Add two 1-bit numbers',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0, B: 0 }, expected: { S: 0, C: 0 } },
       { inputs: { A: 0, B: 1 }, expected: { S: 1, C: 0 } },

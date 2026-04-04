@@ -17,11 +17,9 @@ const level: Level = {
     { type: 'output', pos: { x: 17, y: 5 }, label: 'O1', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not'] },
-  mode: 'combinational',
   test: {
     name: '1-bit Decoder',
     description: 'Decode 1 bit to 2 one-hot outputs',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0 }, expected: { O0: 1, O1: 0 } },
       { inputs: { A: 1 }, expected: { O0: 0, O1: 1 } },

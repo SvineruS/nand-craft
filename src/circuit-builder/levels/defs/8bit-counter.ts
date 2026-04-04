@@ -12,17 +12,15 @@ const level: Level = {
     { type: 'output-8bit', pos: { x: 29, y: 5 }, label: 'Q', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', 'nor', '8bit-or', '8bit-nor', '8bit-not', '2bit-adder', 'switch', 'delay', 'rs-latch', '8bit-memory', 'constant', 'splitter', 'joiner'] },
-  mode: 'sequential',
   test: {
     name: '8-bit Counter',
     description: 'Counts up from 0 each tick',
-    mode: 'sequential',
-    steps: [
-      { type: 'read', pin: 'Q', expected: 1 },
-      { type: 'read', pin: 'Q', expected: 2 },
-      { type: 'read', pin: 'Q', expected: 3 },
-      { type: 'read', pin: 'Q', expected: 4 },
-      { type: 'read', pin: 'Q', expected: 5 },
+    cases: [
+      { inputs: {}, expected: { Q: 1 } },
+      { inputs: {}, expected: { Q: 2 } },
+      { inputs: {}, expected: { Q: 3 } },
+      { inputs: {}, expected: { Q: 4 } },
+      { inputs: {}, expected: { Q: 5 } },
     ],
   },
   prerequisites: [lid('8bit-memory'), lid('2bit-adder'), lid('always-on')],

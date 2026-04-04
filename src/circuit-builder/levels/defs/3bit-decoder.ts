@@ -35,11 +35,9 @@ const level: Level = {
     { type: 'output', pos: { x: 27, y: 22 }, label: 'O7', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', '3bit-and'] },
-  mode: 'combinational',
   test: {
     name: '3-bit Decoder',
     description: 'Decode 3 bits to 8 one-hot outputs',
-    mode: 'combinational',
     cases: (() => {
       const cases = [];
       for (let i = 0; i < 8; i++) {

@@ -17,11 +17,9 @@ const level: Level = {
     { type: 'output', pos: { x: 17, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'or'] },
-  mode: 'combinational',
   test: {
     name: 'NOR gate',
     description: 'Output 1 only when both inputs are 0',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0, B: 0 }, expected: { Out: 1 } },
       { inputs: { A: 0, B: 1 }, expected: { Out: 0 } },

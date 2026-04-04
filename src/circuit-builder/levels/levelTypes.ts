@@ -6,29 +6,13 @@ import type { GateType } from "../simulation/gateTypes.ts";
 export interface TestDefinition {
   name: string;
   description: string;
-  mode: 'combinational' | 'sequential';
   cases?: TestCase[];
-  steps?: TestSequentialStep[];
 }
 
 // Testing types
 export interface TestCase {
   inputs: Record<string, number>;
   expected: Record<string, number>;
-}
-
-export type TestSequentialStep = TestWrite | TestRead | (TestWrite | TestRead)[];
-
-export interface TestWrite {
-  type: 'write';
-  pin: string;
-  value: number;
-}
-
-export interface TestRead {
-  type: 'read';
-  pin: string;
-  expected: number;
 }
 
 export interface TestResult {
@@ -58,7 +42,6 @@ export interface Level {
   description: string;
   inputs: { name: string }[];
   outputs: { name: string }[];
-  mode: 'combinational' | 'sequential';
   test: TestDefinition;
   predefinedGates?: LevelGate[];
   gateConstraints?: GateConstraints;

@@ -13,11 +13,9 @@ const level: Level = {
     { type: 'output-8bit', pos: { x: 35, y: 5 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', '8bit-not', 'constant', 'splitter', 'joiner'] },
-  mode: 'combinational',
   test: {
     name: '8-bit Negate',
     description: "Two's complement negation",
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0 }, expected: { Out: 0 } },
       { inputs: { A: 1 }, expected: { Out: 255 } },

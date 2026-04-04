@@ -12,7 +12,7 @@ export function runTests(
 ): TestResult[] {
   const results: TestResult[] = [];
 
-  if (test.mode === 'combinational' && test.cases) {
+  if (test.cases) {
     for (let i = 0; i < test.cases.length; i++) {
       const testCase = test.cases[i];
 
@@ -60,75 +60,6 @@ export function runTests(
           ? `Inputs(${inputDesc}) — all outputs correct`
           : `Inputs(${inputDesc}) — ${mismatches.join('; ')}`,
       });
-    }
-  }
-
-  if (test.mode === 'sequential' && test.steps) {
-    const MAX_TICKS = 1000;
-    const currentInputs = new Map<GateId, number>();
-    let tickCount = 0;
-    let stepIndex = 0;
-
-    for (const step of test.steps) {
-      const stepsToProcess = Array.isArray(step) ? step : [step];
-
-      // Separate writes and reads
-      const writes = stepsToProcess.filter(
-        (s): s is Extract<typeof s, { type: 'write' }> => s.type === 'write'
-      );
-      const reads = stepsToProcess.filter(
-        (s): s is Extract<typeof s, { type: 'read' }> => s.type === 'read'
-      );
-
-      // Apply all writes
-      for (const w of writes) {
-        const idx = inputNames.indexOf(w.pin);
-        if (idx !== -1) {
-          currentInputs.set(inputGateIds[idx], w.value);
-        }
-      }
-
-      // Tick once after writes
-      if (writes.length > 0) {
-        circuit.tick(currentInputs);
-        tickCount++;
-      }
-
-      // Process reads: tick until output matches or max ticks
-      for (const r of reads) {
-        const outputIdx = outputNames.indexOf(r.pin);
-        if (outputIdx === -1) {
-          results.push({
-            passed: false,
-            caseIndex: stepIndex,
-            message: `Unknown output pin: ${r.pin}`,
-          });
-          stepIndex++;
-          continue;
-        }
-
-        let matched = false;
-        let actual: number | null = null;
-
-        // Check current outputs first, then tick up to MAX_TICKS
-        for (let t = 0; t < MAX_TICKS && !matched; t++) {
-          circuit.tick(currentInputs);
-          tickCount++;
-          actual = circuit.tickResult.outputs.get(outputGateIds[outputIdx]) ?? null;
-          if (actual === r.expected) {
-            matched = true;
-          }
-        }
-
-        results.push({
-          passed: matched,
-          caseIndex: stepIndex,
-          message: matched
-            ? `${r.pin} = ${r.expected} (after ${tickCount} ticks)`
-            : `${r.pin}: expected ${r.expected}, got ${actual} (after ${tickCount} ticks)`,
-        });
-        stepIndex++;
-      }
     }
   }
 

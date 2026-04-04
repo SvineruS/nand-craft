@@ -17,11 +17,9 @@ const level: Level = {
     { type: 'output', pos: { x: 19, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or'] },
-  mode: 'combinational',
   test: {
     name: 'XOR gate',
     description: 'Output 1 when inputs differ',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0, B: 0 }, expected: { Out: 0 } },
       { inputs: { A: 0, B: 1 }, expected: { Out: 1 } },

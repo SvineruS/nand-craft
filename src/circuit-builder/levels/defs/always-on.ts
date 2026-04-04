@@ -12,11 +12,9 @@ const level: Level = {
     { type: 'output', pos: { x: 13, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not'] },
-  mode: 'combinational',
   test: {
     name: 'Always On',
     description: 'Output must always be 1',
-    mode: 'combinational',
     cases: [
       { inputs: {}, expected: { Out: 1 } },
     ],

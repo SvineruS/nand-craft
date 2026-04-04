@@ -17,11 +17,9 @@ const level: Level = {
     { type: 'output', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand'] },
-  mode: 'combinational',
   test: {
     name: 'NAND gate',
     description: 'Output 0 only when both inputs are 1',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0, B: 0 }, expected: { Out: 1 } },
       { inputs: { A: 0, B: 1 }, expected: { Out: 1 } },

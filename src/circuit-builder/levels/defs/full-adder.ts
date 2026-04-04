@@ -23,11 +23,9 @@ const level: Level = {
     { type: 'output', pos: { x: 23, y: 6 }, label: 'Cout', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', '2bit-adder'] },
-  mode: 'combinational',
   test: {
     name: 'Full Adder',
     description: 'Add three 1-bit numbers',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0, B: 0, Cin: 0 }, expected: { S: 0, Cout: 0 } },
       { inputs: { A: 0, B: 0, Cin: 1 }, expected: { S: 1, Cout: 0 } },

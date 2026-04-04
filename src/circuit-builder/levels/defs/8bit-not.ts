@@ -13,11 +13,9 @@ const level: Level = {
     { type: 'output-8bit', pos: { x: 17, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'splitter', 'joiner'] },
-  mode: 'combinational',
   test: {
     name: '8-bit NOT',
     description: 'Invert all 8 bits',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0b00000000 }, expected: { Out: 0b11111111 } },
       { inputs: { A: 0b11111111 }, expected: { Out: 0b00000000 } },

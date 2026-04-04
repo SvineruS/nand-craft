@@ -13,11 +13,9 @@ const level: Level = {
     { type: 'output', pos: { x: 17, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand'] },
-  mode: 'combinational',
   test: {
     name: 'NOT gate',
     description: 'Invert the input signal',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0 }, expected: { Out: 1 } },
       { inputs: { A: 1 }, expected: { Out: 0 } },

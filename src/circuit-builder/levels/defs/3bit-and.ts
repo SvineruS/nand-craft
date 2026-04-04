@@ -19,11 +19,9 @@ const level: Level = {
     { type: 'output', pos: { x: 19, y: 4 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and'] },
-  mode: 'combinational',
   test: {
     name: '3-bit AND',
     description: 'Output 1 only when all inputs are 1',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0, B: 0, C: 0 }, expected: { Out: 0 } },
       { inputs: { A: 0, B: 0, C: 1 }, expected: { Out: 0 } },

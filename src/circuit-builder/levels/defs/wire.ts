@@ -13,11 +13,9 @@ const level: Level = {
     { type: 'output', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: [] },
-  mode: 'combinational',
   test: {
     name: 'Wire',
     description: 'Output must equal input',
-    mode: 'combinational',
     cases: [
       { inputs: { A: 0 }, expected: { Out: 0 } },
       { inputs: { A: 1 }, expected: { Out: 1 } },

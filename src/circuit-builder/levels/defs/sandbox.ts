@@ -8,11 +8,9 @@ const level: Level = {
   description: 'Free-form playground. All gates are available, no tests to pass.',
   inputs: [],
   outputs: [],
-  mode: 'combinational',
   test: {
     name: 'Sandbox',
     description: 'No tests',
-    mode: 'combinational',
   },
   prerequisites: [],
   mapPosition: { x: 0, y: 11 },
