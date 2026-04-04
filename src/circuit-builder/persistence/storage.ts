@@ -26,12 +26,14 @@ export function loadCircuit(levelId: LevelId): Circuit | null {
 
 export function getSolvedLevelIds(): Set<LevelId> {
   const json = localStorage.getItem(SOLVED_KEY);
-  if (!json) return new Set();
+  const set = new Set<LevelId>(['sandbox' as LevelId]);
+  if (!json) return set;
   try {
     const arr: string[] = JSON.parse(json);
-    return new Set(arr as LevelId[]);
+    for (const id of arr) set.add(id as LevelId);
+    return set;
   } catch {
-    return new Set();
+    return set;
   }
 }
 
