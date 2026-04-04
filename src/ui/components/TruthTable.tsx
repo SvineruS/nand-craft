@@ -2,7 +2,11 @@ import { stateVersion } from '../editorStore.ts';
 import { getEditor } from '../../circuit-builder/editorInstance.ts';
 
 function rowBg(passed?: boolean, isCurrent?: boolean): string {
-  if (isCurrent) return 'var(--current-bg)';
+  if (isCurrent) {
+    if (passed === true) return 'rgba(34,197,94,0.18)';
+    if (passed === false) return 'rgba(239,68,68,0.18)';
+    return 'var(--current-bg)';
+  }
   if (passed === undefined) return 'transparent';
   return passed ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
 }

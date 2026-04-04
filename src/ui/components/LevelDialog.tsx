@@ -13,11 +13,6 @@ export function LevelDialog() {
         <h2 class="level-dialog-title">{level.name}</h2>
         <p class="level-dialog-desc">{level.description}</p>
 
-        <div class="level-dialog-io-section">
-          <PinList heading="Inputs" pins={level.inputs} />
-          <PinList heading="Outputs" pins={level.outputs} />
-        </div>
-
         <div class="level-dialog-btn-row">
           <button
             class="level-dialog-start-btn"
@@ -29,19 +24,6 @@ export function LevelDialog() {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function PinList({ heading, pins }: { heading: string; pins: { name: string }[] }) {
-  return (
-    <div class="level-dialog-pin-list">
-      <div class="level-dialog-pin-heading">{heading}</div>
-      {pins.map((pin) => (
-        <div class="level-dialog-pin-item" key={pin.name}>
-          {pin.name}
-        </div>
-      ))}
     </div>
   );
 }

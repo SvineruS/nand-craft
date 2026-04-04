@@ -94,7 +94,7 @@ export class LevelTests {
     return result;
   }
 
-  /** Run all cases with animated stepping (200ms interval). Stops on first failure. */
+  /** Run all cases with animated stepping. Stops on first failure. */
   runAllAnimated(onStep: () => void, onComplete: () => void): void {
     this.cancelRunAll();
     if (this.caseCount === 0) return;
@@ -102,21 +102,22 @@ export class LevelTests {
     // Reset to beginning
     this.caseIndex = -1;
     this.results = [];
+    let stopping = false;
 
     this.runAllInterval = setInterval(() => {
-      const result = this.step();
-      onStep();
-
-      if (!result || !result.passed) {
+      if (stopping) {
         this.cancelRunAll();
+        if (this.allPassed()) onComplete();
         return;
       }
 
-      if (this.caseIndex >= this.caseCount - 1) {
-        this.cancelRunAll();
-        if (this.allPassed()) onComplete();
+      const result = this.step();
+      onStep();
+
+      if (!result || !result.passed || this.caseIndex >= this.caseCount - 1) {
+        stopping = true;
       }
-    }, 200);
+    }, 120);
   }
 
   /** Rebuild label→gateId maps after circuit reset. */

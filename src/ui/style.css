@@ -204,8 +204,8 @@ body {
 /* ── Test Panel ── */
 
 .test-panel {
-  width: 200px;
-  min-width: 200px;
+  width: fit-content;
+  min-width: 160px;
   background: var(--bg);
   border-right: 1px solid var(--border);
   display: flex;
