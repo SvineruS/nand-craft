@@ -1,6 +1,8 @@
 import type { LevelId } from '../editor/types.ts';
 import type { Level } from "./levelTypes.ts";
 
+import wire from './defs/wire.ts';
+import nand from './defs/nand.ts';
 import not from './defs/not.ts';
 import and from './defs/and.ts';
 import or from './defs/or.ts';
@@ -26,6 +28,8 @@ import eightbitCounter from './defs/8bit-counter.ts';
 import eightbitCounterReset from './defs/8bit-counter-reset.ts';
 
 export const LEVELS: Level[] = [
+  wire,
+  nand,
   not,
   and,
   or,

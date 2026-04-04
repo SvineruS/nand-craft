@@ -3,6 +3,7 @@ import type { EditorState } from '../editor/EditorState.ts';
 import { createEditorState } from '../editor/EditorState.ts';
 import type { LevelId } from '../editor/types.ts';
 import { gateCenter } from '../editor/utils/geometry.ts';
+import type { Circuit } from '../simulation/circuit.ts';
 import type { LevelGateMap } from './levelMap.ts';
 import { buildLevelMapCircuit, gateIdToLevelId } from './levelMap.ts';
 import type { Level } from './levelTypes.ts';
@@ -50,12 +51,30 @@ export function buildLevelMap(): void {
   state.circuit = circuit;
   state.circuitDirty = false;
 
-  const points: Vec2[] = [...circuit.gates.values()].map(g => gateCenter(g));
-  const center = Vec2.avg(points);
-  state.camera.pos = center;
+  state.camera.pos = findLeftmostAvailable(circuit);
 
   levelMapState = state;
   levelGateMap = levelGateMap_;
+}
+
+/** Find center of the leftmost available (unlocked, unsolved) level gate. Falls back to center of all gates. */
+function findLeftmostAvailable(circuit: Circuit): Vec2 {
+  let best: { pos: Vec2; x: number } | null = null;
+  const all: Vec2[] = [];
+
+  for (const gate of circuit.gates.values()) {
+    if (gate.type !== 'level') continue;
+    const center = gateCenter(gate);
+    all.push(center);
+    if (gate.status === 'available') {
+      if (!best || center.x < best.x) {
+        best = { pos: center, x: center.x };
+      }
+    }
+  }
+
+  if (best) return best.pos;
+  return all.length > 0 ? Vec2.avg(all) : { x: 0, y: 0 };
 }
 
 export function getLevelMapState(): EditorState | null {

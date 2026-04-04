@@ -38,8 +38,10 @@ export function buildLevelMapCircuit(
   solvedIds: Set<LevelId>,
   editable = false,
 ): { circuit: Circuit; levelGateMap: LevelGateMap } {
-  if (LEVEL_MAP_CIRCUIT && !editable) {
-    return loadSavedLevelMap(LEVEL_MAP_CIRCUIT, levels, solvedIds);
+  if (LEVEL_MAP_CIRCUIT) {
+    const result = loadSavedLevelMap(LEVEL_MAP_CIRCUIT, levels, solvedIds, editable);
+    addMissingLevels(result.circuit, result.levelGateMap, levels, solvedIds, editable);
+    return result;
   }
   return generateLevelMapCircuit(levels, solvedIds, editable);
 }
@@ -49,6 +51,7 @@ function loadSavedLevelMap(
   json: SerializedCircuit,
   levels: Level[],
   solvedIds: Set<LevelId>,
+  editable: boolean,
 ): { circuit: Circuit; levelGateMap: LevelGateMap } {
   const circuit = deserializeCircuit(json);
   const levelGateMap: LevelGateMap = new Map();
@@ -65,12 +68,52 @@ function loadSavedLevelMap(
     if (!level) continue;
     const status = levelStatus(level, solvedIds);
     gate.status = status;
+    gate.canMove = editable;
     levelGateMap.set(level.id, gate.id);
     outputPinsMap.set(gate.id, status === 'solved' ? 1 : 0);
   }
 
   circuit.tick(outputPinsMap);
   return { circuit, levelGateMap };
+}
+
+/** Add level gates for any levels not found in the saved map. */
+function addMissingLevels(
+  circuit: Circuit,
+  levelGateMap: LevelGateMap,
+  levels: Level[],
+  solvedIds: Set<LevelId>,
+  editable: boolean,
+): void {
+  // Find max x position of existing gates to place new ones to the right
+  let maxX = 0;
+  for (const gate of circuit.gates.values()) {
+    if (gate.type === 'level') maxX = Math.max(maxX, gate.pos.x);
+  }
+
+  for (const level of levels) {
+    if (levelGateMap.has(level.id)) continue;
+
+    const gateId = generateId('gate') as GateId;
+    const status = levelStatus(level, solvedIds);
+    maxX += 160;
+
+    const { inputs, outputs } = getPinCounts('level');
+    const gate: Gate = {
+      id: gateId,
+      type: 'level',
+      pos: { x: maxX, y: 0 },
+      rotation: 0,
+      inputValues: Array(inputs).fill(null),
+      outputValues: Array(outputs).fill(null),
+      label: level.name,
+      status,
+      canRemove: false,
+      canMove: editable,
+    };
+    circuit.gates.set(gateId, gate);
+    levelGateMap.set(level.id, gateId);
+  }
 }
 
 /** Generate level map circuit from scratch using level definitions and prerequisites. */
