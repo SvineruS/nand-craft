@@ -18,7 +18,9 @@ import muxSvg from './svg/mux.svg?raw';
 import decoder2Svg from './svg/decoder-2.svg?raw';
 import decoder8Svg from './svg/decoder-8.svg?raw';
 import inputSvg from './svg/input.svg?raw';
+import input8bitSvg from './svg/input-8bit.svg?raw';
 import outputSvg from './svg/output.svg?raw';
+import output8bitSvg from './svg/output-8bit.svg?raw';
 
 function extractPath(svg: string): string {
   const match = svg.match(/\bd="([^"]*)"/);
@@ -43,4 +45,6 @@ export const MUX = extractPath(muxSvg);
 export const DECODER_2 = extractPath(decoder2Svg);
 export const DECODER_8 = extractPath(decoder8Svg);
 export const INPUT = extractPath(inputSvg);
+export const INPUT_8BIT = extractPath(input8bitSvg);
 export const OUTPUT = extractPath(outputSvg);
+export const OUTPUT_8BIT = extractPath(output8bitSvg);

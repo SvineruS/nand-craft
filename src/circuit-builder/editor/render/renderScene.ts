@@ -6,6 +6,7 @@ export interface RenderWireSegment {
   to: Vec2;
   bodyColor: string;
   thickness: number;
+  multibit: boolean;
   signalColor: string | null;
   valueLabels: { text: string; color: string; pos: Vec2 }[];
   nameLabel: { text: string; color: string; pos: Vec2 } | null;

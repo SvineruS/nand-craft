@@ -143,6 +143,23 @@ export class Renderer {
     ctx.lineTo(b.x, b.y);
   }
 
+  /** Trace a routed path offset perpendicular to each segment direction. */
+  private traceOffsetPath(ctx: CanvasRenderingContext2D, a: Vec2, b: Vec2, offset: number): void {
+    const c = routeCorner(a, b);
+    if (c) {
+      const o1 = perpendicularOffset(a, c, offset);
+      const o2 = perpendicularOffset(c, b, offset);
+      ctx.moveTo(a.x + o1.x, a.y + o1.y);
+      ctx.lineTo(c.x + o1.x, c.y + o1.y);
+      ctx.lineTo(c.x + o2.x, c.y + o2.y);
+      ctx.lineTo(b.x + o2.x, b.y + o2.y);
+    } else {
+      const o = perpendicularOffset(a, b, offset);
+      ctx.moveTo(a.x + o.x, a.y + o.y);
+      ctx.lineTo(b.x + o.x, b.y + o.y);
+    }
+  }
+
   // --- Draw methods ---
 
   private drawTextMultiline(text: string, x: number, y: number): void {
@@ -191,6 +208,21 @@ export class Renderer {
       ctx.beginPath();
       this.traceRoutedPath(ctx, seg.from, seg.to);
       ctx.stroke();
+    }
+
+    // Pass 1b: multibit parallel lines
+    for (const seg of segments) {
+      if (!seg.multibit) continue;
+      ctx.strokeStyle = seg.bodyColor;
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.setLineDash([]);
+      for (const offset of [-5, 5]) {
+        ctx.beginPath();
+        this.traceOffsetPath(ctx, seg.from, seg.to, offset);
+        ctx.stroke();
+      }
     }
 
     // Pass 2: signal overlay (animated dashes)
@@ -545,4 +577,12 @@ export class Renderer {
 
     ctx.globalAlpha = 1;
   }
+}
+
+function perpendicularOffset(a: Vec2, b: Vec2, offset: number): Vec2 {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len === 0) return { x: 0, y: 0 };
+  return { x: (-dy / len) * offset, y: (dx / len) * offset };
 }

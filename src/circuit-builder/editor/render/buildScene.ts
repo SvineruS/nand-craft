@@ -40,7 +40,7 @@ function buildWireSegments(state: EditorState): RenderWireSegment[] {
     const to = toNode.pos;
 
     const bitWidth = nodeBitWidths.get(segment.from) ?? nodeBitWidths.get(segment.to) ?? 1;
-    const thickness = bitWidth > 1 ? 8 : 6;
+    const thickness = 6;
     const bodyColor = segment.color ?? COLORS.wireDefault;
 
     // Signal
@@ -69,7 +69,7 @@ function buildWireSegments(state: EditorState): RenderWireSegment[] {
       nameLabel = { text: segment.label, color: segment.color ?? '#9ca3af', pos: mid };
     }
 
-    result.push({ from, to, bodyColor, thickness, signalColor: sc, valueLabels, nameLabel });
+    result.push({ from, to, bodyColor, thickness, multibit: bitWidth > 1, signalColor: sc, valueLabels, nameLabel });
   }
 
   return result;

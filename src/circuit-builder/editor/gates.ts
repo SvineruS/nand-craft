@@ -295,7 +295,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     pins: [
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
     ],
-    svg: SVG.INPUT,
+    svg: SVG.INPUT_8BIT,
   },
   'input-16bit': {
     label: 'IN16', description: '16-bit level input', width: 2, height: 2,
@@ -303,7 +303,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     pins: [
       { kind: 'output', x: 2, y: 1, bitWidth: 16 },
     ],
-    svg: SVG.INPUT,
+    svg: SVG.INPUT_8BIT,
   },
   output: {
     label: 'OUT', description: 'Level output', width: 2, height: 2,
@@ -319,7 +319,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     pins: [
       { kind: 'input', x: 0, y: 1, bitWidth: 8 },
     ],
-    svg: SVG.OUTPUT,
+    svg: SVG.OUTPUT_8BIT,
   },
   'output-16bit': {
     label: 'OUT16', description: '16-bit level output', width: 2, height: 2,
@@ -327,7 +327,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     pins: [
       { kind: 'input', x: 0, y: 1, bitWidth: 16 },
     ],
-    svg: SVG.OUTPUT,
+    svg: SVG.OUTPUT_8BIT,
   },
   splitter: {
     label: 'SPL', description: '8-bit bus splitter', width: 2, height: 7, placeable: true,

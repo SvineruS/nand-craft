@@ -26,8 +26,10 @@ import rsLatch from './defs/rs-latch.ts';
 import eightbitMemory from './defs/8bit-memory.ts';
 import eightbitCounter from './defs/8bit-counter.ts';
 import eightbitCounterReset from './defs/8bit-counter-reset.ts';
+import sandbox from './defs/sandbox.ts';
 
 export const LEVELS: Level[] = [
+  sandbox,
   wire,
   nand,
   not,
