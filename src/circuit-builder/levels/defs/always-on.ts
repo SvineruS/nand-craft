@@ -9,7 +9,7 @@ const level: Level = {
   inputs: [],
   outputs: [{ name: 'Out' }],
   predefinedGates: [
-    { type: 'output', pos: { x: 8, y: 3 }, label: 'Out', canRemove: false, canMove: false },
+    { type: 'output', pos: { x: 13, y: 3 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not'] },
   mode: 'combinational',

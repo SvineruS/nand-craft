@@ -12,9 +12,9 @@ const level: Level = {
   ],
   outputs: [{ name: 'Q' }],
   predefinedGates: [
-    { type: 'input-8bit', pos: { x: 2, y: 3 }, label: 'D', canRemove: false, canMove: false },
-    { type: 'input', pos: { x: 2, y: 7 }, label: 'W', canRemove: false, canMove: false },
-    { type: 'output-8bit', pos: { x: 24, y: 5 }, label: 'Q', canRemove: false, canMove: false },
+    { type: 'input-8bit', pos: { x: 2, y: 3 }, label: 'D', canRemove: false },
+    { type: 'input', pos: { x: 2, y: 7 }, label: 'W', canRemove: false },
+    { type: 'output-8bit', pos: { x: 29, y: 5 }, label: 'Q', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'nor', 'switch', 'delay', 'rs-latch', 'splitter', 'joiner'] },
   mode: 'sequential',
