@@ -4,7 +4,7 @@ import { getGateDefinition } from '../gates.ts';
 import { cameraBoundingBox } from '../utils/geometry.ts';
 import { routeCorner, Vec2 } from '../utils/vec2.ts';
 import { screenToWorld as stw, worldToScreen as wts } from '../../../engine/camera.ts';
-import { COLORS, GRID_DOT_RADIUS, GRID_SIZE, WIRE_DASH_SIZE } from "../consts.ts";
+import { COLORS, GRID_DOT_RADIUS, GRID_SIZE, MAJOR_GRID_DOT_RADIUS, MAJOR_GRID_EVERY, WIRE_DASH_SIZE } from "../consts.ts";
 import type {
   RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin,
   RenderErrorSegment, RenderSelectionItem, RenderDropPreview, RenderPastePreview,
@@ -186,10 +186,12 @@ export class Renderer {
     const startY = Math.floor(top / GRID_SIZE) * GRID_SIZE;
 
     ctx.fillStyle = COLORS.gridDot;
+    const majorStep = GRID_SIZE * MAJOR_GRID_EVERY;
     for (let gx = startX; gx <= right; gx += GRID_SIZE) {
       for (let gy = startY; gy <= bottom; gy += GRID_SIZE) {
+        const isMajor = gx % majorStep === 0 || gy % majorStep === 0;
         ctx.beginPath();
-        ctx.arc(gx, gy, GRID_DOT_RADIUS, 0, Math.PI * 2);
+        ctx.arc(gx, gy, isMajor ? MAJOR_GRID_DOT_RADIUS : GRID_DOT_RADIUS, 0, Math.PI * 2);
         ctx.fill();
       }
     }

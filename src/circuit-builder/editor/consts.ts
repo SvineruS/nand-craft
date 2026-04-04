@@ -33,6 +33,8 @@ export const COLORS = {
 
 export const GRID_SIZE = 20;
 export const GRID_DOT_RADIUS = 1;
+export const MAJOR_GRID_EVERY = 4;
+export const MAJOR_GRID_DOT_RADIUS = 1.5;
 export const WIRE_DASH_SIZE = 3;
 export const WIRE_LABEL_SPACING = 80;
 export const WIRE_LABEL_MIN_LENGTH = 30;
