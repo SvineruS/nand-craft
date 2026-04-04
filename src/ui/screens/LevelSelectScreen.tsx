@@ -11,6 +11,7 @@ import {
   loadLevel,
 } from '../../circuit-builder/levels/levelManager.ts';
 import { LEVELS } from '../../circuit-builder/levels/registry.ts';
+import { getSolvedLevelIds, markLevelSolved } from '../../circuit-builder/persistence/storage.ts';
 
 export function LevelSelectScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,6 +73,12 @@ export function LevelSelectScreen() {
         <button class="toolbar-btn" onClick={() => { viewMode.value = 'mainMenu'; notifyStateChange(); }}>Menu</button>
         <button class="toolbar-btn" style={{ fontWeight: 'bold' }}>Levels</button>
         <div class="toolbar-spacer" />
+        <button class="toolbar-btn" onClick={() => {
+          for (const level of LEVELS) markLevelSolved(level.id);
+          solvedLevelIds.value = getSolvedLevelIds();
+          buildLevelMap();
+          notifyStateChange();
+        }}>Unlock All</button>
         <button class="toolbar-btn" onClick={() => { viewMode.value = 'levelMapEditor'; notifyStateChange(); }}>Edit Map</button>
       </div>
       <div class="main-row">

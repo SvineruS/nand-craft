@@ -8,9 +8,9 @@ export function MainMenuScreen() {
         <button class="menu-btn" onClick={() => { viewMode.value = 'levelSelect'; }}>
           Level Select
         </button>
-        <button class="menu-btn" onClick={() => { viewMode.value = 'factory'; }}>
-          Factory
-        </button>
+        {/*<button class="menu-btn" onClick={() => { viewMode.value = 'factory'; }}>*/}
+        {/*  Factory*/}
+        {/*</button>*/}
         <button class="menu-btn" onClick={() => { viewMode.value = 'settings'; }}>
           Settings
         </button>
