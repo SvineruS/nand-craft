@@ -677,12 +677,20 @@ export class InputHandler {
         const fromNode = this.ensureWireNode(state, wireStart);
         if (fromNode) this.addSegmentIfNew(state, fromNode, midId, wireColor);
       } else {
-        // Endpoint → empty space: create free node and connect
         const snapPos = Vec2.snap(world);
-        const nodeCmd = new AddWireNodeCommand(state, snapPos);
-        this.getHistory().execute(nodeCmd);
-        const fromNode = this.ensureWireNode(state, wireStart);
-        if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
+        const snappedTarget = hitTestEndpoint(snapPos, state);
+        if (snappedTarget) {
+          // Snapped position lands on a pin/node — connect to it
+          const fromNode = this.ensureWireNode(state, wireStart);
+          const toNode = this.ensureWireNode(state, snappedTarget);
+          if (fromNode && toNode) this.addSegmentIfNew(state, fromNode, toNode, wireColor);
+        } else {
+          // Empty space: create free node and connect
+          const nodeCmd = new AddWireNodeCommand(state, snapPos);
+          this.getHistory().execute(nodeCmd);
+          const fromNode = this.ensureWireNode(state, wireStart);
+          if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
+        }
       }
     }
 
