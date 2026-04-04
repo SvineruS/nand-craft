@@ -78,7 +78,13 @@ export function useEditorCallbacks() {
     const { tests } = getEditor();
     tests.cancelRunAll();
     const result = tests.step();
-    if (result && tests.allPassed()) handleLevelComplete();
+    if (result) {
+      if (tests.allPassed()) handleLevelComplete();
+    } else if (tests.finished) {
+      // Last case already run — restart if not all passed
+      tests.reset();
+      tests.step();
+    }
     notifyStateChange();
   }, []);
 
