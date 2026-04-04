@@ -16,7 +16,7 @@ const level: Level = {
     { type: 'input-8bit', pos: { x: 2, y: 5 }, label: 'B', canRemove: false, canMove: false },
     { type: 'output-8bit', pos: { x: 12, y: 3 }, label: 'Out', canRemove: false, canMove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'or'] },
+  gateConstraints: { allow: ['nand', 'not', 'or', 'splitter', 'joiner'] },
   mode: 'combinational',
   test: {
     name: '8-bit OR',
