@@ -14,7 +14,6 @@ import {
   AddGateCommand,
   AddWireNodeCommand,
   AddWireSegmentCommand,
-  ChangePinCommand,
   ChangeWireCommand,
   CommandHistory,
   MoveGatesCommand,
@@ -367,11 +366,11 @@ export class InputHandler {
       if (gate.type === 'constant') {
         const bitWidth = getPinBitWidth(gate.type, 'output', 0);
         const mask = ((1 << bitWidth) >>> 0) - 1;
-        const currentValue = gate.outputValues[0];
-        let newValue = currentValue === null ? 1 : ((currentValue + 1) & mask) >>> 0;
+        const currentValue = (gate.state as number) ?? 0;
+        let newValue = ((currentValue + 1) & mask) >>> 0;
         if (newValue > mask) newValue = 0;
-        const pinRef: PinRef = { gateId: gateHit, kind: 'output', index: 0 };
-        this.getHistory().execute(new ChangePinCommand(state, [pinRef], { value: newValue }));
+        gate.state = newValue;
+        state.circuitDirty = true;
         return;
       }
     }
