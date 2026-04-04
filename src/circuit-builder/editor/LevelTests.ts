@@ -18,20 +18,17 @@ export class LevelTests {
     this.level = level;
     this.inputMap = buildLabelMap(editor, 'input');
     this.outputMap = buildLabelMap(editor, 'output');
+    this.applyInputs(0);
   }
 
   get caseCount(): number {
     return this.level.test.cases?.length ?? 0;
   }
 
-  /** Apply a test case by index. Returns the result. */
-  runCase(index: number, resetDelay = false): TestResult {
-    const cases = this.level.test.cases;
-    if (!cases?.[index]) {
-      return { passed: false, caseIndex: index, message: 'Case not found' };
-    }
-
-    const testCase = cases[index];
+  /** Apply inputs from a test case without evaluating outputs. */
+  applyInputs(index: number, resetDelay = true): void {
+    const testCase = this.level.test.cases?.[index];
+    if (!testCase) return;
 
     const inputs = new Map<GateId, number>();
     for (const [name, gateId] of this.inputMap) {
@@ -39,8 +36,17 @@ export class LevelTests {
         inputs.set(gateId, testCase.inputs[name]);
       }
     }
-
     this.editor.applyInputs(inputs, resetDelay);
+  }
+
+  /** Apply a test case by index and evaluate outputs. Returns the result. */
+  runCase(index: number, resetDelay = false): TestResult {
+    const testCase = this.level.test.cases?.[index];
+    if (!testCase) {
+      return { passed: false, caseIndex: index, message: 'Case not found' };
+    }
+
+    this.applyInputs(index, resetDelay);
 
     const actuals: Record<string, number | null> = {};
     for (const [name, gateId] of this.outputMap) {
@@ -71,6 +77,7 @@ export class LevelTests {
     this.cancelRunAll();
     this.caseIndex = -1;
     this.results = [];
+    this.applyInputs(0);
   }
 
   /** Run next test case. Returns null if already finished. */
@@ -114,11 +121,9 @@ export class LevelTests {
 
   /** Rebuild label→gateId maps after circuit reset. */
   rebuild(): void {
-    this.cancelRunAll();
     this.inputMap = buildLabelMap(this.editor, 'input');
     this.outputMap = buildLabelMap(this.editor, 'output');
-    this.caseIndex = -1;
-    this.results = [];
+    this.reset();
   }
 
   cancelRunAll(): void {

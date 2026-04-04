@@ -43,7 +43,6 @@ export class Editor {
     this.state.mode = { kind: 'normal' };
     this.state.circuitDirty = true;
     this.tests.rebuild();
-
   }
 
   getCircuit(): Circuit {
