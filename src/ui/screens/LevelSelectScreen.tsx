@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'preact/hooks';
 import { getEditor, hasEditor } from '../../circuit-builder/editorInstance.ts';
 import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
 import { CanvasInput } from '../../engine/input.ts';
-import { notifyStateChange, solvedLevelIds, viewMode } from '../editorStore.ts';
+import { notifyStateChange, solvedLevelIds } from '../editorStore.ts';
+import { navigateTo } from '../screenManager.ts';
 import {
   buildLevelMap,
   getLevelGateMap,
@@ -44,8 +45,7 @@ export function LevelSelectScreen() {
         const idx = hitTestLevel(levelMapState, getLevelGateMap(), LEVELS, solvedLevelIds.value, e.world.x, e.world.y);
         if (idx !== null) {
           loadLevel(idx);
-          viewMode.value = 'editor';
-          notifyStateChange();
+          navigateTo('editor');
         }
       },
     }, {
@@ -70,7 +70,7 @@ export function LevelSelectScreen() {
   return (
     <>
       <div class="toolbar">
-        <button class="toolbar-btn" onClick={() => { viewMode.value = 'mainMenu'; notifyStateChange(); }}>Menu</button>
+        <button class="toolbar-btn" onClick={() => navigateTo('mainMenu')}>Menu</button>
         <button class="toolbar-btn" style={{ fontWeight: 'bold' }}>Levels</button>
         <div class="toolbar-spacer" />
         <button class="toolbar-btn" onClick={() => {
@@ -79,7 +79,7 @@ export function LevelSelectScreen() {
           buildLevelMap();
           notifyStateChange();
         }}>Unlock All</button>
-        <button class="toolbar-btn" onClick={() => { viewMode.value = 'levelMapEditor'; notifyStateChange(); }}>Edit Map</button>
+        <button class="toolbar-btn" onClick={() => navigateTo('levelMapEditor')}>Edit Map</button>
       </div>
       <div class="main-row">
         <div id="editor-container" ref={containerRef} />

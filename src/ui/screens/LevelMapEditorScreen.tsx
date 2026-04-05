@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
 import { InputHandler } from '../../circuit-builder/editor/InputHandler.ts';
-import { notifyStateChange, viewMode } from '../editorStore.ts';
+import { notifyStateChange } from '../editorStore.ts';
+import { navigateTo } from '../screenManager.ts';
 import {
   buildLevelMapEditable,
   exportLevelMap,
@@ -85,7 +86,7 @@ export function LevelMapEditorScreen() {
   return (
     <>
       <div class="toolbar">
-        <button class="toolbar-btn" onClick={() => { viewMode.value = 'levelSelect'; notifyStateChange(); }}>
+        <button class="toolbar-btn" onClick={() => navigateTo('levelSelect')}>
           Back
         </button>
         <button class="toolbar-btn" onClick={handleUndo}>Undo</button>

@@ -1,4 +1,4 @@
-import { viewMode } from '../editorStore.ts';
+import { navigateTo } from '../screenManager.ts';
 
 export function SettingsScreen() {
   return (
@@ -6,7 +6,7 @@ export function SettingsScreen() {
       <h1 class="menu-title">Settings</h1>
       <p class="menu-placeholder">Coming soon</p>
       <div class="menu-buttons">
-        <button class="menu-btn" onClick={() => { viewMode.value = 'mainMenu'; }}>
+        <button class="menu-btn" onClick={() => navigateTo('mainMenu')}>
           Back
         </button>
       </div>

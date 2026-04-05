@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'preact/hooks';
 import { getEditor } from '../circuit-builder/editorInstance.ts';
 import type { Command } from '../circuit-builder/editor/commands.ts';
-import { notifyStateChange, solvedLevelIds, viewMode } from './editorStore.ts';
-import { switchToLevelMap } from './screenManager.ts';
+import { notifyStateChange, solvedLevelIds } from './editorStore.ts';
+import { navigateTo, switchToLevelMap } from './screenManager.ts';
 import { getSolvedLevelIds, markLevelSolved } from '../circuit-builder/persistence/storage.ts';
 import type { GateType } from "../circuit-builder/editor/gates.ts";
 
@@ -36,10 +36,7 @@ export function useEditorCallbacks() {
   }, []);
 
   const handleMenu = useCallback(() => {
-    const editor = getEditor();
-    editor.save();
-    viewMode.value = 'mainMenu';
-    notifyStateChange();
+    navigateTo('mainMenu');
   }, []);
 
   const handleResetLevel = useCallback(() => {

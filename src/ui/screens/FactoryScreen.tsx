@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { viewMode } from '../editorStore.ts';
+import { navigateTo } from '../screenManager.ts';
 import { CanvasInput } from '../../engine/input.ts';
 import { createTerrainRenderer } from '../../factory/terrainShader.ts';
 import { factoryState } from '../../factory/factoryState.ts';
@@ -50,7 +50,7 @@ export function FactoryScreen() {
   return (
     <div class="factory-screen">
       <div class="factory-toolbar">
-        <button class="toolbar-btn" onClick={() => { viewMode.value = 'mainMenu'; }}>Menu</button>
+        <button class="toolbar-btn" onClick={() => navigateTo('mainMenu')}>Menu</button>
         <span class="toolbar-level-name">Factory</span>
         <div class="toolbar-spacer" />
       </div>
