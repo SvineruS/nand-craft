@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('8bit-or'),
   name: '8-bit OR',
   description: 'Build an 8-bit OR gate.\n\nPerform bitwise OR on two 8-bit inputs.',
-  hints: ['OR gates work on any bit width.'],
+  hints: ['Same as before'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

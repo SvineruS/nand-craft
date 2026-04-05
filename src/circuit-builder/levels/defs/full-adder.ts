@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('3bit-adder'),
   name: 'Full Adder',
   description: 'Build a full adder.\n\nAdd three 1-bit numbers A, B, and Cin (carry in). Output the sum S and carry Cout.',
-  hints: ['Use two half adders and an OR gate for the carry.'],
+  hints: ['Try to chain two half adders. Or you can use XORs!', 'Use two chained half adders and an OR gate for their carry.'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('8bit-not'),
   name: '8-bit NOT',
   description: 'Build an 8-bit NOT gate.\n\nInvert all 8 bits of the input.',
-  hints: ['A single NOT gate works on any bit width.'],
+  hints: ["You will need a lot of wires in this level!", "You need to use splitters and joiners to handle 8 bits."],
   inputs: [{ name: 'A' }],
   outputs: [{ name: 'Out' }],
   predefinedGates: [

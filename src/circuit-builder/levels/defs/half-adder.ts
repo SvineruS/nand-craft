@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('2bit-adder'),
   name: 'Half Adder',
   description: 'Build a half adder.\n\nAdd two 1-bit numbers A and B. Output the sum S and carry C.',
-  hints: ['S = A XOR B, C = A AND B.'],
+  hints: ["Adding binary numbers is similar to adding decimals. 01 + 01 = 10, second bit appears as carry bit, because 2 doesn't exist in binary", 'S = A XOR B, C = A AND B.'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

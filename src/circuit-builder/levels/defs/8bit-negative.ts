@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('8bit-negative'),
   name: '8-bit Negate',
   description: "Negate an 8-bit number using two's complement.\n\nGiven an unsigned 8-bit input, output its negation (mod 256).",
-  hints: ["-A = NOT(A) + 1. Use a splitter, joiner, and a chain of adder logic, or use the constant gate for +1."],
+  hints: ["-A = NOT(A) + 1", "Use a splitter, joiner, and a chain of adder logic, or use the constant gate for +1."],
   inputs: [{ name: 'A' }],
   outputs: [{ name: 'Out' }],
   predefinedGates: [

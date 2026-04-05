@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { useEditorState, testEditorVisible } from '../editorStore.ts';
+import { useEditorState, testEditorVisible, levelDialogVisible } from '../editorStore.ts';
 import { getEditor } from '../../circuit-builder/editorInstance.ts';
 import { WIRE_COLORS } from "../../circuit-builder/editor/consts.ts";
 
@@ -53,6 +53,7 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
 
       <div class="toolbar-spacer" />
 
+      <button class="toolbar-btn" title="Show level description" onClick={() => { levelDialogVisible.value = true; }}>Goals</button>
       {level.hints && level.hints.length > 0 && (
         <button class="toolbar-btn" onClick={() => setShowHints(!showHints)}>Hints</button>
       )}

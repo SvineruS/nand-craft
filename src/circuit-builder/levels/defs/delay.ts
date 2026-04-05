@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('delay'),
   name: 'Delay',
   description: 'Pass the input to the output with a 1-tick delay.\n\nThe output should reflect the input value from the previous tick.',
-  hints: ['Use a delay gate.'],
+  hints: ['Use one delay gate.'],
   inputs: [{ name: 'In' }],
   outputs: [{ name: 'Out' }],
   predefinedGates: [

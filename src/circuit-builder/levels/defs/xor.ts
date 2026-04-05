@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('xor'),
   name: 'XOR',
   description: 'Build an XOR (exclusive OR) gate.\n\nXOR outputs 1 when the inputs differ.',
-  hints: ['(A AND NOT B) OR (NOT A AND B).'],
+  hints: ['XOR is 1 when at least one input is active but not both', '(A AND NOT B) OR (NOT A AND B).'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

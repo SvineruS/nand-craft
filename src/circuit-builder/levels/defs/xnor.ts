@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('xnor'),
   name: 'XNOR',
   description: 'Build an XNOR gate.\n\nXNOR outputs 1 when both inputs are the same.',
-  hints: ['Just invert XOR.'],
+  hints: ['XNOR stands for "NOT XOR".'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

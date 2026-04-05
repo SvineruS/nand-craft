@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('or'),
   name: 'OR',
   description: "Build an OR gate using NAND and NOT gates.\n\nOR outputs 1 when at least one input is 1.",
-  hints: ["De Morgan's law — you'll need three NAND gates."],
+  hints: ["De Morgan's law", "(A OR B) is the opposite of (NOT A AND NOT B)"],
   inputs: [
     { name: 'A' },
     { name: 'B' },

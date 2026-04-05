@@ -6,7 +6,7 @@ const level: Level = {
   id: lid('nor'),
   name: 'NOR',
   description: 'Build a NOR gate.\n\nNOR outputs 1 only when both inputs are 0. It is the complement of OR.',
-  hints: ['OR then NOT.'],
+  hints: ['NOR stands for "NOT OR".'],
   inputs: [
     { name: 'A' },
     { name: 'B' },
