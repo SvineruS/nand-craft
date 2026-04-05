@@ -161,7 +161,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'output', x: 2, y: 0, label: '0' },
       { kind: 'output', x: 2, y: 2, label: '1' },
     ],
-    svg: SVG.DECODER_2,
+    svg: [SVG.DECODER_2_0, SVG.DECODER_2_1],
   },
   '3bit-decoder': {
     label: 'DEC3', description: '3-to-8 decoder', width: 2, height: 8,    color: '#402d50', stroke: '#8a5aad',

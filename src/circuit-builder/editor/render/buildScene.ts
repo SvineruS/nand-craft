@@ -404,12 +404,17 @@ function pinStrokeForWidth(bitWidth: number): string {
   return '#fb923c';
 }
 
-/** Pick SVG variant index for gates with svg arrays (e.g. mux arrow direction). */
+/** Pick SVG variant index for gates with svg arrays (e.g. mux/decoder arrow direction). */
 function getSvgVariant(gate: Gate, circuit: Circuit): number {
   if (gate.type === 'mux' || gate.type === '8bit-mux') {
-    // S pin is input index 0 for mux gates
+    // S pin is input index 0
     const sValue = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index: 0 })) ?? null;
-    return sValue ? 1 : 0; // 0 = line to A (top), 1 = line to B (bottom)
+    return sValue ? 1 : 0;
+  }
+  if (gate.type === '1bit-decoder') {
+    // A pin is input index 0
+    const aValue = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index: 0 })) ?? null;
+    return aValue ? 1 : 0;
   }
   return 0;
 }
