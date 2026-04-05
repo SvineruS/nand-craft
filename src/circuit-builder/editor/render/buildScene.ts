@@ -179,6 +179,13 @@ function buildGates(state: EditorState): RenderGate[] {
       labelPos = { x: labelX, y: labelY };
     }
 
+    // Auto-wrap label if too wide for gate (monospace ~7px per char at 11px font)
+    const charWidth = 7;
+    const maxChars = Math.floor((w * 0.9) / charWidth);
+    if (label.length > maxChars && maxChars > 1) {
+      label = wrapText(label, maxChars);
+    }
+
     const errorGlow = circuit.getBuild()?.shortCircuitGates.includes(gate.id) ?? false;
 
     result.push({
@@ -399,4 +406,21 @@ function formatWireValue(value: number, bitWidth: number): string {
   if (bitWidth >= 16) return '0x' + value.toString(16).toUpperCase();
   if (bitWidth >= 8) return String(value);
   return value ? 'T' : 'F';
+}
+
+/** Wrap text to fit within maxChars per line, breaking at spaces or by character. */
+function wrapText(text: string, maxChars: number): string {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    if (current && (current.length + 1 + word.length) > maxChars) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = current ? current + ' ' + word : word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.join('\n');
 }
