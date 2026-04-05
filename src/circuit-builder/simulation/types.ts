@@ -1,6 +1,9 @@
 import type { GateId, Net, NetId, PinRef } from '../editor/types.ts';
 export { pinRefKey } from '../editor/types.ts';
 
+/** Flat map of pin values keyed by pinRefKey. Absent key = null (high-Z). */
+export type SimulationState = Map<string, number | null>;
+
 /** Cached structural analysis — recomputed only when circuit topology changes. */
 export interface BuildResult {
   nets: Map<NetId, Net>;

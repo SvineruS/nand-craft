@@ -1,6 +1,6 @@
 import type { GateId, WireNode, WireNodeId, WireSegment, WireSegmentId } from '../editor/types.ts';
 import type { Gate } from "./gateTypes.ts";
-import type { BuildResult, TickResult } from "./types.ts";
+import type { BuildResult, SimulationState, TickResult } from "./types.ts";
 import { build } from "./buildCircuit.ts";
 import { tick } from "./tickCircuit.ts";
 
@@ -9,6 +9,7 @@ export class Circuit {
   wireNodes = new Map<WireNodeId, WireNode>();
   wireSegments = new Map<WireSegmentId, WireSegment>();
 
+  simState: SimulationState = new Map();
   cachedBuild: BuildResult | null = null;
   tickResult: TickResult = {
     outputs: new Map<GateId, number | null>(),
@@ -42,7 +43,8 @@ export class Circuit {
     // Rebuild if invalidated
     if (!this.cachedBuild) this.buildCircuit(this);
     const buildResult = this.cachedBuild!;
-    this.tickResult = tick(this, buildResult, inputs);
+    this.simState.clear();
+    this.tickResult = tick(this, this.simState, buildResult, inputs);
   }
 
   /** Rebuild structural analysis. Called automatically by tick() if invalidated. */

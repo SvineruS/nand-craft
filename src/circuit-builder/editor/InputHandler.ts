@@ -370,7 +370,7 @@ export class InputHandler {
         let newValue = ((currentValue + 1) & mask) >>> 0;
         if (newValue > mask) newValue = 0;
         gate.state = newValue;
-        state.circuitDirty = true;
+        state.valueDirty = true;
         return;
       }
     }
@@ -853,12 +853,7 @@ export class InputHandler {
         node.pin = undefined;
       }
     }
-    // Clear gate pin values so disconnected wires don't show stale signals
-    for (const gateId of gateIds) {
-      const gate = state.circuit.getGate(gateId);
-      gate.inputValues.fill(null);
-      gate.outputValues.fill(null);
-    }
+    // Pin values live in simState, recomputed on next tick
     return detached;
   }
 

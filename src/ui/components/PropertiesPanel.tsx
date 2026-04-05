@@ -1,8 +1,8 @@
 import { useEditorState } from '../editorStore.ts';
 import { getGateDefinition, getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
-import { ChangePinCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
-import type { PinRef } from '../../circuit-builder/editor/types.ts';
+import { ChangeGateStateCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
+import { pinRefKey } from '../../circuit-builder/editor/types.ts';
 import { isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
 
 
@@ -22,11 +22,10 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
 
       // Value field for input/constant
       const hasOutput = isInputGate(gate.type) || gate.type === 'constant';
-      const outValue = hasOutput ? gate.outputValues[0] : undefined;
-      const outPinRef: PinRef | undefined = hasOutput
-        ? { gateId: gate.id, kind: 'output', index: 0 }
+      const outValue = hasOutput
+        ? state.circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'output', index: 0 })) ?? null
         : undefined;
-      const outBitWidth = outPinRef ? getPinBitWidth(gate.type, 'output', 0) : 1;
+      const outBitWidth = hasOutput ? getPinBitWidth(gate.type, 'output', 0) : 1;
       const mask = ((1 << outBitWidth) >>> 0) - 1;
 
       return (
@@ -38,7 +37,7 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
               <span class="prop-value">{def.label}</span>
             </div>
 
-            {outPinRef && outValue !== undefined && (
+            {hasOutput && outValue !== undefined && (
               <div class="prop-row">
                 <span class="prop-label">Value</span>
                 <input
@@ -51,13 +50,13 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
                     let v = parseInt((e.target as HTMLInputElement).value, 10);
                     if (isNaN(v)) v = 0;
                     v = Math.max(0, Math.min(mask, v));
-                    onExecute(new ChangePinCommand(state, [outPinRef], { value: v }));
+                    onExecute(new ChangeGateStateCommand(state, [gate.id], v));
                   }}
                   onInput={(e) => {
                     let v = parseInt((e.target as HTMLInputElement).value, 10);
                     if (isNaN(v)) return;
                     v = Math.max(0, Math.min(mask, v));
-                    onExecute(new ChangePinCommand(state, [outPinRef], { value: v }));
+                    onExecute(new ChangeGateStateCommand(state, [gate.id], v));
                   }}
                 />
               </div>

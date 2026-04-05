@@ -32,7 +32,7 @@ export interface ClipboardGate {
   type: GateType;
   delta: Vec2;
   rotation: Rotation;
-  pinValues: (number | null)[];
+  state?: unknown;
 }
 export interface ClipboardNode {
   delta: Vec2;
@@ -64,6 +64,7 @@ export interface EditorState {
   wireColor: string;
   renderDirty: boolean;
   circuitDirty: boolean;
+  valueDirty: boolean;
 }
 
 export function createEditorState(): EditorState {
@@ -80,5 +81,6 @@ export function createEditorState(): EditorState {
     wireColor: WIRE_COLORS[0],
     renderDirty: true,
     circuitDirty: true,
+    valueDirty: false,
   };
 }

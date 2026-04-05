@@ -1,12 +1,12 @@
-import type { ComponentId, GateId, Rotation, Vec2 } from "../editor/types.ts";
+import type { ComponentId, GateId, PinRef, Rotation, Vec2 } from "../editor/types.ts";
+import { pinRefKey } from "../editor/types.ts";
+import type { SimulationState } from "./types.ts";
 
 export interface Gate {
   id: GateId;
   type: GateType;
   pos: Vec2;
   rotation: Rotation;
-  inputValues: (number | null)[];
-  outputValues: (number | null)[];
   state?: unknown;
   componentId?: ComponentId;
   label?: string;
@@ -21,9 +21,14 @@ const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit']
 export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(type); }
 export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
 
-/** Read a pin value from a gate by kind and index. */
-export function pinValue(gate: Gate, kind: 'input' | 'output', index: number): number | null {
-  return kind === 'output' ? gate.outputValues[index] : gate.inputValues[index];
+/** Read a pin value from simulation state. Absent = null (high-Z). */
+export function pinValue(simState: SimulationState, gateId: GateId, kind: 'input' | 'output', index: number): number | null {
+  return simState.get(pinRefKey({ gateId, kind, index })) ?? null;
+}
+
+/** Write a pin value to simulation state. */
+export function writePinValue(simState: SimulationState, ref: PinRef, value: number | null): void {
+  simState.set(pinRefKey(ref), value);
 }
 
 export type GateType =

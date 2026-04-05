@@ -25,18 +25,27 @@ export class LevelTests {
     return this.level.test.cases?.length ?? 0;
   }
 
+  /** Re-tick with current test case inputs (no delay reset). */
+  retick(): void {
+    const index = Math.max(0, this.caseIndex);
+    this.editor.applyInputs(this.buildInputs(index), false);
+  }
+
   /** Apply inputs from a test case without evaluating outputs. */
   applyInputs(index: number, resetDelay = true): void {
-    const testCase = this.level.test.cases?.[index];
-    if (!testCase) return;
+    this.editor.applyInputs(this.buildInputs(index), resetDelay);
+  }
 
+  private buildInputs(index: number): Map<GateId, number> {
     const inputs = new Map<GateId, number>();
+    const testCase = this.level.test.cases?.[index];
+    if (!testCase) return inputs;
     for (const [name, gateId] of this.inputMap) {
       if (name in testCase.inputs) {
         inputs.set(gateId, testCase.inputs[name]);
       }
     }
-    this.editor.applyInputs(inputs, resetDelay);
+    return inputs;
   }
 
   /** Apply a test case by index and evaluate outputs. Returns the result. */
@@ -49,9 +58,9 @@ export class LevelTests {
     this.applyInputs(index, resetDelay);
 
     const actuals: Record<string, number | null> = {};
+    const circuit = this.editor.getState().circuit;
     for (const [name, gateId] of this.outputMap) {
-      const gate = this.editor.getState().circuit.getGate(gateId);
-      actuals[name] = gate.inputValues[0] ?? null;
+      actuals[name] = circuit.tickResult.outputs.get(gateId) ?? null;
     }
 
     let passed = true;

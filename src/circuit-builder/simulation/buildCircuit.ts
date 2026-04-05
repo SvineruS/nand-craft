@@ -7,11 +7,10 @@ import type {
   WireNodeId,
   WireSegmentId,
 } from '../editor/types.ts';
-import { generateId } from '../editor/types.ts';
-import { isInputGate, pinValue, type Gate } from "./gateTypes.ts";
-import type { BuildResult } from './types.ts';
-import { pinRefKey } from './types.ts';
-import { getPinBitWidth } from '../editor/gates.ts';
+import { generateId, pinRefKey } from '../editor/types.ts';
+import { isInputGate, pinValue, writePinValue, type Gate } from "./gateTypes.ts";
+import type { BuildResult, SimulationState } from './types.ts';
+import { getPinBitWidth, getPinCounts } from '../editor/gates.ts';
 
 /** Gate types that are part of the combinational subgraph. */
 const COMBINATIONAL_TYPES = new Set([
@@ -205,7 +204,7 @@ function topologicalSort(
 
   for (const gateId of combGateIds) {
     const gate = circuit.getGate(gateId);
-    const inputCount = gate.inputValues.length;
+    const inputCount = getPinCounts(gate.type).inputs;
     for (let i = 0; i < inputCount; i++) {
       const key = pinRefKey({ gateId, kind: 'input', index: i });
       const netId = pinToNet.get(key);
@@ -269,7 +268,7 @@ function detectCycles(
 
   for (const gateId of combGateIds) {
     const gate = circuit.getGate(gateId);
-    const outputCount = gate.outputValues.length;
+    const outputCount = getPinCounts(gate.type).outputs;
     for (let i = 0; i < outputCount; i++) {
       const key = pinRefKey({ gateId, kind: 'output', index: i });
       const netId = pinToNet.get(key);
@@ -365,25 +364,11 @@ export function build(circuit: Circuit): BuildResult {
 // Tick: value propagation using cached BuildResult
 // ---------------------------------------------------------------------------
 
-/** Write the value of a pin on its gate. */
-function writePinValue(
-  circuit: Circuit,
-  ref: PinRef,
-  value: number | null,
-): void {
-  const gate = circuit.getGate(ref.gateId);
-  if (ref.kind === 'output') {
-    gate.outputValues[ref.index] = value;
-  } else {
-    gate.inputValues[ref.index] = value;
-  }
-}
-
 /**
  * Resolve net values from driver pins. Sets receiver pins.
  * Returns net IDs with bus contention.
  */
-function resolveNets(circuit: Circuit, buildResult: BuildResult): NetId[] {
+function resolveNets(circuit: Circuit, simState: SimulationState, buildResult: BuildResult): NetId[] {
   const contentionNets: NetId[] = [];
 
   for (const [netId, net] of buildResult.nets) {
@@ -408,7 +393,7 @@ function resolveNets(circuit: Circuit, buildResult: BuildResult): NetId[] {
     // Resolve value from drivers
     const activeDriverValues: (number | null)[] = [];
     for (const ref of driverRefs) {
-      const val = pinValue(circuit.getGate(ref.gateId), ref.kind, ref.index);
+      const val = pinValue(simState, ref.gateId, ref.kind, ref.index);
       if (val !== null) activeDriverValues.push(val);
     }
 
@@ -423,7 +408,7 @@ function resolveNets(circuit: Circuit, buildResult: BuildResult): NetId[] {
     }
 
     for (const ref of receiverRefs) {
-      writePinValue(circuit, ref, netValue);
+      writePinValue(simState, ref, netValue);
     }
   }
 
@@ -436,15 +421,16 @@ function resolveNets(circuit: Circuit, buildResult: BuildResult): NetId[] {
  */
 export function propagate(
   circuit: Circuit,
+  simState: SimulationState,
   buildResult: BuildResult,
 ): NetId[] {
   // Initial net resolution to propagate input gate values
-  let contentionNets = resolveNets(circuit, buildResult);
+  let contentionNets = resolveNets(circuit, simState, buildResult);
 
   for (const gateId of buildResult.evaluationOrder) {
     const gate = circuit.getGate(gateId);
-    evaluateGate(gate);
-    contentionNets = resolveNets(circuit, buildResult);
+    evaluateGate(simState, gate);
+    contentionNets = resolveNets(circuit, simState, buildResult);
   }
 
   return contentionNets;
@@ -452,10 +438,10 @@ export function propagate(
 
 /**
  * Compute derived rendering data from tick results.
- * Moved from Editor.updateDerivedState().
  */
 export function computeDerivedState(
   circuit: Circuit,
+  simState: SimulationState,
   buildResult: BuildResult,
   contentionNets: NetId[],
 ): {
@@ -507,7 +493,7 @@ export function computeDerivedState(
     for (const nodeId of net.nodeIds) {
       const node = circuit.getWireNode(nodeId);
       if (node.pin) {
-        const val = pinValue(circuit.getGate(node.pin.gateId), node.pin.kind, node.pin.index);
+        const val = pinValue(simState, node.pin.gateId, node.pin.kind, node.pin.index);
         if (val !== null) netValue = val;
         const gate = circuit.getGate(node.pin.gateId);
         netBitWidth = getPinBitWidth(
@@ -530,141 +516,159 @@ export function computeDerivedState(
 // Gate evaluation
 // ---------------------------------------------------------------------------
 
+function readInput(simState: SimulationState, gate: Gate, index: number): number {
+  return simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index })) ?? 0;
+}
+
+function readInputNullable(simState: SimulationState, gate: Gate, index: number): number | null {
+  return simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index })) ?? null;
+}
+
+function writeOutput(simState: SimulationState, gate: Gate, index: number, value: number | null): void {
+  simState.set(pinRefKey({ gateId: gate.id, kind: 'output', index }), value);
+}
+
 function evaluateBinaryGate(
+  simState: SimulationState,
   gate: Gate,
   op: (a: number, b: number, mask: number) => number,
 ): void {
-  const inA = gate.inputValues[0] ?? 0;
-  const inB = gate.inputValues[1] ?? 0;
+  const inA = readInput(simState, gate, 0);
+  const inB = readInput(simState, gate, 1);
   const bitWidth = getPinBitWidth(gate.type, 'output', 0);
   const mask = ((1 << bitWidth) >>> 0) - 1;
-  gate.outputValues[0] = op(inA, inB, mask);
+  writeOutput(simState, gate, 0, op(inA, inB, mask));
 }
 
 function evaluateUnaryGate(
+  simState: SimulationState,
   gate: Gate,
   op: (a: number, mask: number) => number,
 ): void {
-  const input = gate.inputValues[0] ?? 0;
+  const input = readInput(simState, gate, 0);
   const bitWidth = getPinBitWidth(gate.type, 'output', 0);
   const mask = ((1 << bitWidth) >>> 0) - 1;
-  gate.outputValues[0] = op(input, mask);
+  writeOutput(simState, gate, 0, op(input, mask));
 }
 
-function evaluateGate(gate: Gate): void {
+function evaluateGate(simState: SimulationState, gate: Gate): void {
   switch (gate.type) {
     case 'nand':
-      evaluateBinaryGate(gate, (a, b, mask) => (~(a & b) & mask) >>> 0);
+      evaluateBinaryGate(simState, gate, (a, b, mask) => (~(a & b) & mask) >>> 0);
       break;
     case 'and':
-      evaluateBinaryGate(gate, (a, b) => a & b);
+      evaluateBinaryGate(simState, gate, (a, b) => a & b);
       break;
     case 'or':
-      evaluateBinaryGate(gate, (a, b) => a | b);
+      evaluateBinaryGate(simState, gate, (a, b) => a | b);
       break;
     case 'nor':
-      evaluateBinaryGate(gate, (a, b, mask) => (~(a | b) & mask) >>> 0);
+      evaluateBinaryGate(simState, gate, (a, b, mask) => (~(a | b) & mask) >>> 0);
       break;
     case 'xor':
-      evaluateBinaryGate(gate, (a, b) => a ^ b);
+      evaluateBinaryGate(simState, gate, (a, b) => a ^ b);
       break;
     case 'xnor':
-      evaluateBinaryGate(gate, (a, b, mask) => (~(a ^ b) & mask) >>> 0);
+      evaluateBinaryGate(simState, gate, (a, b, mask) => (~(a ^ b) & mask) >>> 0);
       break;
     case 'not':
     case '8bit-not':
-      evaluateUnaryGate(gate, (a, mask) => (~a & mask) >>> 0);
+      evaluateUnaryGate(simState, gate, (a, mask) => (~a & mask) >>> 0);
       break;
     case '8bit-or':
-      evaluateBinaryGate(gate, (a, b) => a | b);
+      evaluateBinaryGate(simState, gate, (a, b) => a | b);
       break;
     case '8bit-nor':
-      evaluateBinaryGate(gate, (a, b, mask) => (~(a | b) & mask) >>> 0);
+      evaluateBinaryGate(simState, gate, (a, b, mask) => (~(a | b) & mask) >>> 0);
       break;
     case '3bit-or': {
-      const a = gate.inputValues[0] ?? 0;
-      const b = gate.inputValues[1] ?? 0;
-      const c = gate.inputValues[2] ?? 0;
-      gate.outputValues[0] = a | b | c;
+      const a = readInput(simState, gate, 0);
+      const b = readInput(simState, gate, 1);
+      const c = readInput(simState, gate, 2);
+      writeOutput(simState, gate, 0, a | b | c);
       break;
     }
     case '3bit-and': {
-      const a = gate.inputValues[0] ?? 0;
-      const b = gate.inputValues[1] ?? 0;
-      const c = gate.inputValues[2] ?? 0;
-      gate.outputValues[0] = a & b & c;
+      const a = readInput(simState, gate, 0);
+      const b = readInput(simState, gate, 1);
+      const c = readInput(simState, gate, 2);
+      writeOutput(simState, gate, 0, a & b & c);
       break;
     }
     case '2bit-adder': {
-      const a = gate.inputValues[0] ?? 0;
-      const b = gate.inputValues[1] ?? 0;
+      const a = readInput(simState, gate, 0);
+      const b = readInput(simState, gate, 1);
       const sum = a + b;
-      gate.outputValues[0] = sum & 1;        // S
-      gate.outputValues[1] = (sum >> 1) & 1; // C
+      writeOutput(simState, gate, 0, sum & 1);        // S
+      writeOutput(simState, gate, 1, (sum >> 1) & 1);  // C
       break;
     }
     case '3bit-adder': {
-      const a = gate.inputValues[0] ?? 0;
-      const b = gate.inputValues[1] ?? 0;
-      const cin = gate.inputValues[2] ?? 0;
+      const a = readInput(simState, gate, 0);
+      const b = readInput(simState, gate, 1);
+      const cin = readInput(simState, gate, 2);
       const sum = a + b + cin;
-      gate.outputValues[0] = sum & 1;        // S
-      gate.outputValues[1] = (sum >> 1) & 1; // Cout
+      writeOutput(simState, gate, 0, sum & 1);        // S
+      writeOutput(simState, gate, 1, (sum >> 1) & 1);  // Cout
       break;
     }
     case '1bit-decoder': {
-      const a = gate.inputValues[0] ?? 0;
-      gate.outputValues[0] = a === 0 ? 1 : 0;
-      gate.outputValues[1] = a === 0 ? 0 : 1;
+      const a = readInput(simState, gate, 0);
+      writeOutput(simState, gate, 0, a === 0 ? 1 : 0);
+      writeOutput(simState, gate, 1, a === 0 ? 0 : 1);
       break;
     }
     case '3bit-decoder': {
-      const a = gate.inputValues[0] ?? 0;
-      const b = gate.inputValues[1] ?? 0;
-      const c = gate.inputValues[2] ?? 0;
+      const a = readInput(simState, gate, 0);
+      const b = readInput(simState, gate, 1);
+      const c = readInput(simState, gate, 2);
       const idx = (a << 2) | (b << 1) | c;
-      for (let i = 0; i < gate.outputValues.length; i++) {
-        gate.outputValues[i] = i === idx ? 1 : 0;
+      const outputCount = getPinCounts(gate.type).outputs;
+      for (let i = 0; i < outputCount; i++) {
+        writeOutput(simState, gate, i, i === idx ? 1 : 0);
       }
       break;
     }
     case '8bit-negative': {
-      const a = gate.inputValues[0] ?? 0;
-      gate.outputValues[0] = (-a & 0xFF) >>> 0;
+      const a = readInput(simState, gate, 0);
+      writeOutput(simState, gate, 0, (-a & 0xFF) >>> 0);
       break;
     }
     case 'constant': {
-      if (gate.outputValues[0] === null) gate.outputValues[0] = 0;
+      const current = simState.get(pinRefKey({ gateId: gate.id, kind: 'output', index: 0 }));
+      if (current === null || current === undefined) {
+        writeOutput(simState, gate, 0, 0);
+      }
       break;
     }
     case 'switch': {
-      const sel = gate.inputValues[0];
-      const inA = gate.inputValues[1] ?? 0;
-      const inB = gate.inputValues[2] ?? 0;
-      gate.outputValues[0] =
-        (sel !== null && sel !== 0) ? inB : inA;
+      const sel = readInputNullable(simState, gate, 0);
+      const inA = readInput(simState, gate, 1);
+      const inB = readInput(simState, gate, 2);
+      writeOutput(simState, gate, 0, (sel !== null && sel !== 0) ? inB : inA);
       break;
     }
     case 'tristate': {
-      const input = gate.inputValues[0];
-      const enable = gate.inputValues[1];
-      gate.outputValues[0] =
-        (enable !== null && enable !== 0) ? input : null;
+      const input = readInputNullable(simState, gate, 0);
+      const enable = readInputNullable(simState, gate, 1);
+      writeOutput(simState, gate, 0, (enable !== null && enable !== 0) ? input : null);
       break;
     }
     case 'splitter': {
-      const inputVal = gate.inputValues[0] ?? 0;
-      for (let i = 0; i < gate.outputValues.length; i++) {
-        gate.outputValues[i] = (inputVal >>> i) & 1;
+      const inputVal = readInput(simState, gate, 0);
+      const outputCount = getPinCounts(gate.type).outputs;
+      for (let i = 0; i < outputCount; i++) {
+        writeOutput(simState, gate, i, (inputVal >>> i) & 1);
       }
       break;
     }
     case 'joiner': {
       let result = 0;
-      for (let i = 0; i < gate.inputValues.length; i++) {
-        result |= ((gate.inputValues[i] ?? 0) & 1) << i;
+      const inputCount = getPinCounts(gate.type).inputs;
+      for (let i = 0; i < inputCount; i++) {
+        result |= (readInput(simState, gate, i) & 1) << i;
       }
-      gate.outputValues[0] = result;
+      writeOutput(simState, gate, 0, result);
       break;
     }
     case 'input':
@@ -674,15 +678,16 @@ function evaluateGate(gate: Gate): void {
     case 'output-8bit':
     case 'output-16bit': {
       if (isInputGate(gate.type)) {
-        const enableValue = gate.inputValues[0];
+        const enableValue = readInputNullable(simState, gate, 0);
         if (enableValue === 0) {
-          gate.outputValues[0] = null;
+          writeOutput(simState, gate, 0, null);
           return;
         }
       } else {
-        // output gate - enable is inputValues[1] if present
-        if (gate.inputValues.length > 1) {
-          const enableValue = gate.inputValues[1];
+        // output gate - enable is input[1] if present
+        const inputCount = getPinCounts(gate.type).inputs;
+        if (inputCount > 1) {
+          const enableValue = readInputNullable(simState, gate, 1);
           if (enableValue === 0) return;
         }
       }

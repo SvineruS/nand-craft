@@ -2,6 +2,7 @@ import type { EditorState } from '../EditorState.ts';
 import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderErrorSegment, RenderSelectionItem, RenderDropPreview, RenderPastePreview } from './renderScene.ts';
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
 import { isInputGate, pinValue } from '../../simulation/gateTypes.ts';
+import { pinRefKey } from '../types.ts';
 import { gateCenter, gateGridOffset, getGateDims, iteratePinPositions, pinRefsEqual } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
 import { COLORS, GRID_SIZE, WIRE_COLORS, WIRE_LABEL_MIN_LENGTH, WIRE_LABEL_SPACING } from '../consts.ts';
@@ -105,7 +106,7 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
     if (node.pin) {
       const gate = circuit.gates.get(node.pin.gateId);
       if (gate) {
-        nodePinValue = pinValue(gate, node.pin.kind, node.pin.index);
+        nodePinValue = pinValue(circuit.simState, node.pin.gateId, node.pin.kind, node.pin.index);
         pinBitWidth = getPinBitWidth(gate.type, node.pin.kind, node.pin.index);
       }
     }
@@ -167,9 +168,9 @@ function buildGates(state: EditorState): RenderGate[] {
       labelColor = COLORS.gateText;
       labelPos = { x: labelX, y: labelY - 0.6 * GRID_SIZE };
 
-      const val = gate.outputValues[0];
-      const valText = val !== null && val !== undefined ? String(val) : '?';
-      const valColor = val !== null && val !== undefined ? signalColor(val) : COLORS.gateText;
+      const val = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'output', index: 0 })) ?? null;
+      const valText = val !== null ? String(val) : '?';
+      const valColor = val !== null ? signalColor(val) : COLORS.gateText;
       valueLabel = { text: valText, color: valColor, pos: { x: labelX, y: labelY } };
     } else {
       label = gate.label ?? def.label;
@@ -205,7 +206,7 @@ function buildPins(state: EditorState): RenderPin[] {
 
   for (const gate of circuit.gates.values()) {
     for (const [pinRef, pos] of iteratePinPositions(gate)) {
-      const value = pinValue(gate, pinRef.kind, pinRef.index);
+      const value = pinValue(circuit.simState, gate.id, pinRef.kind, pinRef.index);
       const bitWidth = getPinBitWidth(gate.type, pinRef.kind, pinRef.index);
       const isHovered = state.hoveredEndpoint?.kind === 'pin'
         && pinRefsEqual(state.hoveredEndpoint.pin, pinRef);

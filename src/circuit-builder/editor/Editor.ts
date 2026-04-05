@@ -83,6 +83,12 @@ export class Editor {
     this.state.renderDirty = true;
   }
 
+  /** Re-tick the circuit without rebuilding topology. Used for value-only changes. */
+  retick(): void {
+    this.tests.retick();
+    this.state.renderDirty = true;
+  }
+
   /** Tick the live circuit with given input values. Updates pins, detects errors. */
   applyInputs(inputs: Map<GateId, number>, resetDelay = false): void {
     if (resetDelay) {

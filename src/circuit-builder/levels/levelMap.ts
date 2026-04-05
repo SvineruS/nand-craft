@@ -11,7 +11,7 @@ import {
 } from '../editor/types.ts';
 import { isLevelUnlocked } from '../persistence/storage.ts';
 import type { Gate } from "../editor/gates.ts";
-import { getPinCounts } from "../editor/gates.ts";
+
 import type { Level } from "./levelTypes.ts";
 import { GRID_SIZE } from "../editor/consts.ts";
 import { getPinPositions } from "../editor/utils/geometry.ts";
@@ -98,14 +98,11 @@ function addMissingLevels(
     const status = levelStatus(level, solvedIds);
     maxX += 160;
 
-    const { inputs, outputs } = getPinCounts('level');
     const gate: Gate = {
       id: gateId,
       type: 'level',
       pos: { x: maxX, y: 0 },
       rotation: 0,
-      inputValues: Array(inputs).fill(null),
-      outputValues: Array(outputs).fill(null),
       label: level.name,
       status,
       canRemove: false,
@@ -135,14 +132,11 @@ function generateLevelMapCircuit(
     const status = levelStatus(level, solvedIds);
     outputPinsMap.set(gateId, status == 'solved' ? 1 : 0);
 
-    const { inputs, outputs } = getPinCounts('level');
     const gate: Gate = {
       id: gateId,
       type: 'level',
       pos,
       rotation: 0,
-      inputValues: Array(inputs).fill(null),
-      outputValues: Array(outputs).fill(null),
       label: level.name,
       status,
       canRemove: false,
