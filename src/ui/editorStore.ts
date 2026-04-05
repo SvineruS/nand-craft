@@ -14,6 +14,9 @@ export const stateVersion = signal(0);
 /** Whether the level-intro dialog is visible. */
 export const levelDialogVisible = signal(false);
 
+/** Whether the test editor dialog is visible. */
+export const testEditorVisible = signal(false);
+
 /** Current view mode. */
 export type ViewMode = 'mainMenu' | 'levelSelect' | 'levelMapEditor' | 'editor' | 'factory' | 'settings';
 export const viewMode = signal<ViewMode>('mainMenu');

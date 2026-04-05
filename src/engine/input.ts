@@ -166,7 +166,8 @@ export class CanvasInput {
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
+      || (e.target instanceof HTMLElement && e.target.isContentEditable)) return;
     this.handlers.onKeyDown?.({
       raw: e, key: e.key,
       ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, alt: e.altKey,

@@ -606,12 +606,13 @@ export class ChangeGateLabelCommand implements Command {
 
   execute(): void {
     this.state.circuit.getGate(this.gateId).label = this.newLabel;
-    this.state.renderDirty = true;
+    // circuitDirty (not renderDirty) to rebuild test label→gate maps via onCircuitChanged
+    this.state.circuitDirty = true;
   }
 
   undo(): void {
     this.state.circuit.getGate(this.gateId).label = this.oldLabel;
-    this.state.renderDirty = true;
+    this.state.circuitDirty = true;
   }
 }
 

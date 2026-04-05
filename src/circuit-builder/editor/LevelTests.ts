@@ -65,11 +65,11 @@ export class LevelTests {
 
     let passed = true;
     const mismatches: string[] = [];
-    for (const name of this.outputMap.keys()) {
-      if (!(name in testCase.expected)) continue;
-      if (actuals[name] !== testCase.expected[name]) {
+    for (const [name, expected] of Object.entries(testCase.expected)) {
+      const actual = actuals[name];
+      if (actual === undefined || actual === null || actual !== expected) {
         passed = false;
-        mismatches.push(`${name}: expected ${testCase.expected[name]}, got ${actuals[name]}`);
+        mismatches.push(`${name}: expected ${expected}, got ${actual ?? 'null'}`);
       }
     }
 

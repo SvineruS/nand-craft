@@ -1,4 +1,4 @@
-import { useEditorState } from '../editorStore.ts';
+import { useEditorState, testEditorVisible } from '../editorStore.ts';
 import { getEditor } from '../../circuit-builder/editorInstance.ts';
 import { WIRE_COLORS } from "../../circuit-builder/editor/consts.ts";
 
@@ -29,6 +29,9 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
       <button class="toolbar-btn" title="Ctrl+Z" onClick={onUndo}>Undo</button>
       <button class="toolbar-btn" title="Ctrl+Shift+Z" onClick={onRedo}>Redo</button>
       <button class="toolbar-btn" title="Reset level to default" onClick={onResetLevel}>Reset</button>
+      {level.customTests && (
+        <button class="toolbar-btn" title="Open test editor" onClick={() => { testEditorVisible.value = !testEditorVisible.value; }}>Tests</button>
+      )}
 
       <div class="toolbar-separator" />
 

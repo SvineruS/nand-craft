@@ -47,6 +47,8 @@ export interface Level {
   gateConstraints?: GateConstraints;
   prerequisites: LevelId[];
   mapPosition: Vec2;
+  /** Allow user to edit tests via the test editor. */
+  customTests?: boolean;
 }
 
 // ---------------------------------------------------------------------------

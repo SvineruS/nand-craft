@@ -7,6 +7,7 @@ import { Sidebar } from '../components/Sidebar.tsx';
 import { TestPanel } from '../components/TestPanel.tsx';
 import { LevelDialog } from '../components/LevelDialog.tsx';
 import { LevelCompleteDialog } from '../components/LevelCompleteDialog.tsx';
+import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
 import { useEditorCallbacks } from '../useEditorCallbacks.ts';
 import { notifyStateChange } from '../editorStore.ts';
 import { switchToLevelMap } from '../screenManager.ts';
@@ -85,6 +86,7 @@ export function CircuitBuilderScreen() {
         <Sidebar onStamp={cb.handleStamp} onDragStart={cb.handleDragStart} onDragEnd={cb.handleDragEnd}/>
       </div>
       <LevelDialog/>
+      <TestEditorDialog/>
       {cb.showLevelComplete && (
         <LevelCompleteDialog
           onLevelMap={() => {
