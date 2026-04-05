@@ -359,6 +359,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'output', x: 2, y: 6, bitWidth: 1 },
       { kind: 'output', x: 2, y: 7, bitWidth: 1 },
     ],
+    svg: SVG.SPLITTER,
   },
   joiner: {
     label: 'JON', description: '8-bit bus joiner', width: 2, height: 7, placeable: true,
@@ -374,6 +375,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 7, bitWidth: 1 },
       { kind: 'output', x: 2, y: 3, bitWidth: 8 },
     ],
+    svg: SVG.JOINER,
   },
   component: {
     label: 'CMP', description: 'Component', width: 3, height: 3,

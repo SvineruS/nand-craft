@@ -23,6 +23,8 @@ import outputSvg from './svg/output.svg?raw';
 import output8bitSvg from './svg/output-8bit.svg?raw';
 import constant8bitSvg from './svg/constant-8bit.svg?raw';
 import constant16bitSvg from './svg/constant-16bit.svg?raw';
+import splitterSvg from './svg/splitter.svg?raw';
+import joinerSvg from './svg/joiner.svg?raw';
 
 function extractPath(svg: string): string {
   const match = svg.match(/\bd="([^"]*)"/);
@@ -52,3 +54,5 @@ export const OUTPUT = extractPath(outputSvg);
 export const OUTPUT_8BIT = extractPath(output8bitSvg);
 export const CONSTANT_8BIT = extractPath(constant8bitSvg);
 export const CONSTANT_16BIT = extractPath(constant16bitSvg);
+export const SPLITTER = extractPath(splitterSvg);
+export const JOINER = extractPath(joinerSvg);

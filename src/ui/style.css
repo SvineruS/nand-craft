@@ -189,6 +189,18 @@ body {
   font-weight: 400;
 }
 
+.sidebar-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-item-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
 .sidebar-item-label {
   color: var(--text);
   font-size: 12px;

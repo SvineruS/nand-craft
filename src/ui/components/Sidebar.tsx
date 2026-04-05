@@ -79,11 +79,23 @@ function GateSidebar(
         if (!didDrag.current && !atLimit) onStamp(type);
       }}
     >
-      <div class="sidebar-item-label">
-        {def.label}
-        {maxCount !== undefined && <span class="sidebar-item-count"> {currentCount}/{maxCount}</span>}
+      <div class="sidebar-item-row">
+        {def.svg && (
+          <svg
+            class="sidebar-item-icon"
+            viewBox={`0 0 ${def.width} ${def.height}`}
+          >
+            <path d={def.svg} fill={def.color ?? '#444'} stroke={def.stroke ?? '#888'} stroke-width="0.08" />
+          </svg>
+        )}
+        <div>
+          <div class="sidebar-item-label">
+            {def.label}
+            {maxCount !== undefined && <span class="sidebar-item-count"> {currentCount}/{maxCount}</span>}
+          </div>
+          <div class="sidebar-item-desc">{def.description}</div>
+        </div>
       </div>
-      <div class="sidebar-item-desc">{def.description}</div>
     </div>
   );
 }
