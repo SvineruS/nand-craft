@@ -15,8 +15,8 @@ export interface Gate {
   status?: 'locked' | 'available' | 'solved';
 }
 
-const INPUT_TYPES = new Set<GateType>(['input', 'input-8bit', 'input-16bit']);
-const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit']);
+const INPUT_TYPES = new Set<GateType>(['input', 'input-8bit', 'input-16bit', 'input-sw', 'input-8bit-sw', 'input-16bit-sw']);
+const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit', 'output-sw', 'output-8bit-sw', 'output-16bit-sw']);
 
 const CONSTANT_TYPES = new Set<GateType>(['constant', 'constant-8bit', 'constant-16bit']);
 
@@ -67,8 +67,14 @@ export type GateType =
   | 'input'
   | 'input-8bit'
   | 'input-16bit'
+  | 'input-sw'
+  | 'input-8bit-sw'
+  | 'input-16bit-sw'
   | 'output'
   | 'output-8bit'
   | 'output-16bit'
+  | 'output-sw'
+  | 'output-8bit-sw'
+  | 'output-16bit-sw'
   | 'component'
   | 'level';

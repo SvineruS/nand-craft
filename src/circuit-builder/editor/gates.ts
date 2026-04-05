@@ -17,7 +17,6 @@ export interface GateDefinition {
   height: number;  // grid units
   pins: PinDef[];
   svg?: string;    // SVG path data scaled to width×height grid units
-  placeable?: boolean; // show in sidebar (default false)
   color?: string;  // fill color for the gate body
   stroke?: string; // stroke color for the gate outline
   labelX?: number; // label x offset in grid units from center (default 0)
@@ -27,8 +26,7 @@ export interface GateDefinition {
 
 const GATE_DEFS: Record<GateType, GateDefinition> = {
   nand: {
-    label: 'NAND', description: 'Bitwise NAND gate', width: 3, height: 2, placeable: true,
-    color: '#3b2d50', stroke: '#7c5aad',
+    label: 'NAND', description: 'Bitwise NAND gate', width: 3, height: 2,    color: '#3b2d50', stroke: '#7c5aad',
     pins: [
       { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
@@ -37,8 +35,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.NAND,
   },
   and: {
-    label: 'AND', description: 'Bitwise AND gate', width: 3, height: 2, placeable: true,
-    color: '#2d3a50', stroke: '#5a8aad',
+    label: 'AND', description: 'Bitwise AND gate', width: 3, height: 2,    color: '#2d3a50', stroke: '#5a8aad',
     pins: [
       { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
@@ -47,8 +44,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.AND,
   },
   or: {
-    label: 'OR', description: 'Bitwise OR gate', width: 3, height: 2, placeable: true,
-    color: '#2d4a3a', stroke: '#5aad7c',
+    label: 'OR', description: 'Bitwise OR gate', width: 3, height: 2,    color: '#2d4a3a', stroke: '#5aad7c',
     pins: [
       { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
@@ -57,8 +53,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.OR,
   },
   nor: {
-    label: 'NOR', description: 'Bitwise NOR gate', width: 3, height: 2, placeable: true,
-    color: '#3a2d4a', stroke: '#8a5aad',
+    label: 'NOR', description: 'Bitwise NOR gate', width: 3, height: 2,    color: '#3a2d4a', stroke: '#8a5aad',
     pins: [
       { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
@@ -67,8 +62,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.NOR,
   },
   xor: {
-    label: 'XOR', description: 'Bitwise XOR gate', width: 3, height: 2, placeable: true,
-    color: '#2d4a50', stroke: '#5aadbd',
+    label: 'XOR', description: 'Bitwise XOR gate', width: 3, height: 2,    color: '#2d4a50', stroke: '#5aadbd',
     pins: [
       { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
@@ -77,8 +71,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.XOR,
   },
   xnor: {
-    label: 'XNOR', description: 'Bitwise XNOR gate', width: 3, height: 2, placeable: true,
-    color: '#3a4a2d', stroke: '#8aad5a',
+    label: 'XNOR', description: 'Bitwise XNOR gate', width: 3, height: 2,    color: '#3a4a2d', stroke: '#8aad5a',
     pins: [
       { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 2 },
@@ -87,8 +80,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.XNOR,
   },
   not: {
-    label: 'NOT', description: 'Inverter', width: 2, height: 2, placeable: true,
-    color: '#4a2d3a', stroke: '#ad5a7c', labelX: -0.3,
+    label: 'NOT', description: 'Inverter', width: 2, height: 2,    color: '#4a2d3a', stroke: '#ad5a7c', labelX: -0.3,
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'output', x: 2, y: 1 },
@@ -96,8 +88,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.NOT,
   },
   '8bit-or': {
-    label: 'OR8', description: '8-bit OR gate', width: 3, height: 2, placeable: true,
-    color: '#2d4a3a', stroke: '#5aad7c',
+    label: 'OR8', description: '8-bit OR gate', width: 3, height: 2,    color: '#2d4a3a', stroke: '#5aad7c',
     pins: [
       { kind: 'input', x: 0, y: 0, bitWidth: 8 },
       { kind: 'input', x: 0, y: 2, bitWidth: 8 },
@@ -106,8 +97,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.OR,
   },
   '8bit-nor': {
-    label: 'NOR8', description: '8-bit NOR gate', width: 3, height: 2, placeable: true,
-    color: '#3a2d4a', stroke: '#8a5aad',
+    label: 'NOR8', description: '8-bit NOR gate', width: 3, height: 2,    color: '#3a2d4a', stroke: '#8a5aad',
     pins: [
       { kind: 'input', x: 0, y: 0, bitWidth: 8 },
       { kind: 'input', x: 0, y: 2, bitWidth: 8 },
@@ -116,8 +106,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.NOR,
   },
   '8bit-not': {
-    label: 'NOT8', description: '8-bit inverter', width: 2, height: 2, placeable: true,
-    color: '#4a2d3a', stroke: '#ad5a7c', labelX: -0.3,
+    label: 'NOT8', description: '8-bit inverter', width: 2, height: 2,    color: '#4a2d3a', stroke: '#ad5a7c', labelX: -0.3,
     pins: [
       { kind: 'input', x: 0, y: 1, bitWidth: 8 },
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
@@ -125,8 +114,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.NOT,
   },
   '3bit-or': {
-    label: 'OR3', description: '3-input OR gate', width: 3, height: 2, placeable: true,
-    color: '#2d4a3a', stroke: '#5aad7c',
+    label: 'OR3', description: '3-input OR gate', width: 3, height: 2,    color: '#2d4a3a', stroke: '#5aad7c',
     pins: [
       { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 1 },
@@ -136,8 +124,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.OR,
   },
   '3bit-and': {
-    label: 'AND3', description: '3-input AND gate', width: 3, height: 2, placeable: true,
-    color: '#2d3a50', stroke: '#5a8aad',
+    label: 'AND3', description: '3-input AND gate', width: 3, height: 2,    color: '#2d3a50', stroke: '#5a8aad',
     pins: [
       { kind: 'input', x: 0, y: 0 },
       { kind: 'input', x: 0, y: 1 },
@@ -147,8 +134,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.AND,
   },
   '2bit-adder': {
-    label: 'HA', description: 'Half adder', width: 3, height: 3, placeable: true,
-    color: '#50402d', stroke: '#ad8a5a',
+    label: 'HA', description: 'Half adder', width: 3, height: 3,    color: '#50402d', stroke: '#ad8a5a',
     pins: [
       { kind: 'input', x: 0, y: 0, label: 'A' },
       { kind: 'input', x: 0, y: 3, label: 'B' },
@@ -158,8 +144,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.ADDER,
   },
   '3bit-adder': {
-    label: 'FA', description: 'Full adder', width: 3, height: 3, placeable: true,
-    color: '#50402d', stroke: '#ad8a5a',
+    label: 'FA', description: 'Full adder', width: 3, height: 3,    color: '#50402d', stroke: '#ad8a5a',
     pins: [
       { kind: 'input', x: 0, y: 0, label: 'A' },
       { kind: 'input', x: 0, y: 1.5, label: 'B' },
@@ -170,8 +155,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.ADDER,
   },
   '1bit-decoder': {
-    label: 'DEC1', description: '1-to-2 decoder', width: 2, height: 2, placeable: true,
-    color: '#402d50', stroke: '#8a5aad',
+    label: 'DEC1', description: '1-to-2 decoder', width: 2, height: 2,    color: '#402d50', stroke: '#8a5aad',
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'output', x: 2, y: 0, label: '0' },
@@ -180,8 +164,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.DECODER_2,
   },
   '3bit-decoder': {
-    label: 'DEC3', description: '3-to-8 decoder', width: 2, height: 8, placeable: true,
-    color: '#402d50', stroke: '#8a5aad',
+    label: 'DEC3', description: '3-to-8 decoder', width: 2, height: 8,    color: '#402d50', stroke: '#8a5aad',
     pins: [
       { kind: 'input', x: 0, y: 1, label: 'A' },
       { kind: 'input', x: 0, y: 2, label: 'B' },
@@ -198,8 +181,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.DECODER_8,
   },
   '8bit-negative': {
-    label: 'NEG', description: '8-bit negate', width: 2, height: 2, placeable: true,
-    color: '#502d2d', stroke: '#ad5a5a', labelX: -0.3,
+    label: 'NEG', description: '8-bit negate', width: 2, height: 2,    color: '#502d2d', stroke: '#ad5a5a', labelX: -0.3,
     pins: [
       { kind: 'input', x: 0, y: 1, bitWidth: 8 },
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
@@ -207,8 +189,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.NEGATE,
   },
   switch: {
-    label: 'MUX', description: '2-to-1 multiplexer', width: 3, height: 3, placeable: true,
-    color: '#4a4a2d', stroke: '#adad5a',
+    label: 'MUX', description: '2-to-1 multiplexer', width: 3, height: 3,    color: '#4a4a2d', stroke: '#adad5a',
     pins: [
       { kind: 'input', x: 1, y: 0, label: 'S', bitWidth: 1 },
       { kind: 'input', x: 0, y: 1, label: 'A' },
@@ -218,8 +199,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.MUX,
   },
   delay: {
-    label: 'DLY', description: '1-tick delay', width: 3, height: 2, placeable: true,
-    color: '#4a3a2d', stroke: '#ad8a5a',
+    label: 'DLY', description: '1-tick delay', width: 3, height: 2,    color: '#4a3a2d', stroke: '#ad8a5a',
     pins: [
       { kind: 'input', x: 0, y: 1 },
       { kind: 'output', x: 3, y: 1 },
@@ -227,8 +207,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.DELAY,
   },
   'rs-latch': {
-    label: 'RS', description: 'RS latch', width: 3, height: 3, placeable: true,
-    color: '#4a3a2d', stroke: '#ad8a5a',
+    label: 'RS', description: 'RS latch', width: 3, height: 3,    color: '#4a3a2d', stroke: '#ad8a5a',
     pins: [
       { kind: 'input', x: 0, y: 0, label: 'S' },
       { kind: 'input', x: 0, y: 3, label: 'R' },
@@ -237,8 +216,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.BOX_3x3,
   },
   '8bit-memory': {
-    label: 'MEM', description: '8-bit register', width: 3, height: 3, placeable: true,
-    color: '#3a4a3a', stroke: '#7aad7a',
+    label: 'MEM', description: '8-bit register', width: 3, height: 3,    color: '#3a4a3a', stroke: '#7aad7a',
     pins: [
       { kind: 'input', x: 0, y: 1, label: 'D', bitWidth: 8 },
       { kind: 'input', x: 1, y: 0, label: 'W', bitWidth: 1 },
@@ -247,16 +225,14 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.BOX_3x3,
   },
   '8bit-counter': {
-    label: 'CTR', description: '8-bit counter', width: 3, height: 2, placeable: true,
-    color: '#3a3a4a', stroke: '#7a7aad',
+    label: 'CTR', description: '8-bit counter', width: 3, height: 2,    color: '#3a3a4a', stroke: '#7a7aad',
     pins: [
       { kind: 'output', x: 3, y: 1, label: 'Q', bitWidth: 8 },
     ],
     svg: SVG.COUNTER,
   },
   '8bit-counter-reset': {
-    label: 'CRST', description: '8-bit counter with reset', width: 3, height: 2, placeable: true,
-    color: '#3a3a4a', stroke: '#7a7aad',
+    label: 'CRST', description: '8-bit counter with reset', width: 3, height: 2,    color: '#3a3a4a', stroke: '#7a7aad',
     pins: [
       { kind: 'input', x: 0, y: 1, label: 'R', bitWidth: 1 },
       { kind: 'output', x: 3, y: 1, label: 'Q', bitWidth: 8 },
@@ -264,8 +240,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.COUNTER,
   },
   tristate: {
-    label: 'TRI', description: 'Tri-state buffer', width: 2, height: 2, placeable: true,
-    color: '#2d4a4a', stroke: '#5aadad', labelX: -0.3,
+    label: 'TRI', description: 'Tri-state buffer', width: 2, height: 2,    color: '#2d4a4a', stroke: '#5aadad', labelX: -0.3,
     pins: [
       { kind: 'input', x: 0, y: 1, label: 'in' },
       { kind: 'input', x: 1, y: 0, label: 'en', bitWidth: 1 },
@@ -274,80 +249,124 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.TRISTATE,
   },
   constant: {
-    label: 'C', description: 'Constant value', width: 2, height: 2, placeable: true,
-    color: '#3a3a2d', stroke: '#8a8a5a',
+    label: 'C', description: 'Constant value', width: 2, height: 2,    color: '#3a3a2d', stroke: '#8a8a5a',
     pins: [
       { kind: 'output', x: 2, y: 1 },
     ],
     svg: SVG.BOX_2x2,
   },
   'constant-8bit': {
-    label: 'C8', description: '8-bit constant value', width: 2, height: 2, placeable: true,
-    color: '#3a3a2d', stroke: '#8a8a5a',
+    label: 'C8', description: '8-bit constant value', width: 2, height: 2,    color: '#3a3a2d', stroke: '#8a8a5a',
     pins: [
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
     ],
     svg: SVG.CONSTANT_8BIT,
   },
   'constant-16bit': {
-    label: 'C16', description: '16-bit constant value', width: 2, height: 2, placeable: true,
-    color: '#3a3a2d', stroke: '#8a8a5a',
+    label: 'C16', description: '16-bit constant value', width: 2, height: 2,    color: '#3a3a2d', stroke: '#8a8a5a',
     pins: [
       { kind: 'output', x: 2, y: 1, bitWidth: 16 },
     ],
     svg: SVG.CONSTANT_16BIT,
   },
   input: {
-    label: 'IN', description: 'Level input', width: 2, height: 2,
-    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
+    label: 'IN', description: 'Level input', width: 2, height: 2,    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
     pins: [
       { kind: 'output', x: 2, y: 1 },
     ],
     svg: SVG.INPUT,
   },
   'input-8bit': {
-    label: 'IN8', description: '8-bit level input', width: 2, height: 2,
-    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
+    label: 'IN8', description: '8-bit level input', width: 2, height: 2,    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
     pins: [
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
     ],
     svg: SVG.INPUT_8BIT,
   },
   'input-16bit': {
-    label: 'IN16', description: '16-bit level input', width: 2, height: 2,
-    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
+    label: 'IN16', description: '16-bit level input', width: 2, height: 2,    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
     pins: [
       { kind: 'output', x: 2, y: 1, bitWidth: 16 },
     ],
     svg: SVG.INPUT_8BIT,
   },
   output: {
-    label: 'OUT', description: 'Level output', width: 2, height: 2,
-    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
+    label: 'OUT', description: 'Level output', width: 2, height: 2,    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
     pins: [
       { kind: 'input', x: 0, y: 1 },
     ],
     svg: SVG.OUTPUT,
   },
   'output-8bit': {
-    label: 'OUT8', description: '8-bit level output', width: 2, height: 2,
-    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
+    label: 'OUT8', description: '8-bit level output', width: 2, height: 2,    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
     pins: [
       { kind: 'input', x: 0, y: 1, bitWidth: 8 },
     ],
     svg: SVG.OUTPUT_8BIT,
   },
   'output-16bit': {
-    label: 'OUT16', description: '16-bit level output', width: 2, height: 2,
-    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
+    label: 'OUT16', description: '16-bit level output', width: 2, height: 2,    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
     pins: [
       { kind: 'input', x: 0, y: 1, bitWidth: 16 },
     ],
     svg: SVG.OUTPUT_8BIT,
   },
+  'input-sw': {
+    label: 'IN', description: 'Switch input', width: 2, height: 2,
+    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
+    pins: [
+      { kind: 'input', x: 1, y: 2, label: 'en', bitWidth: 1 },
+      { kind: 'output', x: 2, y: 1 },
+    ],
+    svg: SVG.INPUT_SW,
+  },
+  'input-8bit-sw': {
+    label: 'IN8', description: '8-bit switch input', width: 2, height: 2,
+    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
+    pins: [
+      { kind: 'input', x: 1, y: 2, label: 'en', bitWidth: 1 },
+      { kind: 'output', x: 2, y: 1, bitWidth: 8 },
+    ],
+    svg: SVG.INPUT_8BIT_SW,
+  },
+  'input-16bit-sw': {
+    label: 'IN16', description: '16-bit switch input', width: 2, height: 2,
+    color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
+    pins: [
+      { kind: 'input', x: 1, y: 2, label: 'en', bitWidth: 1 },
+      { kind: 'output', x: 2, y: 1, bitWidth: 16 },
+    ],
+    svg: SVG.INPUT_8BIT_SW,
+  },
+  'output-sw': {
+    label: 'OUT', description: 'Switch output', width: 2, height: 2,
+    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
+    pins: [
+      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 1, y: 2, label: 'en', bitWidth: 1 },
+    ],
+    svg: SVG.OUTPUT_SW,
+  },
+  'output-8bit-sw': {
+    label: 'OUT8', description: '8-bit switch output', width: 2, height: 2,
+    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
+    pins: [
+      { kind: 'input', x: 0, y: 1, bitWidth: 8 },
+      { kind: 'input', x: 1, y: 2, label: 'en', bitWidth: 1 },
+    ],
+    svg: SVG.OUTPUT_8BIT_SW,
+  },
+  'output-16bit-sw': {
+    label: 'OUT16', description: '16-bit switch output', width: 2, height: 2,
+    color: '#3d2d50', stroke: '#8a5abd', labelX: 0.1,
+    pins: [
+      { kind: 'input', x: 0, y: 1, bitWidth: 16 },
+      { kind: 'input', x: 1, y: 2, label: 'en', bitWidth: 1 },
+    ],
+    svg: SVG.OUTPUT_8BIT_SW,
+  },
   splitter: {
-    label: 'SPL', description: '8-bit bus splitter', width: 2, height: 7, placeable: true,
-    color: '#2d4040', stroke: '#5a9090',
+    label: 'SPL', description: '8-bit bus splitter', width: 2, height: 7,    color: '#2d4040', stroke: '#5a9090',
     pins: [
       { kind: 'input', x: 0, y: 3, bitWidth: 8 },
       { kind: 'output', x: 2, y: 0, bitWidth: 1 },
@@ -362,8 +381,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.SPLITTER,
   },
   joiner: {
-    label: 'JON', description: '8-bit bus joiner', width: 2, height: 7, placeable: true,
-    color: '#40402d', stroke: '#90905a',
+    label: 'JON', description: '8-bit bus joiner', width: 2, height: 7,    color: '#40402d', stroke: '#90905a',
     pins: [
       { kind: 'input', x: 0, y: 0, bitWidth: 1 },
       { kind: 'input', x: 0, y: 1, bitWidth: 1 },

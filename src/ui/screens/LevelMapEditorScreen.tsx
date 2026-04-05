@@ -79,7 +79,8 @@ export function LevelMapEditorScreen() {
     if (s) s.mode = { kind: 'normal' };
   }
 
-  const sidebarEntries = getAllGateDefinitions().filter(([, def]) => def.placeable);
+  const NON_PLACEABLE = new Set(['component', 'level']);
+  const sidebarEntries = getAllGateDefinitions().filter(([type]) => !NON_PLACEABLE.has(type));
 
   return (
     <>

@@ -23,6 +23,12 @@ const CATEGORIES: Category[] = [
   { label: 'Routing', types: ['switch', 'tristate', '1bit-decoder', '3bit-decoder', 'splitter', 'joiner'] },
   { label: 'Memory', types: ['delay', 'rs-latch', '8bit-memory', '8bit-counter', '8bit-counter-reset'] },
   { label: 'Constants', types: ['constant', 'constant-8bit', 'constant-16bit'] },
+  { label: 'I/O', types: [
+    'input', 'input-8bit', 'input-16bit',
+    'input-sw', 'input-8bit-sw', 'input-16bit-sw',
+    'output', 'output-8bit', 'output-16bit',
+    'output-sw', 'output-8bit-sw', 'output-16bit-sw',
+  ]},
 ];
 
 export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
@@ -31,10 +37,7 @@ export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
   const constraints = level?.gateConstraints;
   const editorState = useEditorState();
 
-  const isAllowed = (type: GateType) => {
-    const def = getGateDefinition(type);
-    return def.placeable && isGateAllowed(type, constraints);
-  };
+  const isAllowed = (type: GateType) => isGateAllowed(type, constraints);
 
   // Recent section
   const recentTypes = editorState.recentGateTypes.filter(isAllowed);

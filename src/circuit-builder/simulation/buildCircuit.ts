@@ -676,9 +676,15 @@ function evaluateGate(simState: SimulationState, gate: Gate): void {
     case 'input':
     case 'input-8bit':
     case 'input-16bit':
+    case 'input-sw':
+    case 'input-8bit-sw':
+    case 'input-16bit-sw':
     case 'output':
     case 'output-8bit':
-    case 'output-16bit': {
+    case 'output-16bit':
+    case 'output-sw':
+    case 'output-8bit-sw':
+    case 'output-16bit-sw': {
       if (isInputGate(gate.type)) {
         const enableValue = readInputNullable(simState, gate, 0);
         if (enableValue === 0) {
