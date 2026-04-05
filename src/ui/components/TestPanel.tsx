@@ -10,10 +10,11 @@ interface TestPanelProps {
   onReset: () => void;
   onStep: () => void;
   onRunAll: () => void;
+  onPause: () => void;
   onExecuteCommand: (cmd: Command) => void;
 }
 
-export function TestPanel({ onReset, onStep, onRunAll, onExecuteCommand }: TestPanelProps) {
+export function TestPanel({ onReset, onStep, onRunAll, onPause, onExecuteCommand }: TestPanelProps) {
   stateVersion.value; // subscribe to updates
   const editor = getEditor();
   const { level, results, queueResults } = editor.tests;
@@ -61,9 +62,15 @@ export function TestPanel({ onReset, onStep, onRunAll, onExecuteCommand }: TestP
           <button class="test-panel-btn" title="Next test case" onClick={onStep}>
             {'\u25B6| Step'}
           </button>
-          <button class="test-panel-btn" title="Run all cases" onClick={onRunAll}>
-            {'\u25B6\u25B6 Run All'}
-          </button>
+          {editor.tests.running ? (
+            <button class="test-panel-btn" title="Pause" onClick={onPause}>
+              {'\u275A\u275A Pause'}
+            </button>
+          ) : (
+            <button class="test-panel-btn" title="Run all cases" onClick={onRunAll}>
+              {'\u25B6\u25B6 Run All'}
+            </button>
+          )}
         </div>
         <button class="test-panel-btn" title="Reset tests" style={{ width: '100%' }} onClick={onReset}>
           {'\u21BA Reset'}

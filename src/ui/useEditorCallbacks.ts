@@ -100,6 +100,11 @@ export function useEditorCallbacks() {
     notifyStateChange();
   }, []);
 
+  const handlePause = useCallback(() => {
+    getEditor().tests.cancelRunAll();
+    notifyStateChange();
+  }, []);
+
   const handleRunAll = useCallback(() => {
     const { tests } = getEditor();
     if (tests.mode === 'queue') {
@@ -129,5 +134,6 @@ export function useEditorCallbacks() {
     handleReset,
     handleStep,
     handleRunAll,
+    handlePause,
   };
 }

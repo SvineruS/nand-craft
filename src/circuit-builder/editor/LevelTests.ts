@@ -114,6 +114,7 @@ export class LevelTests {
     this.inputQueues.clear();
 
     this.applyInputs(0);
+    this.tickCount = 0; // Reset after applyInputs (which increments it)
   }
 
   /** Run next test case. Returns null if already finished. */
@@ -128,13 +129,18 @@ export class LevelTests {
     return result;
   }
 
-  /** Run all cases with animated stepping. Stops on first failure. */
+  /** Run all cases with animated stepping. Stops on first failure. Resumes if paused. */
   runAllAnimated(onStep: () => void, onComplete: () => void): void {
     this.cancelRunAll();
     if (this.caseCount === 0) return;
 
-    this.caseIndex = -1;
-    this.results = [];
+    // Only reset if starting fresh (not resuming from pause)
+    const resuming = this.caseIndex >= 0 && !this.finished;
+    if (!resuming) {
+      this.caseIndex = -1;
+      this.results = [];
+      this.tickCount = 0;
+    }
     let stopping = false;
 
     this.runAllInterval = setInterval(() => {
@@ -177,6 +183,7 @@ export class LevelTests {
       caseName: boundaryMap.get(i),
     }));
     this.queueCommandIndex = 0;
+    this.tickCount = 0;
     this.inputQueues.clear();
 
 
@@ -338,6 +345,10 @@ export class LevelTests {
     this.inputMap = buildLabelMap(this.editor, 'input');
     this.outputMap = buildLabelMap(this.editor, 'output');
     this.reset();
+  }
+
+  get running(): boolean {
+    return this.runAllInterval !== null;
   }
 
   cancelRunAll(): void {

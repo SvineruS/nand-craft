@@ -94,6 +94,7 @@ export function CircuitBuilderScreen() {
           onReset={cb.handleReset}
           onStep={cb.handleStep}
           onRunAll={cb.handleRunAll}
+          onPause={cb.handlePause}
           onExecuteCommand={cb.handleExecuteCommand}
         />
         <div id="editor-container" ref={containerRef}/>
