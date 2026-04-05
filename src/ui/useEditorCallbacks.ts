@@ -43,6 +43,7 @@ export function useEditorCallbacks() {
   }, []);
 
   const handleResetLevel = useCallback(() => {
+    if (!confirm('Reset level to default? All changes will be lost.')) return;
     const editor = getEditor();
     editor.resetLevel();
     editor.tests.reset();
