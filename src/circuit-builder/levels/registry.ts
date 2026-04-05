@@ -9,6 +9,7 @@ import or from './defs/or.ts';
 import alwaysOn from './defs/always-on.ts';
 import xor from './defs/xor.ts';
 import xnor from './defs/xnor.ts';
+import parity from './defs/parity.ts';
 import or3 from './defs/3bit-or.ts';
 import and3 from './defs/3bit-and.ts';
 import mot8 from './defs/8bit-not.ts';
@@ -26,6 +27,7 @@ import decoder3 from './defs/3bit-decoder.ts';
 import neg8 from './defs/8bit-negative.ts';
 import delay from './defs/delay.ts';
 import rsLatch from './defs/rs-latch.ts';
+import memory1 from './defs/1bit-memory.ts';
 import memory8 from './defs/8bit-memory.ts';
 import counter8 from './defs/8bit-counter.ts';
 import counterReset8 from './defs/8bit-counter-reset.ts';
@@ -41,6 +43,7 @@ export const LEVELS: Level[] = [
   alwaysOn,
   xor,
   xnor,
+  parity,
   or3,
   and3,
   mot8,
@@ -58,6 +61,7 @@ export const LEVELS: Level[] = [
   neg8,
   delay,
   rsLatch,
+  memory1,
   memory8,
   counter8,
   counterReset8,

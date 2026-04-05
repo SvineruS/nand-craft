@@ -56,6 +56,7 @@ function setSourceOutputs(circuit: Circuit, simState: SimulationState, inputs: M
     switch (gate.type) {
       case 'delay':
       case 'rs-latch':
+      case '1bit-memory':
       case '8bit-memory':
       case '8bit-counter':
       case '8bit-counter-reset': {
@@ -87,6 +88,7 @@ function advanceSequentialState(circuit: Circuit, simState: SimulationState): vo
         gate.state = q;
         break;
       }
+      case '1bit-memory':
       case '8bit-memory': {
         const dKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 0 });
         const wKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 1 });

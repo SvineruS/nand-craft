@@ -17,7 +17,7 @@ const level: Level = {
     { type: 'input-8bit', pos: { x: 2, y: 7 }, label: 'B', canRemove: false },
     { type: 'output-8bit', pos: { x: 29, y: 5 }, label: 'Out', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', '8bit-not', '8bit-negative', '2bit-adder', '3bit-adder', 'constant', 'constant-8bit', 'splitter', 'joiner'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', '8bit-not', '8bit-adder', '8bit-negative', '2bit-adder', '3bit-adder', 'constant', 'constant-8bit', 'splitter', 'joiner'] },
   test: {
     name: '8-bit Subtractor',
     description: 'Subtract two 8-bit numbers',

@@ -58,11 +58,14 @@ const MUX_SHAPE    = 'M 0,0 L 2,0.5 L 2,1.5 L 0,2 Z';
 // Modifiers
 const INPUT_8BIT_MARKS  = ' M 1.38,0.14 L 1.88,0.94 M 1.88,1.06 L 1.38,1.86';
 const OUTPUT_8BIT_MARKS = ' M 0.62,0.14 L 0.12,0.94 M 0.12,1.06 L 0.62,1.86';
-const CONST_8BIT_MARK   = ' M 1.78,0.36 L 1.78,1.64';
-const CONST_16BIT_MARK  = ' M 1.78,0.36 L 1.78,1.64 M 1.86,0.36 L 1.86,1.64';
-const MUX_8BIT_MARKS    = ' M 0.06,0 L 0.06,2 M 0.12,0 L 0.12,2';
+const CONST_8BIT_MARK   = ' M 1.8,0.4 L 1.8,1.6';
+const CONST_16BIT_MARK  = ' M 1.8,0.4 L 1.8,1.6 M 1.9,0.4 L 1.9,1.6';
+const MUX_8BIT_MARKS    = ' M -0.15,0.1 L -0.15,1.9';
 const MUX_LINE_A        = ' M 1,1 L 0.15,0.15';
 const MUX_LINE_B        = ' M 1,1 L 0.15,1.85';
+
+// NOT 8-bit variant (bus mark on input side)
+export const NOT_8BIT = NOT + ' M 0.1,0.4 L 0.1,1.6';
 
 // --- Composed gate SVGs ---
 

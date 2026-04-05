@@ -280,6 +280,7 @@ body {
 .test-panel {
   width: fit-content;
   min-width: 160px;
+  max-width: 360px;
   background: var(--bg);
   border-right: 1px solid var(--border);
   display: flex;

@@ -19,7 +19,7 @@ const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit',
 
 const CONSTANT_TYPES = new Set<GateType>(['constant', 'constant-8bit', 'constant-16bit']);
 
-const SEQUENTIAL_TYPES = new Set<GateType>(['delay', 'rs-latch', '8bit-memory', '8bit-counter', '8bit-counter-reset']);
+const SEQUENTIAL_TYPES = new Set<GateType>(['delay', 'rs-latch', '1bit-memory', '8bit-memory', '8bit-counter', '8bit-counter-reset']);
 
 export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(type); }
 export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
@@ -54,11 +54,13 @@ export type GateType =
   | '1bit-decoder'
   | '3bit-decoder'
   | '8bit-negative'
+  | '8bit-adder'
   | '8bit-subtractor'
   | '8bit-mux'
   | 'mux'
   | 'delay'
   | 'rs-latch'
+  | '1bit-memory'
   | '8bit-memory'
   | '8bit-counter'
   | '8bit-counter-reset'

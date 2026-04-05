@@ -19,7 +19,7 @@ const COMBINATIONAL_TYPES = new Set([
   '3bit-or', '3bit-and',
   '2bit-adder', '3bit-adder',
   '1bit-decoder', '3bit-decoder',
-  '8bit-negative', '8bit-subtractor',
+  '8bit-adder', '8bit-negative', '8bit-subtractor',
   'mux', '8bit-mux', 'constant', 'constant-8bit', 'constant-16bit', 'tristate', 'splitter', 'joiner',
   // Switch IO gates need evaluation to check enable pin after net resolution
   'input-sw', 'input-8bit-sw', 'input-16bit-sw',
@@ -630,6 +630,15 @@ function evaluateGate(simState: SimulationState, gate: Gate): void {
       for (let i = 0; i < outputCount; i++) {
         writeOutput(simState, gate, i, i === idx ? 1 : 0);
       }
+      break;
+    }
+    case '8bit-adder': {
+      const ci = readInput(simState, gate, 0);
+      const a = readInput(simState, gate, 1);
+      const b = readInput(simState, gate, 2);
+      const sum = a + b + ci;
+      writeOutput(simState, gate, 0, sum & 0xFF);
+      writeOutput(simState, gate, 1, (sum >> 8) & 1);
       break;
     }
     case '8bit-negative': {

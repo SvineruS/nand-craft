@@ -26,7 +26,7 @@ const level: Level = {
       { inputs: { A: 1 }, expected: { O0: 0, O1: 1 } },
     ],
   },
-  prerequisites: [lid('and3')],
+  prerequisites: [lid('3bit-and')],
   mapPosition: { x: 44, y: 7 },
 };
 export default level;

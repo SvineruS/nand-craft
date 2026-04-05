@@ -23,7 +23,7 @@ const level: Level = {
     { type: 'output', pos: { x: 23, y: 3 }, label: 'S', canRemove: false },
     { type: 'output', pos: { x: 23, y: 6 }, label: 'Cout', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', '2bit-adder'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', '2bit-adder', '3bit-or', '3bit-and'] },
   test: {
     name: 'Full Adder',
     description: 'Add three 1-bit numbers',
@@ -38,7 +38,7 @@ const level: Level = {
       { inputs: { A: 1, B: 1, Cin: 1 }, expected: { S: 1, Cout: 1 } },
     ],
   },
-  prerequisites: [lid('2bit-adder')],
+  prerequisites: [lid('2bit-adder'), lid('3bit-or')],
   mapPosition: { x: 52, y: 3 },
 };
 export default level;

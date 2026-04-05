@@ -17,7 +17,7 @@ const level: Level = {
     { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false },
     { type: 'output', pos: { x: 19, y: 3 }, label: 'Out', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or'] },
   test: {
     name: 'XNOR gate',
     description: 'Output 1 when inputs are the same',
