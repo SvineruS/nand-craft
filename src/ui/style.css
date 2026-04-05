@@ -551,7 +551,9 @@ body {
 }
 
 .level-dialog-btn-row {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
 }
 
 .level-dialog-start-btn {
