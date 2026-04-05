@@ -66,7 +66,7 @@ function findLeftmostAvailable(circuit: Circuit): Vec2 {
     if (gate.type !== 'level') continue;
     const center = gateCenter(gate);
     all.push(center);
-    if (gate.status === 'available') {
+    if (gate.state === 'available') {
       if (!best || center.x < best.x) {
         best = { pos: center, x: center.x };
       }

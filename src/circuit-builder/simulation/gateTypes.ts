@@ -12,7 +12,6 @@ export interface Gate {
   label?: string;
   canRemove?: boolean;
   canMove?: boolean;
-  status?: 'locked' | 'available' | 'solved';
 }
 
 const INPUT_TYPES = new Set<GateType>(['input', 'input-8bit', 'input-16bit', 'input-sw', 'input-8bit-sw', 'input-16bit-sw']);

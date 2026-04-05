@@ -67,7 +67,7 @@ function loadSavedLevelMap(
     const level = nameToLevel.get(gate.label);
     if (!level) continue;
     const status = levelStatus(level, solvedIds);
-    gate.status = status;
+    gate.state = status;
     gate.canMove = editable;
     levelGateMap.set(level.id, gate.id);
     outputPinsMap.set(gate.id, status === 'solved' ? 1 : 0);
@@ -104,7 +104,7 @@ function addMissingLevels(
       pos: { x: maxX, y: 0 },
       rotation: 0,
       label: level.name,
-      status,
+      state: status,
       canRemove: false,
       canMove: editable,
     };
@@ -138,7 +138,7 @@ function generateLevelMapCircuit(
       pos,
       rotation: 0,
       label: level.name,
-      status,
+      state: status,
       canRemove: false,
       canMove: editable,
     };

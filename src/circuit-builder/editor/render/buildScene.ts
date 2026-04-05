@@ -145,11 +145,11 @@ function buildGates(state: EditorState): RenderGate[] {
 
     let fillColor = def.color ?? COLORS.gateFill;
     let strokeColor = def.stroke ?? COLORS.gateStroke;
-    if (gate.status === 'locked') {
+    if (gate.state === 'locked') {
       fillColor = '#333345'; strokeColor = '#555568';
-    } else if (gate.status === 'available') {
+    } else if (gate.state === 'available') {
       fillColor = '#2d3d5d'; strokeColor = '#6cb4ff';
-    } else if (gate.status === 'solved') {
+    } else if (gate.state === 'solved') {
       fillColor = '#2d4d2d'; strokeColor = '#5a8a5a';
     }
 
