@@ -56,18 +56,20 @@ function loadSavedLevelMap(
   const circuit = deserializeCircuit(json);
   const levelGateMap: LevelGateMap = new Map();
 
-  // Build label → Level lookup
-  const nameToLevel = new Map<string, Level>();
-  for (const level of levels) nameToLevel.set(level.name, level);
+  // Build level ID → Level lookup
+  const idToLevel = new Map<string, Level>();
+  for (const level of levels) idToLevel.set(level.id as string, level);
 
-  // Map gates to levels by label, update statuses
+  // Map gates to levels by gate ID = level ID, update statuses
   const outputPinsMap = new Map<GateId, number>();
   for (const gate of circuit.gates.values()) {
-    if (gate.type !== 'level' || !gate.label) continue;
-    const level = nameToLevel.get(gate.label);
+    if (gate.type !== 'level') continue;
+    const level = idToLevel.get(gate.id as string);
     if (!level) continue;
     const status = levelStatus(level, solvedIds);
     gate.state = status;
+    // Use level name as label unless manually overridden
+    if (!gate.label) gate.label = level.name;
     gate.canMove = editable;
     levelGateMap.set(level.id, gate.id);
     outputPinsMap.set(gate.id, status === 'solved' ? 1 : 0);
@@ -94,7 +96,8 @@ function addMissingLevels(
   for (const level of levels) {
     if (levelGateMap.has(level.id)) continue;
 
-    const gateId = generateId('gate') as GateId;
+    // Use level ID as gate ID so the map can match them
+    const gateId = level.id as unknown as GateId;
     const status = levelStatus(level, solvedIds);
     maxX += 160;
 
@@ -124,9 +127,9 @@ function generateLevelMapCircuit(
 
   const outputPinsMap = new Map<GateId, number>();
 
-  // Create a gate for each level
+  // Create a gate for each level (gate ID = level ID)
   for (const level of levels) {
-    const gateId = generateId('gate') as GateId;
+    const gateId = level.id as unknown as GateId;
     const pos = Vec2.scale(level.mapPosition, GRID_SIZE)
 
     const status = levelStatus(level, solvedIds);

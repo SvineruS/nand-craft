@@ -18,7 +18,6 @@ import {
 import { Vec2 } from "../editor/utils/vec2.ts";
 import { hitTestGate_ } from "../editor/utils/hitTests.ts";
 import { CommandHistory } from '../editor/commands.ts';
-import { serializeCircuit } from '../persistence/serialize.ts';
 
 // ---------------------------------------------------------------------------
 // Level state management
@@ -115,9 +114,35 @@ export function getMapEditorHistory(): CommandHistory | null { return mapEditorH
 
 export function exportLevelMap(): void {
   if (!mapEditorState) return;
-  const json = serializeCircuit(mapEditorState.circuit);
-  console.log('// Paste this into src/circuit-builder/levels/levelMapData.ts as the default export:');
-  console.log(`export const LEVEL_MAP_CIRCUIT = ${json};`);
+  const circuit = mapEditorState.circuit;
+
+  // Strip runtime fields from gates so export matches the clean format
+  const STRIP_FIELDS = new Set(['state', 'canRemove', 'canMove', 'inputValues', 'outputValues', 'label']);
+  const data = {
+    version: 1,
+    gates: [...circuit.gates.entries()].map(([id, g]) => {
+      const { id: _, ...rest } = g;
+      const cleaned: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(rest)) {
+        if (STRIP_FIELDS.has(k)) continue;
+        if (k === 'rotation' && v === 0) continue; // default rotation
+        cleaned[k] = v;
+      }
+      return [id as string, cleaned];
+    }),
+    wireNodes: [...circuit.wireNodes.entries()].map(([id, n]) => {
+      const { id: _, ...rest } = n;
+      return [id as string, rest];
+    }),
+    wireSegments: [...circuit.wireSegments.entries()].map(([id, s]) => {
+      const { id: _, ...rest } = s;
+      return [id as string, rest];
+    }),
+  };
+
+  const json = JSON.stringify(data);
+  console.log('// Paste into src/circuit-builder/levels/levelMapData.ts:');
+  console.log(`export const LEVEL_MAP_CIRCUIT = ${json} as unknown as SerializedCircuit;`);
 }
 
 export function hitTestLevel(
