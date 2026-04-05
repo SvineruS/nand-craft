@@ -33,7 +33,7 @@ const CATEGORIES: Category[] = [
 
 export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
   const didDrag = useRef(false);
-  const level = getEditor().level;
+  const { level } = getEditor();
   const constraints = level?.gateConstraints;
   const editorState = useEditorState();
 

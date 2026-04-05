@@ -13,7 +13,7 @@ import { saveCircuit } from "../persistence/storage.ts";
 
 /**
  * Pure state + logic holder for the circuit editor.
- * Always associated with a level. Create via Editor.loadLevel().
+ * Can be used with a level (puzzle mode) or without (level map editor, standalone).
  */
 export class Editor {
   private state: EditorState;
@@ -21,7 +21,18 @@ export class Editor {
   readonly level: Level;
   readonly tests: LevelTests;
 
-  private constructor(level: Level, circuit: Circuit) {
+  private static readonly EMPTY_LEVEL: Level = {
+    id: '' as any,
+    name: '',
+    description: '',
+    inputs: [],
+    outputs: [],
+    test: { name: '', description: '' },
+    prerequisites: [],
+    mapPosition: { x: 0, y: 0 },
+  };
+
+  private constructor(circuit: Circuit, level: Level) {
     this.state = createEditorState();
     this.history = new CommandHistory();
     this.level = level;
@@ -33,7 +44,12 @@ export class Editor {
   /** Create an editor for a level, using a saved circuit or building from the level definition. */
   static loadLevel(level: Level, savedCircuit?: Circuit): Editor {
     const circuit = savedCircuit ?? buildLevelCircuit(level);
-    return new Editor(level, circuit);
+    return new Editor(circuit, level);
+  }
+
+  /** Create an editor without a level (e.g. level map editor). */
+  static create(circuit: Circuit): Editor {
+    return new Editor(circuit, Editor.EMPTY_LEVEL);
   }
 
   /** Reset to the level's default circuit, discarding user changes. */
@@ -103,9 +119,8 @@ export class Editor {
     this.state.renderDirty = true;
   }
 
-
-
   save() {
+    if (!this.level.id) return; // No level ID = level map editor, skip save
     saveCircuit(this.level.id, this.getCircuit());
   }
 }

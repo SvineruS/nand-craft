@@ -34,7 +34,7 @@ export class LevelTests {
   }
 
   get caseCount(): number {
-    return this.level.test.cases?.length ?? 0;
+    return this.level?.test.cases?.length ?? 0;
   }
 
   /** Re-tick with current test case inputs (no delay reset). */
