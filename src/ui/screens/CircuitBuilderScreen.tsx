@@ -56,11 +56,25 @@ export function CircuitBuilderScreen() {
     };
     window.addEventListener('resize', onResize);
 
+    // Auto-save: on tab close, tab hide, and periodic interval
+    const saveIfNeeded = () => editor.save();
+    const onBeforeUnload = () => saveIfNeeded();
+    const onVisibilityChange = () => {
+      if (document.hidden) saveIfNeeded();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    const autoSaveInterval = setInterval(saveIfNeeded, 30_000);
+
     return () => {
+      saveIfNeeded(); // Save on unmount (screen switch)
       editor.tests.cancelRunAll();
       renderer.stopLoop();
       input.detach();
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      clearInterval(autoSaveInterval);
       container.removeChild(canvas);
     };
   }, []);
