@@ -36,6 +36,7 @@ export function CircuitBuilderScreen() {
         editor.retick();
         notifyStateChange();
       },
+      () => notifyStateChange(),
     );
 
     // Input

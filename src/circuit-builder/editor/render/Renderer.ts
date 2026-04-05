@@ -61,7 +61,7 @@ export class Renderer {
     ctx.restore();
   }
 
-  startLoop(getState: () => EditorState, onCircuitDirty?: () => void, onValueDirty?: () => void): void {
+  startLoop(getState: () => EditorState, onCircuitDirty?: () => void, onValueDirty?: () => void, onStateChanged?: () => void): void {
     this.lastTime = performance.now();
     const tick = (time: number) => {
       const dt = (time - this.lastTime) / 1000;
@@ -77,8 +77,10 @@ export class Renderer {
         onValueDirty?.();
         state.valueDirty = false;
       }
-      if (state.renderDirty || state.circuitDirty) {
+      const needsRedraw = state.renderDirty || state.circuitDirty;
+      if (needsRedraw) {
         this.lastScene = buildScene(state, this.mouseWorld);
+        onStateChanged?.();
         state.renderDirty = false;
         state.circuitDirty = false;
       }
