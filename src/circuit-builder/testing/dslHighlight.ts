@@ -1,6 +1,6 @@
 import { StreamLanguage, type StreamParser } from '@codemirror/language';
 
-const KEYWORDS = new Set(['set', 'expect', 'write', 'read']);
+const KEYWORDS = new Set(['write', 'read']);
 
 interface DslState {
   inCaseDesc: boolean;

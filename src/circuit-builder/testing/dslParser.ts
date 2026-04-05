@@ -1,4 +1,4 @@
-export type TestMode = 'basic' | 'table' | 'queue' | 'code';
+export type TestMode = 'table' | 'queue' | 'code';
 
 export type TestCommand =
   | { type: 'set'; label: string; value: number }
@@ -43,9 +43,8 @@ export function parseDsl(source: string): ParseResult {
   const { mode, contentStart, inputLabels, outputLabels } = parseDirectives(ctx);
 
   switch (mode) {
-    case 'basic':
     case 'queue':
-      return { mode, errors, ...parseCommands(ctx, mode, contentStart) };
+      return { mode, errors, ...parseCommands(ctx, contentStart) };
     case 'table':
       return { mode, errors, inputLabels, outputLabels, ...parseTable(ctx, inputLabels, outputLabels, contentStart) };
     case 'code':
@@ -65,7 +64,7 @@ interface DirectiveResult {
 }
 
 function parseDirectives(ctx: ParseContext): DirectiveResult {
-  let mode: TestMode = 'basic';
+  let mode: TestMode = 'table';
   let modeSet = false;
   let inputLabels: string[] = [];
   let outputLabels: string[] = [];
@@ -83,11 +82,11 @@ function parseDirectives(ctx: ParseContext): DirectiveResult {
         continue;
       }
       const modeName = stripped.slice(5).trim().toLowerCase();
-      if (modeName === 'basic' || modeName === 'table' || modeName === 'queue' || modeName === 'code') {
+      if (modeName === 'table' || modeName === 'queue' || modeName === 'code') {
         mode = modeName;
         modeSet = true;
       } else {
-        ctx.errors.push({ line: lineNum, message: `Unknown mode: "${modeName}". Use "basic", "table", "queue", or "code"` });
+        ctx.errors.push({ line: lineNum, message: `Unknown mode: "${modeName}". Use "table", "queue", or "code"` });
       }
       continue;
     }
@@ -131,11 +130,9 @@ function parseDirectives(ctx: ParseContext): DirectiveResult {
 // Basic / queue mode: set/expect or write/read commands with @case
 // ---------------------------------------------------------------------------
 
-const BASIC_COMMANDS = new Set(['set', 'expect']);
 const QUEUE_COMMANDS = new Set(['write', 'read']);
 
-function parseCommands(ctx: ParseContext, mode: 'basic' | 'queue', startLine: number): { cases: DslTestCase[] } {
-  const allowed = mode === 'basic' ? BASIC_COMMANDS : QUEUE_COMMANDS;
+function parseCommands(ctx: ParseContext, startLine: number): { cases: DslTestCase[] } {
   const cases: DslTestCase[] = [];
   let currentCase: DslTestCase | null = null;
 
@@ -159,12 +156,8 @@ function parseCommands(ctx: ParseContext, mode: 'basic' | 'queue', startLine: nu
     const tokens = stripped.split(/\s+/);
     const cmd = tokens[0].toLowerCase();
 
-    if (!allowed.has(cmd)) {
-      if (BASIC_COMMANDS.has(cmd) || QUEUE_COMMANDS.has(cmd)) {
-        ctx.errors.push({ line: lineNum, message: `"${cmd}" is not available in ${mode} mode` });
-      } else {
-        ctx.errors.push({ line: lineNum, message: `Unknown command: ${cmd}` });
-      }
+    if (!QUEUE_COMMANDS.has(cmd)) {
+      ctx.errors.push({ line: lineNum, message: `Unknown command: ${cmd}. Use "write" or "read"` });
       continue;
     }
 
@@ -288,7 +281,7 @@ function parseCode(
 
 import type { TestCase } from '../levels/levelTypes.ts';
 
-/** Convert parsed DSL cases (basic/table) into TestCase[] for the test runner. */
+/** Convert parsed DSL cases (table/queue) into TestCase[] for the test runner. */
 export function convertToTestCases(result: ParseResult): TestCase[] {
   return result.cases.map(dslCase => {
     const inputs: Record<string, number> = {};

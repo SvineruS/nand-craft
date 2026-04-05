@@ -84,8 +84,8 @@ const dslLinter = linter((view) => {
     }
   }
 
-  // Per-command label check (only for basic/queue — table/code already checked via @inputs/@outputs)
-  if (mode === 'basic' || mode === 'queue') {
+  // Per-command label check (only for queue — table/code already checked via @inputs/@outputs)
+  if (mode === 'queue') {
     let cmdLine = 0;
     const allCommands = cases.flatMap(c => c.commands);
     for (const cmd of allCommands) {
@@ -339,20 +339,6 @@ function HelpPanel() {
 0 1 | 1
 1 0 | 1
 1 1 | 0`}</pre>
-
-      <h4>@mode basic</h4>
-      <p>Explicit commands per test case. Use <code>@case</code> to separate cases.</p>
-      <pre>{`@mode basic
-
-@case both zero
-set A 0
-set B 0
-expect Out 0
-
-@case one high
-set A 1
-set B 0
-expect Out 1`}</pre>
 
       <h4>@mode code</h4>
       <p>JS function that computes expected outputs. Inputs are auto-enumerated.
