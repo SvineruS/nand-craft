@@ -10,6 +10,7 @@ import {
 } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
 import { getGateDefinition, getPinBitWidth } from './gates.ts';
+import { isConstantGate } from '../simulation/gateTypes.ts';
 import {
   AddGateCommand,
   AddWireNodeCommand,
@@ -363,7 +364,7 @@ export class InputHandler {
     // Double-click constant gate → toggle value
     if (isDblClick) {
       const gate = state.circuit.getGate(gateHit);
-      if (gate.type === 'constant') {
+      if (isConstantGate(gate.type)) {
         const bitWidth = getPinBitWidth(gate.type, 'output', 0);
         const mask = ((1 << bitWidth) >>> 0) - 1;
         const currentValue = (gate.state as number) ?? 0;

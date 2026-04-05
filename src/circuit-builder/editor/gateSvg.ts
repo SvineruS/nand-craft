@@ -21,6 +21,8 @@ import inputSvg from './svg/input.svg?raw';
 import input8bitSvg from './svg/input-8bit.svg?raw';
 import outputSvg from './svg/output.svg?raw';
 import output8bitSvg from './svg/output-8bit.svg?raw';
+import constant8bitSvg from './svg/constant-8bit.svg?raw';
+import constant16bitSvg from './svg/constant-16bit.svg?raw';
 
 function extractPath(svg: string): string {
   const match = svg.match(/\bd="([^"]*)"/);
@@ -48,3 +50,5 @@ export const INPUT = extractPath(inputSvg);
 export const INPUT_8BIT = extractPath(input8bitSvg);
 export const OUTPUT = extractPath(outputSvg);
 export const OUTPUT_8BIT = extractPath(output8bitSvg);
+export const CONSTANT_8BIT = extractPath(constant8bitSvg);
+export const CONSTANT_16BIT = extractPath(constant16bitSvg);

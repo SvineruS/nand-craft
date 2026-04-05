@@ -4,7 +4,7 @@ import { pinRefKey } from "../editor/types.ts";
 import type { BuildResult, SimulationState, TickResult } from "./types.ts";
 import { computeDerivedState, propagate } from "./buildCircuit.ts";
 import type { Circuit } from "./circuit.ts";
-import { isInputGate, isOutputGate } from "./gateTypes.ts";
+import { isConstantGate, isInputGate, isOutputGate } from "./gateTypes.ts";
 
 
 /**
@@ -47,7 +47,7 @@ function setSourceOutputs(circuit: Circuit, simState: SimulationState, inputs: M
       continue;
     }
 
-    if (gate.type === 'constant') {
+    if (isConstantGate(gate.type)) {
       const key = pinRefKey({ gateId: gate.id, kind: 'output', index: 0 });
       simState.set(key, (gate.state as number) ?? 0);
       continue;

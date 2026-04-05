@@ -20,7 +20,7 @@ const COMBINATIONAL_TYPES = new Set([
   '2bit-adder', '3bit-adder',
   '1bit-decoder', '3bit-decoder',
   '8bit-negative',
-  'switch', 'constant', 'tristate', 'splitter', 'joiner',
+  'switch', 'constant', 'constant-8bit', 'constant-16bit', 'tristate', 'splitter', 'joiner',
 ]);
 
 // --- Union-Find for building nets ---
@@ -634,7 +634,9 @@ function evaluateGate(simState: SimulationState, gate: Gate): void {
       writeOutput(simState, gate, 0, (-a & 0xFF) >>> 0);
       break;
     }
-    case 'constant': {
+    case 'constant':
+    case 'constant-8bit':
+    case 'constant-16bit': {
       const current = simState.get(pinRefKey({ gateId: gate.id, kind: 'output', index: 0 }));
       if (current === null || current === undefined) {
         writeOutput(simState, gate, 0, 0);

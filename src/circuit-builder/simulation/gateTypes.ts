@@ -18,8 +18,11 @@ export interface Gate {
 const INPUT_TYPES = new Set<GateType>(['input', 'input-8bit', 'input-16bit']);
 const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit']);
 
+const CONSTANT_TYPES = new Set<GateType>(['constant', 'constant-8bit', 'constant-16bit']);
+
 export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(type); }
 export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
+export function isConstantGate(type: GateType): boolean { return CONSTANT_TYPES.has(type); }
 
 /** Read a pin value from simulation state. Absent = null (high-Z). */
 export function pinValue(simState: SimulationState, gateId: GateId, kind: 'input' | 'output', index: number): number | null {
@@ -57,6 +60,8 @@ export type GateType =
   | '8bit-counter-reset'
   | 'tristate'
   | 'constant'
+  | 'constant-8bit'
+  | 'constant-16bit'
   | 'splitter'
   | 'joiner'
   | 'input'

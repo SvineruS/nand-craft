@@ -1,7 +1,7 @@
 import type { EditorState } from '../EditorState.ts';
 import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderErrorSegment, RenderSelectionItem, RenderDropPreview, RenderPastePreview } from './renderScene.ts';
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
-import { isInputGate, pinValue } from '../../simulation/gateTypes.ts';
+import { isConstantGate, isInputGate, pinValue } from '../../simulation/gateTypes.ts';
 import { pinRefKey } from '../types.ts';
 import { gateCenter, gateGridOffset, getGateDims, iteratePinPositions, pinRefsEqual } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
@@ -162,7 +162,7 @@ function buildGates(state: EditorState): RenderGate[] {
     let labelPos: Vec2;
     let valueLabel: RenderGate['valueLabel'] = null;
 
-    if (isInputGate(gate.type) || gate.type === 'constant') {
+    if (isInputGate(gate.type) || isConstantGate(gate.type)) {
       label = gate.label ?? '';
       labelFont = 'bold 10px monospace';
       labelColor = COLORS.gateText;

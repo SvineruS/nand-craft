@@ -3,7 +3,7 @@ import { getGateDefinition, getPinBitWidth } from '../../circuit-builder/editor/
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { ChangeGateStateCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
 import { pinRefKey } from '../../circuit-builder/editor/types.ts';
-import { isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
+import { isConstantGate, isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
 
 
 interface PropertiesPanelProps {
@@ -17,11 +17,11 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
   const gateItem = state.selection.find(s => s.type === 'gate');
   if (gateItem?.type === 'gate') {
     const gate = state.circuit.gates.get(gateItem.id);
-    if (gate && (isInputGate(gate.type) || isOutputGate(gate.type) || gate.type === 'constant')) {
+    if (gate && (isInputGate(gate.type) || isOutputGate(gate.type) || isConstantGate(gate.type))) {
       const def = getGateDefinition(gate.type);
 
       // Value field for input/constant
-      const hasOutput = isInputGate(gate.type) || gate.type === 'constant';
+      const hasOutput = isInputGate(gate.type) || isConstantGate(gate.type);
       const outValue = hasOutput
         ? state.circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'output', index: 0 })) ?? null
         : undefined;

@@ -281,6 +281,22 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     ],
     svg: SVG.BOX_2x2,
   },
+  'constant-8bit': {
+    label: 'C8', description: '8-bit constant value', width: 2, height: 2, placeable: true,
+    color: '#3a3a2d', stroke: '#8a8a5a',
+    pins: [
+      { kind: 'output', x: 2, y: 1, bitWidth: 8 },
+    ],
+    svg: SVG.CONSTANT_8BIT,
+  },
+  'constant-16bit': {
+    label: 'C16', description: '16-bit constant value', width: 2, height: 2, placeable: true,
+    color: '#3a3a2d', stroke: '#8a8a5a',
+    pins: [
+      { kind: 'output', x: 2, y: 1, bitWidth: 16 },
+    ],
+    svg: SVG.CONSTANT_16BIT,
+  },
   input: {
     label: 'IN', description: 'Level input', width: 2, height: 2,
     color: '#2d3d50', stroke: '#5a8abd', labelX: -0.1,
