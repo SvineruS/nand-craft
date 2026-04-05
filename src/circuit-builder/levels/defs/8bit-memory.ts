@@ -17,7 +17,7 @@ const level: Level = {
     { type: 'input', pos: { x: 2, y: 7 }, label: 'W', canRemove: false },
     { type: 'output-8bit', pos: { x: 29, y: 5 }, label: 'Q', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'nor', 'switch', 'delay', 'rs-latch', 'splitter', 'joiner'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'nor', 'mux', 'delay', 'rs-latch', 'splitter', 'joiner'] },
   test: {
     name: '8-bit Memory',
     description: 'Store and recall 8-bit values',
@@ -29,7 +29,7 @@ const level: Level = {
       { inputs: { D: 0, W: 1 }, expected: { Q: 0 } },
     ],
   },
-  prerequisites: [lid('rs-latch'), lid('switch')],
+  prerequisites: [lid('rs-latch'), lid('8bit-constant')],
   mapPosition: { x: 60, y: 11 },
 };
 export default level;

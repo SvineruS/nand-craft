@@ -27,7 +27,7 @@ const level: Level = {
       { inputs: { A: 42 }, expected: { Out: 214 } },
     ],
   },
-  prerequisites: [lid('8bit-not'), lid('2bit-adder'), lid('always-on')],
+  prerequisites: [lid('8bit-adder'), lid('8bit-not')],
   mapPosition: { x: 44, y: 1 },
 };
 export default level;

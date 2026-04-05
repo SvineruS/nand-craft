@@ -52,7 +52,7 @@ const level: Level = {
       return cases;
     })(),
   },
-  prerequisites: [lid('1bit-decoder'), lid('and')],
+  prerequisites: [lid('1bit-decoder')],
   mapPosition: { x: 52, y: 7 },
 };
 export default level;

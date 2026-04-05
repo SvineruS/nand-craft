@@ -1,7 +1,8 @@
 import type { EditorState } from '../EditorState.ts';
 import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderErrorSegment, RenderSelectionItem, RenderDropPreview, RenderPastePreview } from './renderScene.ts';
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
-import { isConstantGate, isInputGate, pinValue } from '../../simulation/gateTypes.ts';
+import { type Gate, isConstantGate, isInputGate, pinValue } from '../../simulation/gateTypes.ts';
+import type { Circuit } from '../../simulation/circuit.ts';
 import { pinRefKey } from '../types.ts';
 import { gateCenter, gateGridOffset, getGateDims, iteratePinPositions, pinRefsEqual } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
@@ -194,6 +195,7 @@ function buildGates(state: EditorState): RenderGate[] {
       rotation: gate.rotation,
       fillColor, strokeColor,
       hasSvg: !!def.svg,
+      svgVariant: getSvgVariant(gate, circuit),
       label, labelPos, labelFont, labelColor,
       valueLabel,
       errorGlow,
@@ -400,6 +402,16 @@ function pinStrokeForWidth(bitWidth: number): string {
   if (bitWidth >= 16) return '#f472b6';
   if (bitWidth >= 8) return '#60a5fa';
   return '#fb923c';
+}
+
+/** Pick SVG variant index for gates with svg arrays (e.g. mux arrow direction). */
+function getSvgVariant(gate: Gate, circuit: Circuit): number {
+  if (gate.type === 'mux' || gate.type === '8bit-mux') {
+    // S pin is input index 0 for mux gates
+    const sValue = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index: 0 })) ?? null;
+    return sValue ? 1 : 0; // 0 = line to A (top), 1 = line to B (bottom)
+  }
+  return 0;
 }
 
 function formatWireValue(value: number, bitWidth: number): string {

@@ -4,7 +4,7 @@ const lid = (s: string) => s as LevelId;
 
 const level: Level = {
   id: lid('switch'),
-  name: 'Switch',
+  name: '1-bit MUX',
   description: 'Build a 2-to-1 multiplexer (switch) using tri-state buffers.\n\nWhen S=0, output A. When S=1, output B.',
   hints: ['Use two tri-state buffers — enable one with S, the other with NOT S. Connect both outputs to the same wire.'],
   inputs: [
@@ -34,7 +34,7 @@ const level: Level = {
       { inputs: { S: 1, A: 1, B: 1 }, expected: { Out: 1 } },
     ],
   },
-  prerequisites: [lid('and'), lid('not'), lid('or')],
+  prerequisites: [lid('not')],
   mapPosition: { x: 28, y: 5 },
 };
 export default level;

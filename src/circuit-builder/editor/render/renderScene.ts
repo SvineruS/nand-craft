@@ -29,6 +29,7 @@ export interface RenderGate {
   fillColor: string;
   strokeColor: string;
   hasSvg: boolean;
+  svgVariant: number; // Index into svg[] array for gates with variants (0 = default)
   label: string;
   labelPos: Vec2;
   labelFont: string;

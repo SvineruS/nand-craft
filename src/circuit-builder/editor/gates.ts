@@ -16,7 +16,7 @@ export interface GateDefinition {
   width: number;   // grid units
   height: number;  // grid units
   pins: PinDef[];
-  svg?: string;    // SVG path data scaled to width×height grid units
+  svg?: string | string[];  // SVG path data. Array = alternative variants (e.g. mux arrow direction)
   color?: string;  // fill color for the gate body
   stroke?: string; // stroke color for the gate outline
   labelX?: number; // label x offset in grid units from center (default 0)
@@ -188,15 +188,37 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     ],
     svg: SVG.NEGATE,
   },
-  switch: {
-    label: 'MUX', description: '2-to-1 multiplexer', width: 3, height: 3,    color: '#4a4a2d', stroke: '#adad5a',
+  '8bit-subtractor': {
+    label: 'SUB', description: '8-bit subtractor (A-B)', width: 3, height: 3,
+    color: '#2d4a3a', stroke: '#5aad7a',
+    pins: [
+      { kind: 'input', x: 0, y: 0, label: 'A', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 3, label: 'B', bitWidth: 8 },
+      { kind: 'output', x: 3, y: 1.5, bitWidth: 8 },
+    ],
+    svg: SVG.ADDER,
+  },
+  '8bit-mux': {
+    label: 'MUX8', description: '8-bit 2-to-1 multiplexer', width: 2, height: 2,
+    color: '#4a4a2d', stroke: '#adad5a',
     pins: [
       { kind: 'input', x: 1, y: 0, label: 'S', bitWidth: 1 },
-      { kind: 'input', x: 0, y: 1, label: 'A' },
-      { kind: 'input', x: 0, y: 3, label: 'B' },
-      { kind: 'output', x: 3, y: 1.5 },
+      { kind: 'input', x: 0, y: 0, label: 'A', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 2, label: 'B', bitWidth: 8 },
+      { kind: 'output', x: 2, y: 1, bitWidth: 8 },
     ],
-    svg: SVG.MUX,
+    svg: [SVG.MUX_8BIT_A, SVG.MUX_8BIT_B],
+  },
+  mux: {
+    label: 'MUX', description: '2-to-1 multiplexer', width: 2, height: 2,
+    color: '#4a4a2d', stroke: '#adad5a',
+    pins: [
+      { kind: 'input', x: 1, y: 0, label: 'S', bitWidth: 1 },
+      { kind: 'input', x: 0, y: 0, label: 'A' },
+      { kind: 'input', x: 0, y: 2, label: 'B' },
+      { kind: 'output', x: 2, y: 1 },
+    ],
+    svg: [SVG.MUX_A, SVG.MUX_B],
   },
   delay: {
     label: 'DLY', description: '1-tick delay', width: 3, height: 2,    color: '#4a3a2d', stroke: '#ad8a5a',

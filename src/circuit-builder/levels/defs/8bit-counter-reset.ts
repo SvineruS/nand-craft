@@ -14,7 +14,7 @@ const level: Level = {
     { type: 'input', pos: { x: 2, y: 7 }, label: 'Inc', canRemove: false },
     { type: 'output-8bit', pos: { x: 29, y: 5 }, label: 'Q', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', 'nor', '8bit-or', '8bit-nor', '8bit-not', '2bit-adder', '3bit-adder', 'switch', 'delay', 'rs-latch', '8bit-memory', '8bit-counter', 'constant', 'constant-8bit', 'splitter', 'joiner', '8bit-negative'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', 'nor', '8bit-or', '8bit-nor', '8bit-not', '2bit-adder', '3bit-adder', 'mux', 'delay', 'rs-latch', '8bit-memory', '8bit-counter', 'constant', 'constant-8bit', 'splitter', 'joiner', '8bit-negative'] },
   test: {
     name: '8-bit Counter + Set',
     description: 'Increment by D or set to D',

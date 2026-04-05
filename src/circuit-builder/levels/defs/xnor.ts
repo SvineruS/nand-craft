@@ -28,7 +28,7 @@ const level: Level = {
       { inputs: { A: 1, B: 1 }, expected: { Out: 1 } },
     ],
   },
-  prerequisites: [lid('xor'), lid('not')],
+  prerequisites: [lid('not')],
   mapPosition: { x: 28, y: 3 },
 };
 export default level;

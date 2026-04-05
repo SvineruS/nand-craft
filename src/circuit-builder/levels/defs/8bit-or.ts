@@ -29,7 +29,7 @@ const level: Level = {
       { inputs: { A: 0b11000000, B: 0b00001111 }, expected: { Out: 0b11001111 } },
     ],
   },
-  prerequisites: [lid('or')],
+  prerequisites: [lid('3bit-or'), lid('8bit-constant')],
   mapPosition: { x: 36, y: 3 },
 };
 export default level;

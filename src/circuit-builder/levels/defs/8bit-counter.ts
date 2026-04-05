@@ -12,7 +12,7 @@ const level: Level = {
   predefinedGates: [
     { type: 'output-8bit', pos: { x: 29, y: 5 }, label: 'Q', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', 'nor', '8bit-or', '8bit-nor', '8bit-not', '2bit-adder', 'switch', 'delay', 'rs-latch', '8bit-memory', 'constant', 'splitter', 'joiner'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', 'nor', '8bit-or', '8bit-nor', '8bit-not', '2bit-adder', 'mux', 'delay', 'rs-latch', '8bit-memory', 'constant', 'splitter', 'joiner'] },
   test: {
     name: '8-bit Counter',
     description: 'Counts up from 0 each tick',
@@ -24,7 +24,7 @@ const level: Level = {
       { inputs: {}, expected: { Q: 5 } },
     ],
   },
-  prerequisites: [lid('8bit-memory'), lid('2bit-adder'), lid('always-on')],
+  prerequisites: [lid('8bit-memory'), lid('8bit-adder')],
   mapPosition: { x: 68, y: 11 },
 };
 export default level;

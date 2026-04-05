@@ -130,14 +130,16 @@ export class Renderer {
     }
   }
 
-  private gatePaths = new Map<GateType, Path2D>();
+  private gatePaths = new Map<string, Path2D>();
 
-  private getGatePath(type: GateType): Path2D {
-    let path = this.gatePaths.get(type);
+  private getGatePath(type: GateType, variant = 0): Path2D {
+    const key = variant ? `${type}:${variant}` : type;
+    let path = this.gatePaths.get(key);
     if (!path) {
       const def = getGateDefinition(type);
-      path = new Path2D(def.svg ?? '');
-      this.gatePaths.set(type, path);
+      const svg = Array.isArray(def.svg) ? (def.svg[variant] ?? def.svg[0]) : (def.svg ?? '');
+      path = new Path2D(svg);
+      this.gatePaths.set(key, path);
     }
     return path;
   }
@@ -315,7 +317,7 @@ export class Renderer {
       ctx.rotate((gate.rotation * Math.PI) / 180);
 
       if (gate.hasSvg) {
-        const path = this.getGatePath(gate.type);
+        const path = this.getGatePath(gate.type, gate.svgVariant);
         ctx.save();
         ctx.translate(-gate.w / 2, -gate.h / 2);
         ctx.scale(GRID_SIZE, GRID_SIZE);
@@ -528,7 +530,7 @@ export class Renderer {
       ctx.rotate((gate.rotation * Math.PI) / 180);
 
       if (gate.hasSvg) {
-        const path = this.getGatePath(gate.type);
+        const path = this.getGatePath(gate.type); // Paste preview uses default variant
         ctx.save();
         ctx.translate(-gate.w / 2, -gate.h / 2);
         ctx.scale(GRID_SIZE, GRID_SIZE);
