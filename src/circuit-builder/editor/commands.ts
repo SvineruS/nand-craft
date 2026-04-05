@@ -590,6 +590,31 @@ export class ChangeGateStateCommand implements Command {
   }
 }
 
+export class ChangeGateLabelCommand implements Command {
+  readonly description = 'Change gate label';
+  private state: EditorState;
+  private gateId: GateId;
+  private newLabel: string | undefined;
+  private oldLabel: string | undefined;
+
+  constructor(state: EditorState, gateId: GateId, newLabel: string | undefined) {
+    this.state = state;
+    this.gateId = gateId;
+    this.newLabel = newLabel;
+    this.oldLabel = state.circuit.getGate(gateId).label;
+  }
+
+  execute(): void {
+    this.state.circuit.getGate(this.gateId).label = this.newLabel;
+    this.state.renderDirty = true;
+  }
+
+  undo(): void {
+    this.state.circuit.getGate(this.gateId).label = this.oldLabel;
+    this.state.renderDirty = true;
+  }
+}
+
 export interface WireChanges {
   label?: string | undefined;
   color?: string | undefined;

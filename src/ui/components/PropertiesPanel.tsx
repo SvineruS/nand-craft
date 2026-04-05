@@ -1,7 +1,8 @@
+import { useRef } from 'preact/hooks';
 import { useEditorState } from '../editorStore.ts';
 import { getGateDefinition, getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
-import { ChangeGateStateCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
+import { ChangeGateLabelCommand, ChangeGateStateCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
 import { pinRefKey } from '../../circuit-builder/editor/types.ts';
 import { isConstantGate, isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
 
@@ -12,6 +13,7 @@ interface PropertiesPanelProps {
 
 export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
   const state = useEditorState();
+  const labelBeforeEdit = useRef<string | undefined>(undefined);
 
   // Check for selected gate (IO/constant only)
   const gateItem = state.selection.find(s => s.type === 'gate');
@@ -35,6 +37,35 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
             <div class="prop-row">
               <span class="prop-label">Type</span>
               <span class="prop-value">{def.label}</span>
+            </div>
+
+            <div class="prop-row">
+              <span class="prop-label">Label</span>
+              <input
+                type="text"
+                class="prop-input prop-input-text"
+                value={gate.label ?? ''}
+                placeholder="none"
+                onFocus={() => {
+                  labelBeforeEdit.current = gate.label;
+                }}
+                onInput={(e) => {
+                  gate.label = (e.target as HTMLInputElement).value || undefined;
+                  state.renderDirty = true;
+                }}
+                onBlur={(e) => {
+                  const v = (e.target as HTMLInputElement).value || undefined;
+                  if (v !== labelBeforeEdit.current) {
+                    gate.label = labelBeforeEdit.current;
+                    onExecute(new ChangeGateLabelCommand(state, gate.id, v));
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+              />
             </div>
 
             {hasOutput && outValue !== undefined && (
