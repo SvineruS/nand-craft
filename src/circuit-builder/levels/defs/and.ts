@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('and'),
   name: 'AND',
-  description: 'Build an AND gate using NAND and NOT gates.\n\nAND outputs 1 only when both inputs are 1.\n\nHint: NAND is the opposite of AND...',
+  description: 'Build an AND gate using NAND and NOT gates.\n\nAND outputs 1 only when both inputs are 1.',
+  hints: ['NAND is the opposite of AND...'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

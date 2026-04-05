@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('nor'),
   name: 'NOR',
-  description: 'Build a NOR gate.\n\nNOR outputs 1 only when both inputs are 0. It is the complement of OR.\n\nHint: OR then NOT.',
+  description: 'Build a NOR gate.\n\nNOR outputs 1 only when both inputs are 0. It is the complement of OR.',
+  hints: ['OR then NOT.'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('8bit-or'),
   name: '8-bit OR',
-  description: 'Build an 8-bit OR gate.\n\nPerform bitwise OR on two 8-bit inputs.\n\nHint: OR gates work on any bit width.',
+  description: 'Build an 8-bit OR gate.\n\nPerform bitwise OR on two 8-bit inputs.',
+  hints: ['OR gates work on any bit width.'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

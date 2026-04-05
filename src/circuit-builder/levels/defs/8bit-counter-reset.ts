@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('8bit-counter-reset'),
   name: '8-bit Counter + Reset',
-  description: 'Build an 8-bit increment counter with a reset input.\n\nSame as the counter, but when R=1 the counter resets to 0 on the next tick.\n\nHint: Use a switch/mux to choose between the incremented value and 0 based on R.',
+  description: 'Build an 8-bit increment counter with a reset input.\n\nSame as the counter, but when R=1 the counter resets to 0 on the next tick.',
+  hints: ['Use a switch/mux to choose between the incremented value and 0 based on R.'],
   inputs: [{ name: 'R' }],
   outputs: [{ name: 'Q' }],
   predefinedGates: [

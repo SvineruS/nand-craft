@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('8bit-not'),
   name: '8-bit NOT',
-  description: 'Build an 8-bit NOT gate.\n\nInvert all 8 bits of the input.\n\nHint: A single NOT gate works on any bit width.',
+  description: 'Build an 8-bit NOT gate.\n\nInvert all 8 bits of the input.',
+  hints: ['A single NOT gate works on any bit width.'],
   inputs: [{ name: 'A' }],
   outputs: [{ name: 'Out' }],
   predefinedGates: [

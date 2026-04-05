@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('always-on'),
   name: 'Always On',
-  description: 'Build a circuit that always outputs 1, with no inputs.\n\nHint: What does a NAND gate output when both inputs have no signal?',
+  description: 'Build a circuit that always outputs 1, with no inputs.',
+  hints: ['What does a NAND gate output when both inputs have no signal?'],
   inputs: [],
   outputs: [{ name: 'Out' }],
   predefinedGates: [

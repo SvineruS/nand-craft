@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('nand'),
   name: 'NAND',
-  description: 'Build a NAND gate using only a NAND gate.\n\nNAND outputs 0 only when both inputs are 1. It is the universal gate — every other gate can be built from NAND.\n\nHint: Just place a NAND gate and wire it up.',
+  description: 'Build a NAND gate using only a NAND gate.\n\nNAND outputs 0 only when both inputs are 1. It is the universal gate — every other gate can be built from NAND.',
+  hints: ['Just place a NAND gate and wire it up.'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

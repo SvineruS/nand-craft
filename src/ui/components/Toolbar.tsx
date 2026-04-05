@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import { useEditorState, testEditorVisible } from '../editorStore.ts';
 import { getEditor } from '../../circuit-builder/editorInstance.ts';
 import { WIRE_COLORS } from "../../circuit-builder/editor/consts.ts";
@@ -14,6 +15,7 @@ interface ToolbarProps {
 export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, onResetLevel }: ToolbarProps) {
   const state = useEditorState();
   const { level } = getEditor();
+  const [showHints, setShowHints] = useState(false);
 
   return (
     <div class="toolbar">
@@ -50,6 +52,29 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
       ))}
 
       <div class="toolbar-spacer" />
+
+      {level.hints && level.hints.length > 0 && (
+        <button class="toolbar-btn" onClick={() => setShowHints(!showHints)}>Hints</button>
+      )}
+
+      {showHints && level.hints && (
+        <div class="hints-overlay" onClick={() => setShowHints(false)}>
+          <div class="hints-card" onClick={(e) => e.stopPropagation()}>
+            <div class="hints-header">
+              <span>Hints</span>
+              <button class="test-editor-close" onClick={() => setShowHints(false)}>✕</button>
+            </div>
+            <div class="hints-list">
+              {level.hints.map((hint, i) => (
+                <div key={i} class="hint-item">
+                  <span class="hint-label">Hint {i + 1}</span>
+                  <span class="hint-text">{hint}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('or'),
   name: 'OR',
-  description: "Build an OR gate using NAND and NOT gates.\n\nOR outputs 1 when at least one input is 1.\n\nHint: De Morgan's law — you'll need three NAND gates.",
+  description: "Build an OR gate using NAND and NOT gates.\n\nOR outputs 1 when at least one input is 1.",
+  hints: ["De Morgan's law — you'll need three NAND gates."],
   inputs: [
     { name: 'A' },
     { name: 'B' },

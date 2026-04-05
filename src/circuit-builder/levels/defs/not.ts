@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('not'),
   name: 'NOT',
-  description: 'Build a NOT gate using only NAND gates.\n\nA NOT gate inverts the input: 0 becomes 1, 1 becomes 0.\n\nHint: What happens when you connect both inputs of a NAND gate together?',
+  description: 'Build a NOT gate using only NAND gates.\n\nA NOT gate inverts the input: 0 becomes 1, 1 becomes 0.',
+  hints: ['What happens when you connect both inputs of a NAND gate together?'],
   inputs: [{ name: 'A' }],
   outputs: [{ name: 'Out' }],
   predefinedGates: [

@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('1bit-decoder'),
   name: '1-bit Decoder',
-  description: 'Build a 1-to-2 decoder.\n\nWhen A=0, O0=1 and O1=0. When A=1, O0=0 and O1=1.\n\nHint: O0 is NOT A, O1 is A.',
+  description: 'Build a 1-to-2 decoder.\n\nWhen A=0, O0=1 and O1=0. When A=1, O0=0 and O1=1.',
+  hints: ['O0 is NOT A, O1 is A.'],
   inputs: [{ name: 'A' }],
   outputs: [
     { name: 'O0' },

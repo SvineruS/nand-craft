@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('rs-latch'),
   name: 'RS Latch',
-  description: 'Build a 1-bit RS latch using delay gates.\n\nS (set) = 1 sets Q to 1. R (reset) = 1 sets Q to 0. When both are 0, Q holds its value.\n\nHint: Use NOR gates with delay feedback to break the combinational loop.',
+  description: 'Build a 1-bit RS latch using delay gates.\n\nS (set) = 1 sets Q to 1. R (reset) = 1 sets Q to 0. When both are 0, Q holds its value.',
+  hints: ['Use NOR gates with delay feedback to break the combinational loop.'],
   inputs: [
     { name: 'S' },
     { name: 'R' },

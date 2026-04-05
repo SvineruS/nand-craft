@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('switch'),
   name: 'Switch',
-  description: 'Build a 2-to-1 multiplexer (switch) using tri-state buffers.\n\nWhen S=0, output A. When S=1, output B.\n\nHint: Use two tri-state buffers — enable one with S, the other with NOT S. Connect both outputs to the same wire.',
+  description: 'Build a 2-to-1 multiplexer (switch) using tri-state buffers.\n\nWhen S=0, output A. When S=1, output B.',
+  hints: ['Use two tri-state buffers — enable one with S, the other with NOT S. Connect both outputs to the same wire.'],
   inputs: [
     { name: 'S' },
     { name: 'A' },

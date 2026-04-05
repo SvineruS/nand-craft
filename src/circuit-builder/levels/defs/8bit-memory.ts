@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('8bit-memory'),
   name: '8-bit Memory',
-  description: 'Build an 8-bit register (D flip-flop).\n\nWhen W (write enable) is 1, store the value of D. Output Q always shows the stored value.\n\nHint: Use a switch/mux to select between the stored value and new input based on W, then feed through delays.',
+  description: 'Build an 8-bit register (D flip-flop).\n\nWhen W (write enable) is 1, store the value of D. Output Q always shows the stored value.',
+  hints: ['Use a switch/mux to select between the stored value and new input based on W, then feed through delays.'],
   inputs: [
     { name: 'D' },
     { name: 'W' },

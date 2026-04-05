@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('xnor'),
   name: 'XNOR',
-  description: 'Build an XNOR gate.\n\nXNOR outputs 1 when both inputs are the same.\n\nHint: Just invert XOR.',
+  description: 'Build an XNOR gate.\n\nXNOR outputs 1 when both inputs are the same.',
+  hints: ['Just invert XOR.'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

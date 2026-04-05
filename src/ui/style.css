@@ -138,6 +138,68 @@ body {
   flex: 1;
 }
 
+.hints-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.hints-card {
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.hints-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hints-list {
+  padding: 8px 14px;
+}
+
+.hint-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child { border-bottom: none; }
+}
+
+.hint-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.hint-text {
+  display: block;
+  font-size: 13px;
+  color: var(--text);
+  filter: blur(6px);
+  transition: filter 0.2s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hint-text:hover {
+  filter: none;
+}
+
 /* ── Sidebar ── */
 
 .sidebar {

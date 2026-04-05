@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('8bit-counter'),
   name: '8-bit Counter',
-  description: 'Build an 8-bit increment counter.\n\nThe output increments by 1 each tick. Starts at 0, wraps around at 255.\n\nHint: Feed the output back through an adder (+1) and delays to create a counter loop.',
+  description: 'Build an 8-bit increment counter.\n\nThe output increments by 1 each tick. Starts at 0, wraps around at 255.',
+  hints: ['Feed the output back through an adder (+1) and delays to create a counter loop.'],
   inputs: [],
   outputs: [{ name: 'Q' }],
   predefinedGates: [

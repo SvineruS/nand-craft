@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('3bit-or'),
   name: '3-bit OR',
-  description: 'Build a 3-input OR gate.\n\nOutput 1 if any of the three inputs is 1.\n\nHint: Chain two OR gates.',
+  description: 'Build a 3-input OR gate.\n\nOutput 1 if any of the three inputs is 1.',
+  hints: ['Chain two OR gates.'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

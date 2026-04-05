@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('xor'),
   name: 'XOR',
-  description: 'Build an XOR (exclusive OR) gate.\n\nXOR outputs 1 when the inputs differ.\n\nHint: (A AND NOT B) OR (NOT A AND B).',
+  description: 'Build an XOR (exclusive OR) gate.\n\nXOR outputs 1 when the inputs differ.',
+  hints: ['(A AND NOT B) OR (NOT A AND B).'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

@@ -5,7 +5,8 @@ const lid = (s: string) => s as LevelId;
 const level: Level = {
   id: lid('2bit-adder'),
   name: 'Half Adder',
-  description: 'Build a half adder.\n\nAdd two 1-bit numbers A and B. Output the sum S and carry C.\n\nHint: S = A XOR B, C = A AND B.',
+  description: 'Build a half adder.\n\nAdd two 1-bit numbers A and B. Output the sum S and carry C.',
+  hints: ['S = A XOR B, C = A AND B.'],
   inputs: [
     { name: 'A' },
     { name: 'B' },

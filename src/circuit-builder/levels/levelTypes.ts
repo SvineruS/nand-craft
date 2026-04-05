@@ -63,6 +63,8 @@ export interface Level {
   mapPosition: Vec2;
   /** Allow user to edit tests via the test editor. */
   customTests?: boolean;
+  /** Progressive hints the player can reveal by hovering. */
+  hints?: string[];
 }
 
 // ---------------------------------------------------------------------------
