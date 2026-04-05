@@ -1,5 +1,6 @@
 import type { LevelId } from '../../editor/types.ts';
 import type { Level } from '../levelTypes.ts';
+
 const lid = (s: string) => s as LevelId;
 
 const level: Level = {
@@ -12,11 +13,12 @@ const level: Level = {
   predefinedGates: [
     { type: 'output-8bit', pos: { x: 29, y: 5 }, label: 'Q', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', 'nor', '8bit-or', '8bit-nor', '8bit-not', '2bit-adder', 'mux', 'delay', 'rs-latch', '8bit-memory', 'constant', 'splitter', 'joiner'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', 'nor', '8bit-or', '8bit-nor', '8bit-not', '2bit-adder', '3bit-adder', '8bit-adder', 'mux', 'delay', 'rs-latch', '8bit-memory', 'constant', 'splitter', 'joiner'] },
   test: {
     name: '8-bit Counter',
     description: 'Counts up from 0 each tick',
     cases: [
+      { inputs: {}, expected: { Q: 0 } },
       { inputs: {}, expected: { Q: 1 } },
       { inputs: {}, expected: { Q: 2 } },
       { inputs: {}, expected: { Q: 3 } },

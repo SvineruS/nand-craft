@@ -102,9 +102,12 @@ function advanceSequentialState(circuit: Circuit, simState: SimulationState): vo
         break;
       }
       case '8bit-counter-reset': {
-        const rKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 0 });
-        const r = simState.get(rKey) ?? 0;
-        gate.state = r ? 0 : (((gate.state as number) ?? 0) + 1) & 0xFF;
+        const vKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 0 });
+        const oKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 1 });
+        const v = simState.get(vKey) ?? 0;
+        const o = simState.get(oKey) ?? 0;
+        // O=1 → override with V, O=0 → increment by 1
+        gate.state = o ? v : (((gate.state as number) ?? 0) + 1) & 0xFF;
         break;
       }
     }

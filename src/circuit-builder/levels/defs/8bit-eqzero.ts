@@ -13,7 +13,7 @@ const level: Level = {
     { type: 'input-8bit', pos: { x: 2, y: 3 }, label: 'A', canRemove: false },
     { type: 'output', pos: { x: 29, y: 3 }, label: 'Z', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'nor', 'xor', '3bit-or', '3bit-and', 'splitter', 'joiner', 'constant'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'nor', 'xor', 'xnor', '3bit-or', '3bit-and', 'splitter', 'joiner', 'constant'] },
   test: {
     name: '8-bit EqZero',
     description: 'Detect if input is zero',

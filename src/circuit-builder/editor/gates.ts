@@ -281,10 +281,12 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     svg: SVG.COUNTER,
   },
   '8bit-counter-reset': {
-    label: 'CRST', description: '8-bit counter with reset', width: 3, height: 2,    color: '#3a3a4a', stroke: '#7a7aad',
+    label: 'CTRS', description: '8-bit counter with set', width: 2, height: 2,
+    color: '#3a3a4a', stroke: '#7a7aad',
     pins: [
-      { kind: 'input', x: 0, y: 1, label: 'R', bitWidth: 1 },
-      { kind: 'output', x: 3, y: 1, label: 'Q', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 0, label: 'V', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 2, label: 'O', bitWidth: 1 },
+      { kind: 'output', x: 2, y: 1, label: 'Q', bitWidth: 8 },
     ],
     svg: SVG.COUNTER,
   },
