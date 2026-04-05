@@ -174,6 +174,7 @@ export class InputHandler {
     const state = this.getState();
     const cmd = new AddGateCommand(state, gateType, snapGateCenter(e.world, def.width, def.height));
     this.getHistory().execute(cmd);
+    trackRecentGate(state, gateType);
     state.dropPreview = null;
     state.renderDirty = true;
   }
@@ -334,6 +335,7 @@ export class InputHandler {
     const def = getGateDefinition(state.mode.gateType);
     const cmd = new AddGateCommand(state, state.mode.gateType, snapGateCenter(world, def.width, def.height));
     this.getHistory().execute(cmd);
+    trackRecentGate(state, state.mode.gateType);
   }
 
   private handlePasteClick(state: EditorState, world: Vec2): void {
@@ -1026,4 +1028,13 @@ export class InputHandler {
     state.renderDirty = true;
   }
 
+}
+
+const MAX_RECENT = 10;
+
+function trackRecentGate(state: EditorState, type: PlaceableType): void {
+  const recent = state.recentGateTypes.filter(t => t !== type);
+  recent.unshift(type);
+  if (recent.length > MAX_RECENT) recent.length = MAX_RECENT;
+  state.recentGateTypes = recent;
 }

@@ -65,6 +65,7 @@ export interface EditorState {
   renderDirty: boolean;
   circuitDirty: boolean;
   valueDirty: boolean;
+  recentGateTypes: GateType[];
 }
 
 export function createEditorState(): EditorState {
@@ -82,5 +83,6 @@ export function createEditorState(): EditorState {
     renderDirty: true,
     circuitDirty: true,
     valueDirty: false,
+    recentGateTypes: [],
   };
 }
