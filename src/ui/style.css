@@ -288,6 +288,16 @@ body {
   flex-shrink: 0;
 }
 
+.test-panel-mode-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim2);
+  border-bottom: 1px solid var(--border);
+}
+
 .test-panel-table-wrap {
   flex: 1;
   overflow: auto;
@@ -357,6 +367,32 @@ body {
   border-bottom: 1px solid rgba(68, 68, 102, 0.2);
   color: var(--text-dim);
 }
+
+/* ── Queue Log ── */
+
+.queue-log {
+  padding: 4px 6px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.queue-log-item {
+  display: flex;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.queue-log-separator {
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
+
+.queue-log-icon { width: 12px; text-align: center; }
+.queue-log-cmd { width: 36px; font-weight: 600; }
+.queue-log-label { min-width: 30px; }
+.queue-log-value { min-width: 30px; }
+.queue-log-error { color: var(--fail); font-style: italic; }
 
 /* ── Properties section ── */
 

@@ -1,6 +1,7 @@
 import { stateVersion } from '../editorStore.ts';
 import { getEditor } from '../../circuit-builder/editorInstance.ts';
 import { TruthTable } from './TruthTable.tsx';
+import { QueueLog } from './QueueLog.tsx';
 import { PropertiesPanel } from './PropertiesPanel.tsx';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import type { Editor } from "../../circuit-builder/editor/Editor.ts";
@@ -15,13 +16,22 @@ interface TestPanelProps {
 export function TestPanel({ onReset, onStep, onRunAll, onExecuteCommand }: TestPanelProps) {
   stateVersion.value; // subscribe to updates
   const editor = getEditor();
-  const { level, results } = editor.tests;
+  const { level, results, queueResults } = editor.tests;
+  const isQueue = editor.tests.mode === 'queue';
   const warning = getWarning(editor)
 
   // Summary computation
   let summaryText = '';
   let summaryColor = 'var(--text-dim2)';
-  if (level && level.test.cases && level.test.cases.length > 0) {
+  if (isQueue) {
+    if (queueResults.length > 0) {
+      const passCount = queueResults.filter(r => r.status === 'passed').length;
+      const total = queueResults.length;
+      const failCount = queueResults.filter(r => r.status === 'failed').length;
+      summaryText = `${passCount}/${total}`;
+      summaryColor = failCount > 0 ? 'var(--fail)' : (passCount === total ? 'var(--pass)' : 'var(--text-dim2)');
+    }
+  } else if (level && level.test.cases && level.test.cases.length > 0) {
     const cases = level.test.cases;
     if (results.length > 0) {
       const passCount = results.filter(r => r.passed).length;
@@ -37,13 +47,15 @@ export function TestPanel({ onReset, onStep, onRunAll, onExecuteCommand }: TestP
     }
   }
 
+  const tickLabel = editor.tests.tickCount > 0 ? `Tick: ${editor.tests.tickCount}` : '';
+
   return (
     <div class="test-panel">
       {/* Header */}
       <div class="test-panel-header">
         <div class="test-panel-title-row">
-          <span class="test-panel-title">Truth Table</span>
-          <span class="test-panel-summary" style={{ color: summaryColor }}>{summaryText}</span>
+          <span class="test-panel-title">Testing</span>
+          <span class="test-panel-summary" style={{ color: 'var(--text-dim)' }}>{tickLabel}</span>
         </div>
         <div class="test-panel-btn-row">
           <button class="test-panel-btn" title="Next test case" onClick={onStep}>
@@ -65,8 +77,14 @@ export function TestPanel({ onReset, onStep, onRunAll, onExecuteCommand }: TestP
         </div>
       )}
 
-      {/* Truth table */}
-      <TruthTable />
+      {/* Mode label + summary */}
+      <div class="test-panel-mode-row">
+        <span>{isQueue ? 'Queue' : 'Truth Table'}</span>
+        <span style={{ color: summaryColor }}>{summaryText}</span>
+      </div>
+
+      {/* Truth table or queue log */}
+      {editor.tests.mode === 'queue' ? <QueueLog /> : <TruthTable />}
 
       {/* Properties panel */}
       <PropertiesPanel onExecute={onExecuteCommand} />
@@ -78,5 +96,19 @@ function getWarning(editor: Editor): string | null {
   const warnings: string[] = [];
   if (editor.hasShortCircuit()) warnings.push('Short circuit \u2014 feedback loop without delay gate');
   if (editor.hasContention()) warnings.push('Bus contention \u2014 multiple drivers on same net');
+
+  // Test failures
+  const { tests } = editor;
+  if (tests.mode === 'queue') {
+    const failed = tests.queueResults.find(r => r.status === 'failed');
+    if (failed) {
+      const detail = failed.error ? `: ${failed.error}` : '';
+      warnings.push(`${failed.type} ${failed.label} ${failed.expected} failed${detail}`);
+    }
+  } else {
+    const failed = tests.results.find(r => !r.passed);
+    if (failed) warnings.push(failed.message);
+  }
+
   return warnings.length > 0 ? warnings.join(' | ') : null;
 }

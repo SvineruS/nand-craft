@@ -20,9 +20,12 @@ const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit',
 
 const CONSTANT_TYPES = new Set<GateType>(['constant', 'constant-8bit', 'constant-16bit']);
 
+const SEQUENTIAL_TYPES = new Set<GateType>(['delay', 'rs-latch', '8bit-memory', '8bit-counter', '8bit-counter-reset']);
+
 export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(type); }
 export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
 export function isConstantGate(type: GateType): boolean { return CONSTANT_TYPES.has(type); }
+export function isSequentialGate(type: GateType): boolean { return SEQUENTIAL_TYPES.has(type); }
 
 /** Read a pin value from simulation state. Absent = null (high-Z). */
 export function pinValue(simState: SimulationState, gateId: GateId, kind: 'input' | 'output', index: number): number | null {

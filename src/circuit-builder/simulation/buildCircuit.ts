@@ -21,6 +21,9 @@ const COMBINATIONAL_TYPES = new Set([
   '1bit-decoder', '3bit-decoder',
   '8bit-negative',
   'switch', 'constant', 'constant-8bit', 'constant-16bit', 'tristate', 'splitter', 'joiner',
+  // Switch IO gates need evaluation to check enable pin after net resolution
+  'input-sw', 'input-8bit-sw', 'input-16bit-sw',
+  'output-sw', 'output-8bit-sw', 'output-16bit-sw',
 ]);
 
 // --- Union-Find for building nets ---
@@ -686,17 +689,21 @@ function evaluateGate(simState: SimulationState, gate: Gate): void {
     case 'output-8bit-sw':
     case 'output-16bit-sw': {
       if (isInputGate(gate.type)) {
-        const enableValue = readInputNullable(simState, gate, 0);
-        if (enableValue === 0) {
-          writeOutput(simState, gate, 0, null);
-          return;
+        const inputCount = getPinCounts(gate.type).inputs;
+        if (inputCount > 0) {
+          // Enable pin: null (unconnected) or 0 → output null (high-Z)
+          const enableValue = readInputNullable(simState, gate, 0);
+          if (!enableValue) {
+            writeOutput(simState, gate, 0, null);
+            return;
+          }
         }
       } else {
         // output gate - enable is input[1] if present
         const inputCount = getPinCounts(gate.type).inputs;
         if (inputCount > 1) {
           const enableValue = readInputNullable(simState, gate, 1);
-          if (enableValue === 0) return;
+          if (!enableValue) return;
         }
       }
       break;

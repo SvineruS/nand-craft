@@ -77,22 +77,39 @@ export function useEditorCallbacks() {
   const handleStep = useCallback(() => {
     const { tests } = getEditor();
     tests.cancelRunAll();
-    const result = tests.step();
-    if (result) {
-      if (tests.allPassed()) handleLevelComplete();
-    } else if (tests.finished) {
-      // Last case already run — restart if not all passed
-      tests.reset();
-      tests.step();
+    if (tests.mode === 'queue') {
+      // Queue mode: tick once
+      if (tests.queueDone || tests.queueFailed) {
+        tests.reset();
+      }
+      if (tests.queueCommandIndex < 0) {
+        // Re-init queue execution state
+        tests.startQueue(tests.queueCommands);
+      }
+      tests.tickQueue();
+    } else {
+      const result = tests.step();
+      if (result) {
+        if (tests.allPassed()) handleLevelComplete();
+      } else if (tests.finished) {
+        tests.reset();
+        tests.step();
+      }
     }
     notifyStateChange();
   }, []);
 
   const handleRunAll = useCallback(() => {
-    getEditor().tests.runAllAnimated(
-      () => notifyStateChange(),
-      handleLevelComplete,
-    );
+    const { tests } = getEditor();
+    if (tests.mode === 'queue') {
+      // Queue mode: run with animated ticking
+      tests.runQueueAnimated(() => notifyStateChange(), handleLevelComplete);
+    } else {
+      tests.runAllAnimated(
+        () => notifyStateChange(),
+        handleLevelComplete,
+      );
+    }
   }, []);
 
   return {

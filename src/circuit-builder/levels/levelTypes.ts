@@ -22,6 +22,20 @@ export interface TestResult {
   actuals?: Record<string, number | null>;
 }
 
+export type QueueCommandStatus = 'pending' | 'running' | 'passed' | 'failed';
+
+export interface QueueCommandResult {
+  type: 'write' | 'read';
+  label: string;
+  expected: number;
+  status: QueueCommandStatus;
+  actual?: number | null;
+  error?: string;
+  /** True for the first command in a @case group. */
+  caseStart?: boolean;
+  caseName?: string;
+}
+
 /** Gate spec in a level definition — same fields as Gate minus runtime-only ones (id, pins). */
 export type LevelGate =
   Pick<Gate, 'type' | 'pos'> &

@@ -176,7 +176,29 @@ export function TestEditorDialog() {
 
     const result = parseDsl(doc);
     if (result.errors.length > 0) return;
-    if (result.mode === 'queue') return; // skip queue for now
+
+    const editor = getEditor();
+
+    if (result.mode === 'queue') {
+      // Queue mode: flatten commands with case boundary markers
+      const allCommands = result.cases.flatMap(c => c.commands);
+      const caseBoundaries: { index: number; name?: string }[] = [];
+      let idx = 0;
+      for (const c of result.cases) {
+        if (c.commands.length > 0) {
+          caseBoundaries.push({ index: idx, name: c.description });
+        }
+        idx += c.commands.length;
+      }
+      // Clear old table test data so summary doesn't show stale counts
+      editor.level.test.cases = [];
+      editor.level.inputs = [];
+      editor.level.outputs = [];
+      editor.tests.mode = 'queue';
+      editor.tests.startQueue(allCommands, caseBoundaries);
+      notifyStateChange();
+      return;
+    }
 
     let cases: TestCase[];
     try {
@@ -207,7 +229,7 @@ export function TestEditorDialog() {
       outputNames = [...outSet];
     }
 
-    const editor = getEditor();
+    editor.tests.mode = 'table';
     editor.level.inputs = inputNames.map(name => ({ name }));
     editor.level.outputs = outputNames.map(name => ({ name }));
     editor.level.test.cases = cases;
@@ -342,13 +364,46 @@ expect Out 1`}</pre>
 (a, b) => [a ^ b]`}</pre>
 
       <h4>@mode queue</h4>
-      <p>For switch I/O gates with enable pins. The circuit controls when to
-      read/write via the enable signal.</p>
+      <p>For switch I/O gates (IN/OUT with enable pin at bottom).
+      The test runner ticks the circuit continuously. Your circuit controls
+      the handshake via enable pins.</p>
+
+      <p><b>Commands:</b></p>
+      <p>
+        <code>write &lt;label&gt; &lt;value&gt;</code> — queues a value on a switch input gate.
+        The value appears on the gate's output when your circuit asserts enable=1.
+        After one tick with enable=1, the value is consumed and output returns to null.<br/>
+        <code>read &lt;label&gt; &lt;value&gt;</code> — waits for your circuit to assert enable=1
+        on a switch output gate, then checks the data value.
+      </p>
+
       <pre>{`@mode queue
 
-@case
+@case write and read back
 write D 42
-read Q 42`}</pre>
+read Q 42
+
+@case multiple values
+write D 10
+write D 20
+read Q 10
+read Q 20`}</pre>
+
+      <p><b>How it executes:</b></p>
+      <p>
+        The test runner ticks the circuit repeatedly. On each tick, it checks
+        which switch gates have enable=1 and tries to satisfy pending commands.
+        Multiple commands can be satisfied in a single tick if the circuit
+        asserts enable on multiple gates simultaneously.
+      </p>
+
+      <p><b>Edge cases:</b></p>
+      <p>
+        If your circuit asserts enable on an input gate with no queued value,
+        the gate outputs null (high-Z) — this is not an error.<br/>
+        If a read command gets the wrong value, the test fails immediately.<br/>
+        Use <code>@case</code> to group related write/read sequences.
+      </p>
 
       <h4>Syntax</h4>
       <p>Numbers: <code>42</code> decimal, <code>0xFF</code> hex, <code>0b101</code> binary.<br/>
