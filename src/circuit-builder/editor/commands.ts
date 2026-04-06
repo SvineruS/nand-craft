@@ -20,6 +20,18 @@ import {
   updateAnchoredNodes
 } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
+import {
+  addWireNodeWithId,
+  addWireSegmentWithId,
+  removeWireNode as removeWireNodePrim,
+  removeWireSegment as removeWireSegmentPrim,
+  restoreRemovedNode,
+  restoreRemovedSegment,
+  setWireNodePin,
+  setWireNodePos,
+  type RemovedNode,
+  type RemovedSegment,
+} from './circuitMutations.ts';
 
 // ---------------------------------------------------------------------------
 // Command interface & history stack
@@ -59,8 +71,19 @@ export class CommandHistory {
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
   private batch: BatchCommand | null = null;
+  private dragInProgress = false;
+
+  /**
+   * Set by InputHandler while an interactive drag is live. When true, any
+   * execute/undo/redo call is a bug — drags must mutate state directly via
+   * dragMutations and commit one atomic batch at mouseup.
+   */
+  setDragInProgress(v: boolean): void {
+    this.dragInProgress = v;
+  }
 
   execute(cmd: Command): void {
+    if (this.dragInProgress) throw new Error('CommandHistory.execute() called during drag');
     if (this.batch) {
       this.batch.add(cmd);
       return;
@@ -83,6 +106,7 @@ export class CommandHistory {
   }
 
   undo(): void {
+    if (this.dragInProgress) return;
     const cmd = this.undoStack.pop();
     if (!cmd) return;
     cmd.undo();
@@ -90,6 +114,7 @@ export class CommandHistory {
   }
 
   redo(): void {
+    if (this.dragInProgress) return;
     const cmd = this.redoStack.pop();
     if (!cmd) return;
     cmd.execute();
@@ -370,9 +395,7 @@ export class AddWireNodeCommand implements Command {
   }
 
   execute(): void {
-    const node: WireNode = { id: this.nodeId, pos: Vec2.copy(this.pos) };
-    if (this.pin) node.pin = this.pin;
-    this.state.circuit.wireNodes.set(this.nodeId, node);
+    addWireNodeWithId(this.state.circuit, this.nodeId, this.pos, this.pin);
     this.state.circuitDirty = true;
   }
 
@@ -390,9 +413,7 @@ export class RemoveWireNodeCommand implements Command {
   readonly description = 'Remove wire node';
   private state: EditorState;
   private nodeId: WireNodeId;
-  private node: WireNode | null = null;
-  private removedSegments: WireSegment[] = [];
-  private removedOrphanNodes: WireNode[] = [];
+  private removed: RemovedNode | null = null;
 
   constructor(state: EditorState, nodeId: WireNodeId) {
     this.state = state;
@@ -400,44 +421,12 @@ export class RemoveWireNodeCommand implements Command {
   }
 
   execute(): void {
-    const { circuit } = this.state;
-    const node = circuit.wireNodes.get(this.nodeId);
-    if (!node) return;
-    this.node = { ...node };
-
-    // Remove all connected segments
-    this.removedSegments = [];
-    const neighborNodeIds = new Set<string>();
-    for (const seg of circuit.wireSegments.values()) {
-      if (seg.from === this.nodeId || seg.to === this.nodeId) {
-        this.removedSegments.push({ ...seg });
-        // Track the other endpoint
-        const otherId = seg.from === this.nodeId ? seg.to : seg.from;
-        if (otherId !== this.nodeId) neighborNodeIds.add(otherId as string);
-      }
-    }
-    for (const seg of this.removedSegments) {
-      circuit.wireSegments.delete(seg.id);
-    }
-
-    circuit.wireNodes.delete(this.nodeId);
-
-    // Clean up orphaned free neighbor nodes
-    this.removedOrphanNodes = cleanupOrphanNodes(circuit, neighborNodeIds as Iterable<WireNodeId>);
-
+    this.removed = removeWireNodePrim(this.state.circuit, this.nodeId);
     this.state.circuitDirty = true;
   }
 
   undo(): void {
-    const { circuit } = this.state;
-    // Restore orphaned nodes first
-    for (const node of this.removedOrphanNodes) {
-      circuit.wireNodes.set(node.id, node);
-    }
-    if (this.node) circuit.wireNodes.set(this.nodeId, this.node);
-    for (const seg of this.removedSegments) {
-      circuit.wireSegments.set(seg.id, seg);
-    }
+    if (this.removed) restoreRemovedNode(this.state.circuit, this.removed);
     this.state.circuitDirty = true;
   }
 }
@@ -462,10 +451,7 @@ export class AddWireSegmentCommand implements Command {
   }
 
   execute(): void {
-    const seg: WireSegment = { id: this.segmentId, from: this.from, to: this.to };
-    if (this.color) seg.color = this.color;
-    if (this.label) seg.label = this.label;
-    this.state.circuit.wireSegments.set(this.segmentId, seg);
+    addWireSegmentWithId(this.state.circuit, this.segmentId, this.from, this.to, this.color, this.label);
     this.state.circuitDirty = true;
   }
 
@@ -484,8 +470,7 @@ export class RemoveWireSegmentCommand implements Command {
   private state: EditorState;
   private segmentId: WireSegmentId;
   private cleanOrphans: boolean;
-  private segment: WireSegment | null = null;
-  private removedOrphanNodes: WireNode[] = [];
+  private removed: RemovedSegment | null = null;
 
   constructor(state: EditorState, segmentId: WireSegmentId, cleanOrphans = true) {
     this.state = state;
@@ -494,27 +479,12 @@ export class RemoveWireSegmentCommand implements Command {
   }
 
   execute(): void {
-    const { circuit } = this.state;
-    const seg = circuit.wireSegments.get(this.segmentId);
-    if (!seg) return;
-    this.segment = { ...seg };
-    circuit.wireSegments.delete(this.segmentId);
-
-    // Clean up orphaned free nodes (no remaining segments, not anchored to a pin)
-    if (!this.cleanOrphans) { this.removedOrphanNodes = []; this.state.circuitDirty = true; return; }
-    this.removedOrphanNodes = cleanupOrphanNodes(circuit, [seg.from, seg.to]);
-
+    this.removed = removeWireSegmentPrim(this.state.circuit, this.segmentId, this.cleanOrphans);
     this.state.circuitDirty = true;
   }
 
   undo(): void {
-    // Restore orphaned nodes first, then the segment
-    for (const node of this.removedOrphanNodes) {
-      this.state.circuit.wireNodes.set(node.id, node);
-    }
-    if (this.segment) {
-      this.state.circuit.wireSegments.set(this.segmentId, this.segment);
-    }
+    if (this.removed) restoreRemovedSegment(this.state.circuit, this.removed);
     this.state.circuitDirty = true;
   }
 }
@@ -536,27 +506,14 @@ export class MoveWireNodeCommand implements Command {
   }
 
   execute(): void {
-    const { circuit } = this.state;
-    const node = circuit.getWireNode(this.nodeId);
-    this.oldPos = Vec2.copy(node.pos);
-    node.pos = Vec2.copy(this.newPos);
-
-    if (this.detachPin) {
-      node.pin = undefined;
-    }
-
+    this.oldPos = setWireNodePos(this.state.circuit, this.nodeId, this.newPos);
+    if (this.detachPin) setWireNodePin(this.state.circuit, this.nodeId, undefined);
     this.state.circuitDirty = true;
   }
 
   undo(): void {
-    const { circuit } = this.state;
-    const node = circuit.getWireNode(this.nodeId);
-    node.pos = Vec2.copy(this.oldPos);
-
-    if (this.detachPin) {
-      node.pin = this.detachPin;
-    }
-
+    setWireNodePos(this.state.circuit, this.nodeId, this.oldPos);
+    if (this.detachPin) setWireNodePin(this.state.circuit, this.nodeId, this.detachPin);
     this.state.circuitDirty = true;
   }
 }
