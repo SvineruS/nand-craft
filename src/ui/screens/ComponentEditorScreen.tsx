@@ -29,6 +29,8 @@ export function getEditingComponentId(): ComponentId | null {
 export function ComponentEditorScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [name, setName] = useState(editingComponentName);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const container = containerRef.current!;
@@ -76,10 +78,13 @@ export function ComponentEditorScreen() {
       saveComponent(def);
       clearComponentDefCache();
       editingComponentId = def.id;
-      alert('Component saved!');
+      setSaveError(null);
+      setSaveStatus('saved');
     } catch (e) {
-      alert((e as Error).message);
+      setSaveError((e as Error).message);
+      setSaveStatus('error');
     }
+    setTimeout(() => setSaveStatus('idle'), 150);
   }
 
   function handleDelete() {
@@ -147,7 +152,18 @@ export function ComponentEditorScreen() {
         <div class="toolbar-spacer" />
 
         <button class="toolbar-btn" onClick={() => { testEditorVisible.value = !testEditorVisible.value; }}>Tests</button>
-        <button class="toolbar-btn" style={{ fontWeight: 'bold' }} onClick={handleSave}>Save</button>
+        <button
+          class="toolbar-btn"
+          style={{
+            fontWeight: 'bold',
+            background: saveStatus === 'saved' ? 'var(--pass)' : saveStatus === 'error' ? 'var(--fail)' : undefined,
+            transition: saveStatus === 'idle' ? 'background 600ms ease-out' : 'none',
+          }}
+          title={saveStatus === 'error' ? saveError ?? undefined : undefined}
+          onClick={handleSave}
+        >
+          Save
+        </button>
         {editingComponentId && (
           <button class="toolbar-btn" style={{ color: 'var(--fail)' }} onClick={handleDelete}>Delete</button>
         )}
