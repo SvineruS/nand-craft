@@ -45,12 +45,14 @@ export function loadLevel(index: number): void {
 }
 
 export function buildLevelMap(): void {
+  const prevCamera = levelMapState?.camera;
+
   const { circuit, levelGateMap: levelGateMap_ } = buildLevelMapCircuit(LEVELS, solvedLevelIds.value);
   const state = createEditorState();
   state.circuit = circuit;
   state.circuitDirty = false;
 
-  state.camera.pos = findLeftmostAvailable(circuit);
+  if (prevCamera) state.camera = prevCamera;
 
   // Add component nodes below levels
   addComponentNodes(circuit);
@@ -88,25 +90,6 @@ function addComponentNodes(circuit: Circuit): void {
   }
 }
 
-/** Find center of the leftmost available (unlocked, unsolved) level gate. Falls back to center of all gates. */
-function findLeftmostAvailable(circuit: Circuit): Vec2 {
-  let best: { pos: Vec2; x: number } | null = null;
-  const all: Vec2[] = [];
-
-  for (const gate of circuit.gates.values()) {
-    if (gate.type !== 'level') continue;
-    const center = gateCenter(gate);
-    all.push(center);
-    if (gate.state === 'available') {
-      if (!best || center.x < best.x) {
-        best = { pos: center, x: center.x };
-      }
-    }
-  }
-
-  if (best) return best.pos;
-  return all.length > 0 ? Vec2.avg(all) : { x: 0, y: 0 };
-}
 
 export function getLevelMapState(): EditorState | null {
   return levelMapState;
