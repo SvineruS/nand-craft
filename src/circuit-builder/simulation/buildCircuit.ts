@@ -635,7 +635,7 @@ function evaluateGate(simState: SimulationState, gate: Gate): void {
       const a = readInput(simState, gate, 0);
       const b = readInput(simState, gate, 1);
       const c = readInput(simState, gate, 2);
-      const idx = (a << 2) | (b << 1) | c;
+      const idx = (c << 2) | (b << 1) | a;
       const outputCount = getPinCounts(gate.type).outputs;
       for (let i = 0; i < outputCount; i++) {
         writeOutput(simState, gate, i, i === idx ? 1 : 0);
