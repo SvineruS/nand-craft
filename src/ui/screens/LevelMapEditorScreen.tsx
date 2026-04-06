@@ -10,7 +10,7 @@ import {
   exportLevelMap,
 } from '../../circuit-builder/levels/levelManager.ts';
 import { WIRE_COLORS } from '../../circuit-builder/editor/consts.ts';
-import type { GateType } from '../../circuit-builder/editor/gates.ts';
+
 
 export function LevelMapEditorScreen() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,12 +61,6 @@ export function LevelMapEditorScreen() {
   function handleRedo() { getEditor().redo(); notifyStateChange(); }
   function handleExport() { exportLevelMap(); alert('Exported to console — check DevTools'); }
   function handleColorChange(color: string) { getEditor().getState().wireColor = color; notifyStateChange(); }
-  function handleStamp(type: GateType) {
-    const s = getEditor().getState();
-    s.mode = { kind: 'stamping', gateType: type };
-    s.renderDirty = true;
-  }
-  function handleDragStart(type: GateType) { getEditor().getState().mode = { kind: 'stamping', gateType: type }; }
   function handleDragEnd() { getEditor().getState().mode = { kind: 'normal' }; }
 
   return (
@@ -93,7 +87,7 @@ export function LevelMapEditorScreen() {
       </div>
       <div class="main-row">
         <div id="editor-container" ref={containerRef} />
-        <Sidebar onStamp={handleStamp} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+        <Sidebar onDragEnd={handleDragEnd} />
       </div>
     </>
   );

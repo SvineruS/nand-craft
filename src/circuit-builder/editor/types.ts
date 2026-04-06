@@ -18,6 +18,10 @@ export function generateId(prefix: string): string {
 export function setNextId(value: number): void {
   nextId = value;
 }
+/** Only increase the ID counter, never decrease. Safe for component deserialization. */
+export function bumpNextId(value: number): void {
+  if (value > nextId) nextId = value;
+}
 
 export type Rotation = 0 | 90 | 180 | 270;
 

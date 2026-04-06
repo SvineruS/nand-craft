@@ -1,4 +1,4 @@
-import type { Circuit } from './circuit.ts';
+import { Circuit } from './circuit.ts';
 import type {
   GateId,
   Net,
@@ -7,8 +7,10 @@ import type {
   WireNodeId,
   WireSegmentId,
 } from '../editor/types.ts';
-import { generateId, pinRefKey } from '../editor/types.ts';
-import { isInputGate, pinValue, writePinValue, type Gate } from "./gateTypes.ts";
+import { generateId, pinRefKey, type ComponentId } from '../editor/types.ts';
+import { isInputGate, isOutputGate, pinValue, writePinValue, type Gate, type GateType } from "./gateTypes.ts";
+import { getComponent, isComponentType } from '../components/componentRegistry.ts';
+import { deserializeCircuit } from '../persistence/serialize.ts';
 import type { BuildResult, SimulationState } from './types.ts';
 import { getPinBitWidth, getPinCounts } from '../editor/gates.ts';
 
@@ -22,9 +24,17 @@ const COMBINATIONAL_TYPES = new Set([
   '8bit-adder', '8bit-negative', '8bit-subtractor',
   'mux', '8bit-mux', 'constant', 'constant-8bit', 'constant-16bit', 'tristate', 'splitter', 'joiner',
   // Switch IO gates need evaluation to check enable pin after net resolution
+  // Note: component gates (custom circuits) are also combinational but have dynamic type IDs
   'input-sw', 'input-8bit-sw', 'input-16bit-sw',
   'output-sw', 'output-8bit-sw', 'output-16bit-sw',
 ]);
+
+/** Check if a gate type is combinational (built-in or component). */
+function isCombinational(type: GateType): boolean {
+  if (COMBINATIONAL_TYPES.has(type)) return true;
+  // Component gates (custom circuits) are also combinational
+  return isComponentType(type);
+}
 
 // --- Union-Find for building nets ---
 
@@ -193,7 +203,7 @@ function topologicalSort(
 ): GateId[] {
   const combGateIds = new Set<GateId>();
   for (const gate of circuit.gates.values()) {
-    if (COMBINATIONAL_TYPES.has(gate.type)) {
+    if (isCombinational(gate.type)) {
       combGateIds.add(gate.id);
     }
   }
@@ -259,7 +269,7 @@ function detectCycles(
 ): GateId[][] {
   const combGateIds = new Set<GateId>();
   for (const gate of circuit.gates.values()) {
-    if (COMBINATIONAL_TYPES.has(gate.type)) {
+    if (isCombinational(gate.type)) {
       combGateIds.add(gate.id);
     }
   }
@@ -725,6 +735,60 @@ function evaluateGate(simState: SimulationState, gate: Gate): void {
       break;
     }
     default:
+      // Component gates — type is the component ID
+      evaluateComponent(simState, gate);
       break;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Component evaluation — simulates inner circuit
+// ---------------------------------------------------------------------------
+
+/** Track component evaluation chain to detect circular references. */
+const evaluatingComponents = new Set<string>();
+
+function evaluateComponent(simState: SimulationState, gate: Gate): void {
+  const compId = gate.type as ComponentId;
+  const def = getComponent(compId);
+  if (!def) return; // Not a component gate — unknown type, silently skip
+
+  // Circular reference check
+  if (evaluatingComponents.has(compId)) return;
+  evaluatingComponents.add(compId);
+
+  try {
+    // Get or create inner circuit instance from gate.state
+    // Check instanceof because gate.state may be stale data after deserialization
+    let innerCircuit = gate.state instanceof Circuit ? gate.state : undefined;
+    if (!innerCircuit) {
+      innerCircuit = deserializeCircuit(def.circuit);
+      gate.state = innerCircuit;
+    }
+
+    // Collect inner IO gates in iteration order (same order as buildComponentDefinition)
+    const innerInputIds: GateId[] = [];
+    const innerOutputIds: GateId[] = [];
+    for (const innerGate of innerCircuit.gates.values()) {
+      if (isInputGate(innerGate.type)) innerInputIds.push(innerGate.id);
+      else if (isOutputGate(innerGate.type)) innerOutputIds.push(innerGate.id);
+    }
+
+    // Map component input pins → inner circuit input gate values
+    const inputs = new Map<GateId, number>();
+    for (let i = 0; i < def.inputs.length && i < innerInputIds.length; i++) {
+      inputs.set(innerInputIds[i], readInput(simState, gate, i));
+    }
+
+    // Tick the inner circuit
+    innerCircuit.tick(inputs);
+
+    // Read inner circuit output gate values → component output pins
+    for (let i = 0; i < def.outputs.length && i < innerOutputIds.length; i++) {
+      const val = innerCircuit.tickResult.outputs.get(innerOutputIds[i]) ?? null;
+      writeOutput(simState, gate, i, val);
+    }
+  } finally {
+    evaluatingComponents.delete(compId);
   }
 }

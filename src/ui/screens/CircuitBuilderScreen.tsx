@@ -98,7 +98,7 @@ export function CircuitBuilderScreen() {
           onExecuteCommand={cb.handleExecuteCommand}
         />
         <div id="editor-container" ref={containerRef}/>
-        <Sidebar onStamp={cb.handleStamp} onDragStart={cb.handleDragStart} onDragEnd={cb.handleDragEnd}/>
+        <Sidebar onDragEnd={cb.handleDragEnd}/>
       </div>
       <LevelDialog/>
       <TestEditorDialog/>

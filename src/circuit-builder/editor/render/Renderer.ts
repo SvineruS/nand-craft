@@ -1,13 +1,13 @@
 import type { Camera, EditorState } from '../EditorState.ts';
 import type { GateType } from '../../simulation/gateTypes.ts';
-import { getGateDefinition } from '../gates.ts';
+import { getGateDefinition, componentDefVersion } from '../gates.ts';
 import { cameraBoundingBox } from '../utils/geometry.ts';
 import { routeCorner, Vec2 } from '../utils/vec2.ts';
 import { screenToWorld as stw, worldToScreen as wts } from '../../../engine/camera.ts';
 import { COLORS, GRID_DOT_RADIUS, GRID_SIZE, MAJOR_GRID_DOT_RADIUS, MAJOR_GRID_EVERY, WIRE_DASH_SIZE } from "../consts.ts";
 import type {
   RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin,
-  RenderErrorSegment, RenderSelectionItem, RenderDropPreview, RenderPastePreview,
+  RenderErrorSegment, RenderSelectionItem, RenderPastePreview,
 } from './renderScene.ts';
 import { buildScene } from './buildScene.ts';
 
@@ -61,6 +61,8 @@ export class Renderer {
     ctx.restore();
   }
 
+  private lastSelection: unknown = null;
+
   startLoop(getState: () => EditorState, onCircuitDirty?: () => void, onValueDirty?: () => void, onStateChanged?: () => void): void {
     this.lastTime = performance.now();
     const tick = (time: number) => {
@@ -80,7 +82,11 @@ export class Renderer {
       const needsRedraw = state.renderDirty || state.circuitDirty;
       if (needsRedraw) {
         this.lastScene = buildScene(state, this.mouseWorld);
-        onStateChanged?.();
+        // Only notify Preact when UI-relevant state changed (not on every hover/mousemove)
+        if (state.selection !== this.lastSelection || state.circuitDirty) {
+          this.lastSelection = state.selection;
+          onStateChanged?.();
+        }
         state.renderDirty = false;
         state.circuitDirty = false;
       }
@@ -131,17 +137,47 @@ export class Renderer {
   }
 
   private gatePaths = new Map<string, Path2D>();
+  private lastComponentDefVersion = -1;
 
-  private getGatePath(type: GateType, variant = 0): Path2D {
-    const key = variant ? `${type}:${variant}` : type;
+  private getGatePath(type: GateType, layerIndex = 0): Path2D {
+    // Invalidate cache when component definitions change
+    if (this.lastComponentDefVersion !== componentDefVersion) {
+      this.gatePaths.clear();
+      this.lastComponentDefVersion = componentDefVersion;
+    }
+    const key = layerIndex ? `${type}:${layerIndex}` : type;
     let path = this.gatePaths.get(key);
     if (!path) {
       const def = getGateDefinition(type);
-      const svg = Array.isArray(def.svg) ? (def.svg[variant] ?? def.svg[0]) : (def.svg ?? '');
-      path = new Path2D(svg);
+      let svgStr: string;
+      if (typeof def.svg === 'string') {
+        svgStr = def.svg;
+      } else if (Array.isArray(def.svg)) {
+        const layer = def.svg[layerIndex] ?? def.svg[0];
+        svgStr = typeof layer === 'string' ? layer : layer.path;
+      } else {
+        svgStr = '';
+      }
+      path = new Path2D(svgStr);
       this.gatePaths.set(key, path);
     }
     return path;
+  }
+
+  /** Get SvgLayer options for a specific layer index. */
+  private getSvgLayerOptions(type: GateType, layerIndex: number): { fill: boolean; stroke: boolean; alpha: number } {
+    const def = getGateDefinition(type);
+    if (Array.isArray(def.svg)) {
+      const layer = def.svg[layerIndex];
+      if (layer && typeof layer !== 'string') {
+        return {
+          fill: layer.fill ?? true,
+          stroke: layer.stroke ?? true,
+          alpha: layer.alpha ?? 1,
+        };
+      }
+    }
+    return { fill: true, stroke: true, alpha: 1 };
   }
 
   private traceRoutedPath(ctx: CanvasRenderingContext2D, a: Vec2, b: Vec2): void {
@@ -308,64 +344,84 @@ export class Renderer {
     }
   }
 
-  private drawGates(gates: RenderGate[]): void {
+  /** Draw a single gate body: SVG or rect, label, value label, preview pins, error glow. */
+  private drawGateBody(gate: RenderGate): void {
     const { ctx } = this;
 
-    for (const gate of gates) {
+    ctx.save();
+    ctx.translate(gate.center.x, gate.center.y);
+    ctx.rotate((gate.rotation * Math.PI) / 180);
+
+    if (gate.hasSvg) {
+      ctx.save();
+      ctx.translate(-gate.w / 2, -gate.h / 2);
+      ctx.scale(GRID_SIZE, GRID_SIZE);
+
+      const prevAlpha = ctx.globalAlpha;
+      for (const layerIdx of gate.svgLayers) {
+        const path = this.getGatePath(gate.type, layerIdx);
+        const opts = this.getSvgLayerOptions(gate.type, layerIdx);
+        ctx.globalAlpha = prevAlpha * opts.alpha;
+        if (opts.fill) { ctx.fillStyle = gate.fillColor; ctx.fill(path); }
+        if (opts.stroke) { ctx.strokeStyle = gate.strokeColor; ctx.lineWidth = 1.5 / GRID_SIZE; ctx.stroke(path); }
+      }
+      ctx.globalAlpha = prevAlpha;
+
+      ctx.restore();
+    } else {
+      ctx.fillStyle = gate.fillColor;
+      ctx.strokeStyle = gate.strokeColor;
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(-gate.w / 2, -gate.h / 2, gate.w, gate.h);
+      ctx.strokeRect(-gate.w / 2, -gate.h / 2, gate.w, gate.h);
+    }
+
+    // Label
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (gate.label) {
+      ctx.fillStyle = gate.labelColor;
+      ctx.font = gate.labelFont;
+      this.drawTextMultiline(gate.label, gate.labelPos.x, gate.labelPos.y);
+    }
+
+    // Value label (input/constant gates)
+    if (gate.valueLabel) {
+      ctx.fillStyle = gate.valueLabel.color;
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText(gate.valueLabel.text, gate.valueLabel.pos.x, gate.valueLabel.pos.y);
+    }
+
+    // Preview pin dots (for drop/paste previews)
+    if (gate.previewPins) {
+      for (const pin of gate.previewPins) {
+        ctx.fillStyle = COLORS.pinHighZ;
+        ctx.beginPath();
+        ctx.arc(pin.x, pin.y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
+
+    // Error glow
+    if (gate.errorGlow) {
       ctx.save();
       ctx.translate(gate.center.x, gate.center.y);
       ctx.rotate((gate.rotation * Math.PI) / 180);
-
-      if (gate.hasSvg) {
-        const path = this.getGatePath(gate.type, gate.svgVariant);
-        ctx.save();
-        ctx.translate(-gate.w / 2, -gate.h / 2);
-        ctx.scale(GRID_SIZE, GRID_SIZE);
-        ctx.fillStyle = gate.fillColor;
-        ctx.fill(path);
-        ctx.strokeStyle = gate.strokeColor;
-        ctx.lineWidth = 1.5 / GRID_SIZE;
-        ctx.stroke(path);
-        ctx.restore();
-      } else {
-        ctx.fillStyle = gate.fillColor;
-        ctx.strokeStyle = gate.strokeColor;
-        ctx.lineWidth = 1.5;
-        ctx.fillRect(-gate.w / 2, -gate.h / 2, gate.w, gate.h);
-        ctx.strokeRect(-gate.w / 2, -gate.h / 2, gate.w, gate.h);
-      }
-
-      // Label
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      if (gate.label) {
-        ctx.fillStyle = gate.labelColor;
-        ctx.font = gate.labelFont;
-        this.drawTextMultiline(gate.label, gate.labelPos.x, gate.labelPos.y);
-      }
-
-      // Value label (input/constant gates)
-      if (gate.valueLabel) {
-        ctx.fillStyle = gate.valueLabel.color;
-        ctx.font = 'bold 13px monospace';
-        ctx.fillText(gate.valueLabel.text, gate.valueLabel.pos.x, gate.valueLabel.pos.y);
-      }
-
+      ctx.strokeStyle = COLORS.error;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = COLORS.error;
+      ctx.shadowBlur = 8;
+      ctx.strokeRect(-gate.w / 2 - 1, -gate.h / 2 - 1, gate.w + 2, gate.h + 2);
+      ctx.shadowBlur = 0;
       ctx.restore();
+    }
+  }
 
-      // Error glow
-      if (gate.errorGlow) {
-        ctx.save();
-        ctx.translate(gate.center.x, gate.center.y);
-        ctx.rotate((gate.rotation * Math.PI) / 180);
-        ctx.strokeStyle = COLORS.error;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = COLORS.error;
-        ctx.shadowBlur = 8;
-        ctx.strokeRect(-gate.w / 2 - 1, -gate.h / 2 - 1, gate.w + 2, gate.h + 2);
-        ctx.shadowBlur = 0;
-        ctx.restore();
-      }
+  private drawGates(gates: RenderGate[]): void {
+    for (const gate of gates) {
+      this.drawGateBody(gate);
     }
   }
 
@@ -476,45 +532,11 @@ export class Renderer {
     ctx.globalAlpha = 1;
   }
 
-  private drawDropPreview(preview: RenderDropPreview | null): void {
+  private drawDropPreview(preview: RenderGate | null): void {
     if (!preview) return;
-    const { ctx } = this;
-
-    ctx.globalAlpha = 0.5;
-
-    if (preview.hasSvg) {
-      const path = this.getGatePath(preview.type);
-      ctx.save();
-      ctx.translate(preview.pos.x, preview.pos.y);
-      ctx.scale(GRID_SIZE, GRID_SIZE);
-      ctx.fillStyle = preview.fillColor;
-      ctx.fill(path);
-      ctx.strokeStyle = preview.strokeColor;
-      ctx.lineWidth = 1.5 / GRID_SIZE;
-      ctx.stroke(path);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = preview.fillColor;
-      ctx.strokeStyle = preview.strokeColor;
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(preview.pos.x, preview.pos.y, preview.w, preview.h);
-      ctx.strokeRect(preview.pos.x, preview.pos.y, preview.w, preview.h);
-    }
-
-    ctx.fillStyle = COLORS.gateText;
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    this.drawTextMultiline(preview.label, preview.labelPos.x, preview.labelPos.y);
-
-    for (const pin of preview.pins) {
-      ctx.fillStyle = COLORS.pinHighZ;
-      ctx.beginPath();
-      ctx.arc(pin.x, pin.y, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.globalAlpha = 1;
+    this.ctx.globalAlpha = 0.5;
+    this.drawGateBody(preview);
+    this.ctx.globalAlpha = 1;
   }
 
   private drawPastePreview(preview: RenderPastePreview | null): void {
@@ -523,45 +545,8 @@ export class Renderer {
 
     ctx.globalAlpha = 0.4;
 
-    // Ghost gates
     for (const gate of preview.gates) {
-      ctx.save();
-      ctx.translate(gate.center.x, gate.center.y);
-      ctx.rotate((gate.rotation * Math.PI) / 180);
-
-      if (gate.hasSvg) {
-        const path = this.getGatePath(gate.type); // Paste preview uses default variant
-        ctx.save();
-        ctx.translate(-gate.w / 2, -gate.h / 2);
-        ctx.scale(GRID_SIZE, GRID_SIZE);
-        ctx.fillStyle = gate.fillColor;
-        ctx.fill(path);
-        ctx.strokeStyle = gate.strokeColor;
-        ctx.lineWidth = 1.5 / GRID_SIZE;
-        ctx.stroke(path);
-        ctx.restore();
-      } else {
-        ctx.fillStyle = gate.fillColor;
-        ctx.strokeStyle = gate.strokeColor;
-        ctx.lineWidth = 1.5;
-        ctx.fillRect(-gate.w / 2, -gate.h / 2, gate.w, gate.h);
-        ctx.strokeRect(-gate.w / 2, -gate.h / 2, gate.w, gate.h);
-      }
-
-      ctx.fillStyle = COLORS.gateText;
-      ctx.font = 'bold 11px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      this.drawTextMultiline(gate.label, gate.labelPos.x, gate.labelPos.y);
-
-      for (const pin of gate.pins) {
-        ctx.fillStyle = COLORS.pinHighZ;
-        ctx.beginPath();
-        ctx.arc(pin.x, pin.y, 3.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.restore();
+      this.drawGateBody(gate);
     }
 
     // Ghost wires

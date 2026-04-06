@@ -1,8 +1,9 @@
 import type { EditorState } from '../EditorState.ts';
-import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderErrorSegment, RenderSelectionItem, RenderDropPreview, RenderPastePreview } from './renderScene.ts';
+import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderErrorSegment, RenderSelectionItem, RenderPastePreview } from './renderScene.ts';
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
 import { type Gate, isConstantGate, isInputGate, pinValue } from '../../simulation/gateTypes.ts';
 import type { Circuit } from '../../simulation/circuit.ts';
+import { isComponentType } from '../../components/componentRegistry.ts';
 import { pinRefKey } from '../types.ts';
 import { gateCenter, gateGridOffset, getGateDims, iteratePinPositions, pinRefsEqual } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
@@ -195,7 +196,7 @@ function buildGates(state: EditorState): RenderGate[] {
       rotation: gate.rotation,
       fillColor, strokeColor,
       hasSvg: !!def.svg,
-      svgVariant: getSvgVariant(gate, circuit),
+      svgLayers: getSvgLayers(gate, circuit),
       label, labelPos, labelFont, labelColor,
       valueLabel,
       errorGlow,
@@ -297,30 +298,54 @@ function buildWireInProgress(state: EditorState, mouseWorld: Vec2): RenderScene[
   return { from, to, color };
 }
 
-function buildDropPreview(state: EditorState): RenderDropPreview | null {
+function buildPreviewGate(
+  def: ReturnType<typeof getGateDefinition>,
+  center: Vec2,
+  rotation: number,
+  type: import('../../simulation/gateTypes.ts').GateType,
+): RenderGate {
+  const w = def.width * GRID_SIZE;
+  const h = def.height * GRID_SIZE;
+  const labelX = (def.labelX ?? 0) * GRID_SIZE;
+  const labelY = (def.labelY ?? 0) * GRID_SIZE;
+
+  let label = def.label;
+  const charWidth = 7;
+  const maxChars = Math.floor((w * 0.9) / charWidth);
+  if (label.length > maxChars && maxChars > 1) {
+    label = wrapText(label, maxChars);
+  }
+
+  // Pin positions relative to center
+  const previewPins = def.pins.map(pin => ({
+    x: pin.x * GRID_SIZE - w / 2,
+    y: pin.y * GRID_SIZE - h / 2,
+  }));
+
+  return {
+    type, center, w, h, rotation,
+    fillColor: def.color ?? COLORS.gateFill,
+    strokeColor: def.stroke ?? COLORS.selection,
+    hasSvg: !!def.svg,
+    svgLayers: [0],
+    label,
+    labelPos: { x: labelX, y: labelY },
+    labelFont: 'bold 11px monospace',
+    labelColor: COLORS.gateText,
+    valueLabel: null,
+    errorGlow: false,
+    previewPins,
+  };
+}
+
+function buildDropPreview(state: EditorState): RenderGate | null {
   if (!state.dropPreview) return null;
   const { type, pos } = state.dropPreview;
   const def = getGateDefinition(type);
   const w = def.width * GRID_SIZE;
   const h = def.height * GRID_SIZE;
-
-  const pins = def.pins.map(pin => ({
-    x: pos.x + pin.x * GRID_SIZE,
-    y: pos.y + pin.y * GRID_SIZE,
-  }));
-
-  return {
-    type, pos, w, h,
-    fillColor: def.color ?? COLORS.gateFill,
-    strokeColor: def.stroke ?? COLORS.selection,
-    hasSvg: !!def.svg,
-    label: def.label,
-    labelPos: {
-      x: pos.x + w / 2 + (def.labelX ?? 0) * GRID_SIZE,
-      y: pos.y + h / 2 + (def.labelY ?? 0) * GRID_SIZE,
-    },
-    pins,
-  };
+  const center = { x: pos.x + w / 2, y: pos.y + h / 2 };
+  return buildPreviewGate(def, center, 0, type);
 }
 
 function buildPastePreview(state: EditorState): RenderPastePreview | null {
@@ -334,24 +359,8 @@ function buildPastePreview(state: EditorState): RenderPastePreview | null {
     const gh = def.height * GRID_SIZE;
     const offset = gateGridOffset(cg.rotation, gw, gh);
     const gatePos = Vec2.snap({ x: cursor.x + cg.delta.x - gw / 2, y: cursor.y + cg.delta.y - gh / 2 }, offset);
-
-    const pins = def.pins.map(pin => ({
-      x: pin.x * GRID_SIZE - gw / 2,
-      y: pin.y * GRID_SIZE - gh / 2,
-    }));
-
-    return {
-      type: cg.type,
-      center: { x: gatePos.x + gw / 2, y: gatePos.y + gh / 2 },
-      w: gw, h: gh,
-      rotation: cg.rotation,
-      fillColor: def.color ?? COLORS.gateFill,
-      strokeColor: def.stroke ?? COLORS.selection,
-      hasSvg: !!def.svg,
-      label: def.label,
-      labelPos: { x: (def.labelX ?? 0) * GRID_SIZE, y: (def.labelY ?? 0) * GRID_SIZE },
-      pins,
-    };
+    const center = { x: gatePos.x + gw / 2, y: gatePos.y + gh / 2 };
+    return buildPreviewGate(def, center, cg.rotation, cg.type);
   });
 
   const wires = clip.wires
@@ -404,19 +413,26 @@ function pinStrokeForWidth(bitWidth: number): string {
   return '#fb923c';
 }
 
-/** Pick SVG variant index for gates with svg arrays (e.g. mux/decoder arrow direction). */
-function getSvgVariant(gate: Gate, circuit: Circuit): number {
+/** Pick which SVG layer indices to draw. Variants pick one, components draw all. */
+function getSvgLayers(gate: Gate, circuit: Circuit): number[] {
+  const def = getGateDefinition(gate.type);
+  if (!Array.isArray(def.svg)) return [0];
+
+  // Component gates: draw all layers (border + squares)
+  if (isComponentType(gate.type)) {
+    return def.svg.map((_, i) => i);
+  }
+
+  // MUX/decoder variants: pick one based on input value
   if (gate.type === 'mux' || gate.type === '8bit-mux') {
-    // S pin is input index 0
     const sValue = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index: 0 })) ?? null;
-    return sValue ? 1 : 0;
+    return [sValue ? 1 : 0];
   }
   if (gate.type === '1bit-decoder') {
-    // A pin is input index 0
     const aValue = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index: 0 })) ?? null;
-    return aValue ? 1 : 0;
+    return [aValue ? 1 : 0];
   }
-  return 0;
+  return [0];
 }
 
 function formatWireValue(value: number, bitWidth: number): string {

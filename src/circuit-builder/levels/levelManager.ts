@@ -1,7 +1,7 @@
 import { Editor } from '../editor/Editor.ts';
 import type { EditorState } from '../editor/EditorState.ts';
 import { createEditorState } from '../editor/EditorState.ts';
-import type { LevelId } from '../editor/types.ts';
+import type { GateId, LevelId } from '../editor/types.ts';
 import { gateCenter } from '../editor/utils/geometry.ts';
 import type { Circuit } from '../simulation/circuit.ts';
 import type { LevelGateMap } from './levelMap.ts';
@@ -17,6 +17,7 @@ import {
 } from '../../ui/editorStore.ts';
 import { Vec2 } from "../editor/utils/vec2.ts";
 import { hitTestGate_ } from "../editor/utils/hitTests.ts";
+import { getAllComponents } from '../components/componentRegistry.ts';
 
 // ---------------------------------------------------------------------------
 // Level state management
@@ -51,8 +52,40 @@ export function buildLevelMap(): void {
 
   state.camera.pos = findLeftmostAvailable(circuit);
 
+  // Add component nodes below levels
+  addComponentNodes(circuit);
+
   levelMapState = state;
   levelGateMap = levelGateMap_;
+}
+
+/** Add saved component gates to the level map for display. */
+function addComponentNodes(circuit: Circuit): void {
+  const components = getAllComponents();
+  if (components.length === 0) return;
+
+  // Find lowest Y of existing gates to place components below
+  let maxY = 0;
+  for (const gate of circuit.gates.values()) {
+    maxY = Math.max(maxY, gate.pos.y);
+  }
+
+  const startY = maxY + 120; // gap below levels
+  const startX = -160;
+
+  for (let i = 0; i < components.length; i++) {
+    const comp = components[i];
+    // Use component ID as gate ID so we can identify clicks
+    const gateId = ('cmp:' + comp.id) as GateId;
+    circuit.gates.set(gateId, {
+      id: gateId,
+      type: 'level', // Reuse level gate type for display
+      pos: { x: startX + i * 160, y: startY },
+      rotation: 0,
+      label: comp.name,
+      state: 'available', // Always accessible
+    });
+  }
 }
 
 /** Find center of the leftmost available (unlocked, unsolved) level gate. Falls back to center of all gates. */

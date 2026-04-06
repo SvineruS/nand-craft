@@ -4,10 +4,9 @@ import { useEditorState } from '../editorStore.ts';
 import { getEditor } from '../../circuit-builder/editorInstance.ts';
 import { isGateAllowed, getGateCount, type GateConstraints } from '../../circuit-builder/levels/levelTypes.ts';
 import type { EditorState } from "../../circuit-builder/editor/EditorState.ts";
+import { getAllComponents, isComponentType } from '../../circuit-builder/components/componentRegistry.ts';
 
 interface SidebarProps {
-  onStamp: (type: GateType) => void;
-  onDragStart: (type: GateType) => void;
   onDragEnd: () => void;
 }
 
@@ -31,7 +30,7 @@ const CATEGORIES: Category[] = [
   ]},
 ];
 
-export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
+export function Sidebar({ onDragEnd }: SidebarProps) {
   const didDrag = useRef(false);
   const { level } = getEditor();
   const constraints = level?.gateConstraints;
@@ -49,7 +48,7 @@ export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
           <div class="sidebar-header">Recent</div>
           {recentTypes.map(type => (
             <GateItem key={`recent-${type}`} type={type} def={getGateDefinition(type)} constraints={constraints}
-              editorState={editorState} didDrag={didDrag} onDragStart={onDragStart} onDragEnd={onDragEnd} onStamp={onStamp} />
+              editorState={editorState} didDrag={didDrag} onDragEnd={onDragEnd} />
           ))}
         </>
       )}
@@ -61,11 +60,32 @@ export function Sidebar({ onStamp, onDragStart, onDragEnd }: SidebarProps) {
             <div class="sidebar-header">{cat.label}</div>
             {types.map(type => (
               <GateItem key={type} type={type} def={getGateDefinition(type)} constraints={constraints}
-                editorState={editorState} didDrag={didDrag} onDragStart={onDragStart} onDragEnd={onDragEnd} onStamp={onStamp} />
+                editorState={editorState} didDrag={didDrag} onDragEnd={onDragEnd} />
             ))}
           </>
         );
       })}
+      {(() => {
+        // Show custom components filtered by gate constraints
+        const components = getAllComponents().filter(comp => {
+          if (!constraints?.allow) return true; // No constraints = show all
+          // Component allowed if all its primitive gate types are allowed
+          return comp.usedGateTypes.every(t => isGateAllowed(t, constraints));
+        });
+        if (components.length === 0) return null;
+        return (
+          <>
+            <div class="sidebar-header">Components</div>
+            {components.map(comp => {
+              const def = getGateDefinition(comp.id as GateType);
+              return (
+                <GateItem key={comp.id} type={comp.id as GateType} def={def} constraints={undefined}
+                  editorState={editorState} didDrag={didDrag} onDragEnd={onDragEnd} />
+              );
+            })}
+          </>
+        );
+      })()}
     </div>
   );
 }
@@ -77,12 +97,10 @@ interface GateItemProps {
   constraints: GateConstraints | undefined;
   editorState: EditorState;
   didDrag: MutableRef<boolean>;
-  onDragStart: (type: GateType) => void;
   onDragEnd: () => void;
-  onStamp: (type: GateType) => void;
 }
 
-function GateItem({ type, def, constraints, editorState, didDrag, onDragStart, onDragEnd, onStamp }: GateItemProps) {
+function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: GateItemProps) {
   const maxCount = constraints?.maxCount?.[type];
   const currentCount = editorState && maxCount !== undefined ? getGateCount(type, editorState.circuit.gates.values()) : 0;
   const atLimit = maxCount !== undefined && currentCount >= maxCount;
@@ -110,23 +128,41 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragStart, o
         e.dataTransfer.setDragImage(empty, 0, 0);
         requestAnimationFrame(() => document.body.removeChild(empty));
         (e.currentTarget as HTMLElement).style.opacity = '0.6';
-        onDragStart(type);
+        // onDragStart sets stamping mode; we set componentId directly to avoid race
+        const state = getEditor().getState();
+        state.mode = { kind: 'stamping', gateType: type };
       }}
       onDragEnd={(e: DragEvent) => {
         (e.currentTarget as HTMLElement).style.opacity = '1';
         onDragEnd();
       }}
       onClick={() => {
-        if (!didDrag.current && !atLimit) onStamp(type);
+        if (!didDrag.current && !atLimit) {
+          // Set stamping mode directly with componentId
+          const state = getEditor().getState();
+          state.mode = { kind: 'stamping', gateType: type };
+          state.renderDirty = true;
+        }
       }}
     >
       <div class="sidebar-item-row">
         {def.svg && (
           <svg
             class="sidebar-item-icon"
-            viewBox={`0 0 ${def.width} ${def.height}`}
+            // Component SVGs extend beyond grid points (border padding), need wider viewBox
+            viewBox={isComponentType(type)
+              ? `${-0.5} ${-0.5} ${Math.max(def.width, 1) + 1} ${Math.max(def.height, 1) + 1}`
+              : `0 0 ${def.width} ${def.height}`}
           >
-            <path d={Array.isArray(def.svg) ? def.svg[0] : def.svg} fill={def.color ?? '#444'} stroke={def.stroke ?? '#888'} stroke-width="0.08" />
+            {Array.isArray(def.svg) ? def.svg.map((layer, i) => {
+              const l = typeof layer === 'string' ? { path: layer } : layer;
+              return <path key={i} d={l.path}
+                fill={l.fill === false ? 'none' : (def.color ?? '#444')}
+                stroke={def.stroke ?? '#888'} stroke-width="0.08"
+                opacity={l.alpha ?? 1} />;
+            }) : (
+              <path d={def.svg} fill={def.color ?? '#444'} stroke={def.stroke ?? '#888'} stroke-width="0.08" />
+            )}
           </svg>
         )}
         <div>

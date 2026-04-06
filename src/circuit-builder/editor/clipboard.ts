@@ -1,5 +1,6 @@
 import type { PinRef, WireNodeId } from './types.ts';
 import type { ClipboardGate, ClipboardNode, ClipboardWire, EditorState } from './EditorState.ts';
+import { setSharedClipboard } from './EditorState.ts';
 import { getSelectedIds } from './EditorState.ts';
 import { getGateDefinition } from './gates.ts';
 import {
@@ -86,6 +87,7 @@ export function copySelection(state: EditorState): void {
   }
 
   state.clipboard = { gates, nodes, wires };
+  setSharedClipboard(state.clipboard); // Persist across level switches
 }
 
 export function pasteClipboard(state: EditorState, pos: Vec2, history: CommandHistory): void {

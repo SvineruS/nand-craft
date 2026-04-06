@@ -120,7 +120,7 @@ export class AddGateCommand implements Command {
     state: EditorState,
     gateType: GateType,
     pos: Vec2,
-    rotation: Rotation = 0,
+    rotation: Rotation = 0
   ) {
     this.state = state;
     this.description = `Add ${gateType} gate`;

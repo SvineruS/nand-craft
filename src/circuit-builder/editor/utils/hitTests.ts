@@ -56,9 +56,12 @@ export function posInRect(pos: Vec2, rect: Rect): boolean {
 // Hit testing
 // ---------------------------------------------------------------------------
 
+const GATE_HIT_PADDING = 4;
+
 export function hitTestGate_(pos: Vec2, gate: Gate): boolean {
   const { w, h } = getGateDims(gate);
-  return posInRect(pos, { x1: gate.pos.x, y1: gate.pos.y, x2: gate.pos.x + w, y2: gate.pos.y + h });
+  const p = GATE_HIT_PADDING;
+  return posInRect(pos, { x1: gate.pos.x - p, y1: gate.pos.y - p, x2: gate.pos.x + w + p, y2: gate.pos.y + h + p });
 }
 
 

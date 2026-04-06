@@ -111,6 +111,17 @@ body {
   background: var(--border);
 }
 
+.toolbar-name-input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  width: 140px;
+}
+
 .toolbar-level-name {
   color: #ffffff;
   font-size: 14px;

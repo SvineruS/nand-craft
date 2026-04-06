@@ -4,6 +4,9 @@ import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
 import { CanvasInput } from '../../engine/input.ts';
 import { notifyStateChange, solvedLevelIds } from '../editorStore.ts';
 import { navigateTo } from '../screenManager.ts';
+import { openComponentEditor, editComponent } from '../componentNav.ts';
+import { hitTestGate_ } from '../../circuit-builder/editor/utils/hitTests.ts';
+import type { ComponentId } from '../../circuit-builder/editor/types.ts';
 import {
   buildLevelMap,
   getLevelGateMap,
@@ -42,6 +45,16 @@ export function LevelSelectScreen() {
     // Input — click to select level, middle-click to pan
     const input = new CanvasInput(canvas, {
       onPointerUp(e) {
+        // Check for component node clicks first
+        for (const gate of levelMapState.circuit.gates.values()) {
+          if (!hitTestGate_({ x: e.world.x, y: e.world.y }, gate)) continue;
+          const id = gate.id as string;
+          if (id.startsWith('cmp:')) {
+            editComponent(id.slice(4) as ComponentId);
+            return;
+          }
+        }
+        // Then check level clicks
         const idx = hitTestLevel(levelMapState, getLevelGateMap(), LEVELS, solvedLevelIds.value, e.world.x, e.world.y);
         if (idx !== null) {
           loadLevel(idx);
@@ -79,6 +92,7 @@ export function LevelSelectScreen() {
           buildLevelMap();
           notifyStateChange();
         }}>Unlock All</button>
+        <button class="toolbar-btn" onClick={() => openComponentEditor()}>Create Circuit</button>
         <button class="toolbar-btn" onClick={() => navigateTo('levelMapEditor')}>Edit Map</button>
       </div>
       <div class="main-row">

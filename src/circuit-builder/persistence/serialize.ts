@@ -1,6 +1,6 @@
 import { Circuit } from '../simulation/circuit.ts';
 import {
-  setNextId,
+  bumpNextId,
   type GateId,
   type WireNode,
   type WireNodeId,
@@ -53,7 +53,8 @@ export function deserializeCircuit(data: SerializedCircuit): Circuit {
     circuit.wireSegments.set(id as WireSegmentId, { id: id as WireSegmentId, ...seg });
   }
 
-  // Restore ID counter past the highest used ID
+  // Ensure ID counter is past the highest used ID (use max to never decrease it,
+  // because component inner circuits may be deserialized during simulation)
   let maxId = 0;
   const allIds = [
     ...data.gates.map(e => e[0]),
@@ -66,7 +67,7 @@ export function deserializeCircuit(data: SerializedCircuit): Circuit {
       maxId = Math.max(maxId, parseInt(match[1], 10));
     }
   }
-  setNextId(maxId + 1);
+  bumpNextId(maxId + 1);
 
   return circuit;
 }

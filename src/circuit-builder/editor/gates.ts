@@ -10,13 +10,20 @@ export interface PinDef {
   bitWidth?: number;  // override per-pin (e.g. tristate enable is always 1-bit)
 }
 
+export interface SvgLayer {
+  path: string;
+  fill?: boolean;    // default true
+  stroke?: boolean;  // default true
+  alpha?: number;    // default 1
+}
+
 export interface GateDefinition {
   label: string;
   description: string;
   width: number;   // grid units
   height: number;  // grid units
   pins: PinDef[];
-  svg?: string | string[];  // SVG path data. Array = alternative variants (e.g. mux arrow direction)
+  svg?: string | SvgLayer[];  // String = single path. Array = layers (variants or stacked)
   color?: string;  // fill color for the gate body
   stroke?: string; // stroke color for the gate outline
   labelX?: number; // label x offset in grid units from center (default 0)
@@ -164,7 +171,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'output', x: 2, y: 0, label: '0' },
       { kind: 'output', x: 2, y: 2, label: '1' },
     ],
-    svg: [SVG.DECODER_2_0, SVG.DECODER_2_1],
+    svg: [{ path: SVG.DECODER_2_0 }, { path: SVG.DECODER_2_1 }],
   },
   '3bit-decoder': {
     label: 'DEC3', description: '3-to-8 decoder', width: 2, height: 8,    color: '#402d50', stroke: '#8a5aad',
@@ -222,7 +229,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2, label: 'B', bitWidth: 8 },
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
     ],
-    svg: [SVG.MUX_8BIT_A, SVG.MUX_8BIT_B],
+    svg: [{ path: SVG.MUX_8BIT_A }, { path: SVG.MUX_8BIT_B }],
   },
   mux: {
     label: 'MUX', description: '2-to-1 multiplexer', width: 2, height: 2,
@@ -233,7 +240,7 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2, label: 'B' },
       { kind: 'output', x: 2, y: 1 },
     ],
-    svg: [SVG.MUX_A, SVG.MUX_B],
+    svg: [{ path: SVG.MUX_A }, { path: SVG.MUX_B }],
   },
   delay: {
     label: 'DLY', description: '1-tick delay', width: 3, height: 2,    color: '#4a3a2d', stroke: '#ad8a5a',
@@ -446,13 +453,6 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     ],
     svg: SVG.JOINER,
   },
-  component: {
-    label: 'CMP', description: 'Component', width: 3, height: 3,
-    pins: [
-      { kind: 'input', x: 0, y: 1 },
-      { kind: 'output', x: 3, y: 1 },
-    ],
-  },
   level: {
     label: '', description: 'Level node', width: 4, height: 2,
     color: '#2d4d2d', stroke: '#5a8a5a',
@@ -464,13 +464,59 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
 };
 
 
+import { getComponent } from '../components/componentRegistry.ts';
+import type { ComponentId } from '../editor/types.ts';
+
+/** Component definition cache. */
+const componentDefCache = new Map<string, GateDefinition>();
+
+/** Look up gate definition. For component gates, type IS the component ID. */
 export function getGateDefinition(type: GateType): GateDefinition {
-  const def = GATE_DEFS[type];
-  if (!def) throw new Error(`Unknown gate type: ${type}`);
-  return def;
+  // Built-in gate
+  const builtIn = GATE_DEFS[type as keyof typeof GATE_DEFS];
+  if (builtIn) return builtIn;
+
+  // Component gate — type is the component ID
+  const cached = componentDefCache.get(type);
+  if (cached) return cached;
+
+  const comp = getComponent(type as ComponentId);
+  if (comp) {
+    const def: GateDefinition = {
+      label: comp.name,
+      description: `Component: ${comp.name}`,
+      width: comp.width,
+      height: comp.height,
+      pins: [
+        ...comp.inputs.map(p => ({ kind: 'input' as const, x: p.gridPos.x, y: p.gridPos.y, label: p.name, bitWidth: p.bitWidth })),
+        ...comp.outputs.map(p => ({ kind: 'output' as const, x: p.gridPos.x, y: p.gridPos.y, label: p.name, bitWidth: p.bitWidth })),
+      ],
+      svg: comp.svg,
+      color: '#2d3d50',
+      stroke: '#5a8abd',
+    };
+    componentDefCache.set(type, def);
+    return def;
+  }
+
+  // Unknown type (deleted component, old save format) — return a fallback
+  return {
+    label: '?', description: `Unknown: ${type}`, width: 2, height: 2,
+    color: '#4a2a2a', stroke: '#aa5555',
+    pins: [],
+  };
 }
 
-/** All gate type entries for iteration (e.g. sidebar). */
+/** Bumped when component definitions change. Consumers compare to invalidate their caches. */
+export let componentDefVersion = 0;
+
+/** Clear component definition cache (call when components are saved/deleted). */
+export function clearComponentDefCache(): void {
+  componentDefCache.clear();
+  componentDefVersion++;
+}
+
+/** All built-in gate type entries for iteration (e.g. sidebar). */
 export function getAllGateDefinitions(): [GateType, GateDefinition][] {
   return Object.entries(GATE_DEFS) as [GateType, GateDefinition][];
 }

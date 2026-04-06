@@ -29,13 +29,15 @@ export interface RenderGate {
   fillColor: string;
   strokeColor: string;
   hasSvg: boolean;
-  svgVariant: number; // Index into svg[] array for gates with variants (0 = default)
+  svgLayers: number[]; // Which svg layer indices to draw
   label: string;
   labelPos: Vec2;
   labelFont: string;
   labelColor: string;
   valueLabel: { text: string; color: string; pos: Vec2 } | null;
   errorGlow: boolean;
+  /** Preview pin dots (relative to center). Only set for drop/paste previews. */
+  previewPins?: Vec2[];
 }
 
 export interface RenderPin {
@@ -57,35 +59,8 @@ export type RenderSelectionItem =
   | { kind: 'wireNode'; pos: Vec2 }
   | { kind: 'wireSegment'; from: Vec2; to: Vec2 };
 
-export interface RenderDropPreview {
-  type: GateType;
-  pos: Vec2;
-  w: number;
-  h: number;
-  fillColor: string;
-  strokeColor: string;
-  hasSvg: boolean;
-  label: string;
-  labelPos: Vec2;
-  pins: Vec2[];
-}
-
-export interface RenderPasteGate {
-  type: GateType;
-  center: Vec2;
-  w: number;
-  h: number;
-  rotation: number;
-  fillColor: string;
-  strokeColor: string;
-  hasSvg: boolean;
-  label: string;
-  labelPos: Vec2;
-  pins: Vec2[];
-}
-
 export interface RenderPastePreview {
-  gates: RenderPasteGate[];
+  gates: RenderGate[];
   wires: { from: Vec2; to: Vec2 }[];
   nodes: Vec2[];
 }
@@ -99,6 +74,6 @@ export interface RenderScene {
   selection: RenderSelectionItem[];
   selectionRect: { pos: Vec2; w: number; h: number } | null;
   wireInProgress: { from: Vec2; to: Vec2; color: string } | null;
-  dropPreview: RenderDropPreview | null;
+  dropPreview: RenderGate | null;
   pastePreview: RenderPastePreview | null;
 }

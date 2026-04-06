@@ -68,6 +68,12 @@ export interface EditorState {
   recentGateTypes: GateType[];
 }
 
+/** Shared clipboard that persists across level switches. */
+let sharedClipboard: ClipboardData | null = null;
+
+export function getSharedClipboard(): ClipboardData | null { return sharedClipboard; }
+export function setSharedClipboard(data: ClipboardData | null): void { sharedClipboard = data; }
+
 export function createEditorState(): EditorState {
   return {
     circuit: new Circuit(),
@@ -78,7 +84,7 @@ export function createEditorState(): EditorState {
     mode: { kind: 'normal' },
     selectionRect: null,
     dropPreview: null,
-    clipboard: null,
+    clipboard: sharedClipboard,
     wireColor: WIRE_COLORS[0],
     renderDirty: true,
     circuitDirty: true,

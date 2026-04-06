@@ -161,17 +161,17 @@ export class InputHandler {
   private handleDragOver(e: DragDropEvent): void {
     const state = this.getState();
     if (state.mode.kind !== 'stamping') throw new Error('Drag without stamping mode');
-    const previewType = state.mode.gateType;
-    const def = getGateDefinition(previewType);
-    state.dropPreview = { type: previewType, pos: snapGateCenter(e.world, def.width, def.height) };
+    const { gateType } = state.mode;
+    const def = getGateDefinition(gateType);
+    state.dropPreview = { type: gateType, pos: snapGateCenter(e.world, def.width, def.height) };
     state.renderDirty = true;
   }
 
   private handleDrop(e: DragDropEvent): void {
     if (!e.dataTransfer) return;
+    const state = this.getState();
     const gateType = e.dataTransfer.getData('text/plain') as PlaceableType;
     const def = getGateDefinition(gateType);
-    const state = this.getState();
     const cmd = new AddGateCommand(state, gateType, snapGateCenter(e.world, def.width, def.height));
     this.getHistory().execute(cmd);
     trackRecentGate(state, gateType);
@@ -332,10 +332,11 @@ export class InputHandler {
 
   private handleStampClick(state: EditorState, world: Vec2): void {
     if (state.mode.kind !== 'stamping') return;
-    const def = getGateDefinition(state.mode.gateType);
-    const cmd = new AddGateCommand(state, state.mode.gateType, snapGateCenter(world, def.width, def.height));
+    const { gateType } = state.mode;
+    const def = getGateDefinition(gateType);
+    const cmd = new AddGateCommand(state, gateType, snapGateCenter(world, def.width, def.height));
     this.getHistory().execute(cmd);
-    trackRecentGate(state, state.mode.gateType);
+    trackRecentGate(state, gateType);
   }
 
   private handlePasteClick(state: EditorState, world: Vec2): void {

@@ -1,4 +1,4 @@
-import type { ComponentId, GateId, PinRef, Rotation, Vec2 } from "../editor/types.ts";
+import type { GateId, PinRef, Rotation, Vec2 } from "../editor/types.ts";
 import { pinRefKey } from "../editor/types.ts";
 import type { SimulationState } from "./types.ts";
 
@@ -8,7 +8,6 @@ export interface Gate {
   pos: Vec2;
   rotation: Rotation;
   state?: unknown;
-  componentId?: ComponentId;
   label?: string;
   canRemove?: boolean;
   canMove?: boolean;
@@ -82,5 +81,5 @@ export type GateType =
   | 'output-sw'
   | 'output-8bit-sw'
   | 'output-16bit-sw'
-  | 'component'
-  | 'level';
+  | 'level'
+  | (string & {}); // Component IDs (e.g. 'cmp_123')

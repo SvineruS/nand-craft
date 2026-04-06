@@ -18,7 +18,7 @@ export const levelDialogVisible = signal(false);
 export const testEditorVisible = signal(false);
 
 /** Current view mode. */
-export type ViewMode = 'mainMenu' | 'levelSelect' | 'levelMapEditor' | 'editor' | 'factory' | 'settings';
+export type ViewMode = 'mainMenu' | 'levelSelect' | 'levelMapEditor' | 'editor' | 'componentEditor' | 'factory' | 'settings';
 export const viewMode = signal<ViewMode>('mainMenu');
 
 /** Set of solved level IDs (persisted in localStorage). */
