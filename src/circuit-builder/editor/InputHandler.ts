@@ -305,17 +305,18 @@ export class InputHandler {
   }
 
   private handleMiddleMouseDown(state: EditorState, world: Vec2): void {
+    // Wire node or pin → start dragging (merge on mouseup if no movement).
+    // Checked before gates so a pin sitting on a gate body is still grabbable.
+    const ep = hitTestEndpoint(world, state);
+    if (ep) {
+      if (this.startDetachDrag(state, world, ep)) return;
+    }
+
     // Disconnect drag if over gate
     const gateHit = hitTestGate(world, state);
     if (gateHit) {
       this.startDisconnectDrag(state, gateHit, world);
       return;
-    }
-
-    // Wire node or pin → start dragging (merge on mouseup if no movement)
-    const ep = hitTestEndpoint(world, state);
-    if (ep) {
-      if (this.startDetachDrag(state, world, ep)) return;
     }
 
     // Wire segment → split and drag new node (direct mutation, no history)
@@ -534,9 +535,11 @@ export class InputHandler {
       return;
     }
 
-    // Hover
-    state.hoveredEndpoint = hitTestEndpoint(world, state);
-    state.hoveredGate = hitTestGate(world, state);
+    // Hover — endpoints (pins/nodes) take priority over gates so a pin on a
+    // gate edge is highlighted as the grabbable thing, not the gate body.
+    const hoveredEp = hitTestEndpoint(world, state);
+    state.hoveredEndpoint = hoveredEp;
+    state.hoveredGate = hoveredEp ? null : hitTestGate(world, state);
     state.renderDirty = true;
   }
 
