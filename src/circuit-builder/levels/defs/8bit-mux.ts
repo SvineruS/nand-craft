@@ -19,7 +19,7 @@ const level: Level = {
     { type: 'input-8bit', pos: { x: 2, y: 9 }, label: 'B', canRemove: false },
     { type: 'output-8bit', pos: { x: 29, y: 5 }, label: 'Out', canRemove: false },
   ],
-  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'mux', 'tristate', 'splitter', 'joiner'] },
+  gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'mux', 'tristate', '8bit-tristate', 'splitter', 'joiner'] },
   test: {
     name: '8-bit MUX',
     description: 'Select between two 8-bit values',

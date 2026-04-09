@@ -12,7 +12,7 @@ export interface TestDefinition {
 // Testing types
 export interface TestCase {
   inputs: Record<string, number>;
-  expected: Record<string, number>;
+  expected: Record<string, number | null>;
 }
 
 export interface TestResult {

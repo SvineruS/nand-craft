@@ -79,10 +79,10 @@ export class LevelTests {
     let passed = true;
     const mismatches: string[] = [];
     for (const [name, expected] of Object.entries(testCase.expected)) {
-      const actual = actuals[name];
-      if (actual === undefined || actual === null || actual !== expected) {
+      const actual = actuals[name] ?? null;
+      if (actual !== expected) {
         passed = false;
-        mismatches.push(`${name}: expected ${expected}, got ${actual ?? 'null'}`);
+        mismatches.push(`${name}: expected ${expected ?? 'null'}, got ${actual ?? 'null'}`);
       }
     }
 

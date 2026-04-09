@@ -64,6 +64,7 @@ export type GateType =
   | '8bit-counter'
   | '8bit-counter-reset'
   | 'tristate'
+  | '8bit-tristate'
   | 'constant'
   | 'constant-8bit'
   | 'constant-16bit'

@@ -19,7 +19,7 @@ const CATEGORIES: Category[] = [
   { label: '1-bit Logic', types: ['nand', 'and', 'or', 'nor', 'xor', 'xnor', 'not', '3bit-or', '3bit-and'] },
   { label: '8-bit Logic', types: ['8bit-or', '8bit-nor', '8bit-not'] },
   { label: 'Math', types: ['2bit-adder', '3bit-adder', '8bit-adder', '8bit-negative', '8bit-subtractor'] },
-  { label: 'Routing', types: ['mux', '8bit-mux', 'tristate', '1bit-decoder', '3bit-decoder', 'splitter', 'joiner'] },
+  { label: 'Routing', types: ['mux', '8bit-mux', 'tristate', '8bit-tristate', '1bit-decoder', '3bit-decoder', 'splitter', 'joiner'] },
   { label: 'Memory', types: ['delay', 'rs-latch', '1bit-memory', '8bit-memory', '8bit-counter', '8bit-counter-reset'] },
   { label: 'Constants', types: ['constant', 'constant-8bit', 'constant-16bit'] },
   { label: 'I/O', types: [

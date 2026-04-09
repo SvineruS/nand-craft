@@ -67,6 +67,9 @@ const MUX_LINE_B        = ' M 1,1 L 0.15,1.85';
 // NOT 8-bit variant (bus mark on input side)
 export const NOT_8BIT = NOT + ' M 0.1,0.4 L 0.1,1.6';
 
+// Tristate 8-bit variant (bus mark on input side)
+export const TRISTATE_8BIT = TRISTATE + ' M 0.05,0.4 L 0.05,1.6';
+
 // --- Composed gate SVGs ---
 
 // Input gates

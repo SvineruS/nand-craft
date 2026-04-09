@@ -22,6 +22,7 @@ import mux8 from './defs/8bit-mux.ts';
 import halfAdder from './defs/half-adder.ts';
 import fullAdder from './defs/full-adder.ts';
 import switchLevel from './defs/switch.ts';
+import tristate8 from './defs/8bit-tristate.ts';
 import decoder1 from './defs/1bit-decoder.ts';
 import decoder3 from './defs/3bit-decoder.ts';
 import neg8 from './defs/8bit-negative.ts';
@@ -56,6 +57,7 @@ export const LEVELS: Level[] = [
   halfAdder,
   fullAdder,
   switchLevel,
+  tristate8,
   decoder1,
   decoder3,
   neg8,

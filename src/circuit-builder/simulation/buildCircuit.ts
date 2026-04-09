@@ -1,31 +1,18 @@
 import { Circuit } from './circuit.ts';
 import type { GateId, Net, NetId, PinRef, WireNodeId, WireSegmentId, } from '../editor/types.ts';
 import { generateId, pinRefKey } from '../editor/types.ts';
-import { type GateType } from "./gateTypes.ts";
-import { isComponentType } from '../components/componentRegistry.ts';
+import { type GateType, isInputGate, isOutputGate, isSequentialGate } from "./gateTypes.ts";
 import type { BuildResult } from './types.ts';
 import { getPinBitWidth, getPinCounts } from '../editor/gates.ts';
 
-/** Gate types that are part of the combinational subgraph. */
-const COMBINATIONAL_TYPES = new Set([
-  'nand', 'and', 'or', 'nor', 'xor', 'xnor', 'not',
-  '8bit-or', '8bit-nor', '8bit-not',
-  '3bit-or', '3bit-and',
-  '2bit-adder', '3bit-adder',
-  '1bit-decoder', '3bit-decoder',
-  '8bit-adder', '8bit-negative', '8bit-subtractor',
-  'mux', '8bit-mux', 'constant', 'constant-8bit', 'constant-16bit', 'tristate', 'splitter', 'joiner',
-  // Switch IO gates need evaluation to check enable pin after net resolution
-  // Note: component gates (custom circuits) are also combinational but have dynamic type IDs
-  'input-sw', 'input-8bit-sw', 'input-16bit-sw',
-  'output-sw', 'output-8bit-sw', 'output-16bit-sw',
-]);
-
-/** Check if a gate type is combinational (built-in or component). */
+/** Derived: anything not sequential, not a pure IO gate, and not 'level'. */
 function isCombinational(type: GateType): boolean {
-  if (COMBINATIONAL_TYPES.has(type)) return true;
-  // Component gates (custom circuits) are also combinational
-  return isComponentType(type);
+  if (type === 'level') return false;
+  if (isSequentialGate(type)) return false;
+  // Plain IO gates are sources/sinks; switch variants have both inputs and outputs
+  if (isInputGate(type)) return getPinCounts(type).inputs > 0;
+  if (isOutputGate(type)) return getPinCounts(type).outputs > 0;
+  return true;
 }
 
 // --- Union-Find for building nets ---

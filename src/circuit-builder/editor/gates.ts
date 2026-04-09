@@ -306,6 +306,15 @@ const GATE_DEFS: Record<GateType, GateDefinition> = {
     ],
     svg: SVG.TRISTATE,
   },
+  '8bit-tristate': {
+    label: 'TRI8', description: '8-bit tri-state buffer', width: 2, height: 2,    color: '#2d4a4a', stroke: '#5aadad', labelX: -0.3,
+    pins: [
+      { kind: 'input', x: 0, y: 1, label: 'in', bitWidth: 8 },
+      { kind: 'input', x: 1, y: 0, label: 'en', bitWidth: 1 },
+      { kind: 'output', x: 2, y: 1, bitWidth: 8 },
+    ],
+    svg: SVG.TRISTATE_8BIT,
+  },
   constant: {
     label: 'C', description: 'Constant value', width: 2, height: 2,    color: '#3a3a2d', stroke: '#8a8a5a',
     pins: [

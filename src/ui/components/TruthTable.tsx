@@ -66,14 +66,15 @@ export function TruthTable() {
               ))}
               {outputNames.map(name => (
                 <td key={`e-${name}`} class="test-table-expected-cell">
-                  {String(tc.expected[name] ?? '?')}
+                  {tc.expected[name] !== null && tc.expected[name] !== undefined ? String(tc.expected[name]) : '\u2014'}
                 </td>
               ))}
               {outputNames.map(name => {
-                const actual = result?.actuals?.[name];
-                const expected = tc.expected[name];
-                const match = actual !== undefined && actual === expected;
-                const mismatch = actual !== undefined && actual !== null && actual !== expected;
+                const actual = result?.actuals?.[name] ?? null;
+                const expected = tc.expected[name] ?? null;
+                const hasResult = result?.actuals !== undefined;
+                const match = hasResult && actual === expected;
+                const mismatch = hasResult && actual !== expected;
                 return (
                   <td
                     key={`a-${name}`}

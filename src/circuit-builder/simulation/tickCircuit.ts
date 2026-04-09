@@ -392,10 +392,11 @@ function evaluateGate(simState: SimulationState, gate: Gate): void {
       writeOutput(simState, gate, 0, (sel !== null && sel !== 0) ? inB : inA);
       break;
     }
-    case 'tristate': {
+    case 'tristate':
+    case '8bit-tristate': {
       const input = readInputNullable(simState, gate, 0);
       const enable = readInputNullable(simState, gate, 1);
-      writeOutput(simState, gate, 0, (enable !== null && enable !== 0) ? input : null);
+      writeOutput(simState, gate, 0, (enable !== 0) ? input : null);
       break;
     }
     case 'splitter': {
