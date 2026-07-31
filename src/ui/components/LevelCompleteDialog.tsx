@@ -1,4 +1,4 @@
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 
 interface LevelCompleteDialogProps {
   onLevelMap: () => void;
@@ -6,14 +6,14 @@ interface LevelCompleteDialogProps {
 }
 
 export function LevelCompleteDialog({ onLevelMap, onClose }: LevelCompleteDialogProps) {
-  const { level } = getEditor();
+  const { level } = useEditor();
 
   return (
     <div class="level-dialog-overlay">
       <div class="level-dialog-card">
         <h2 class="level-dialog-title">Level Complete!</h2>
         <p class="level-dialog-desc">
-          You solved <strong>{level.name}</strong>. All test cases passed.
+          You solved <strong>{level?.name ?? 'this circuit'}</strong>. All test cases passed.
         </p>
 
         <div class="level-dialog-btn-row">

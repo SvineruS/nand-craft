@@ -48,10 +48,11 @@ class Builder {
   private nodeCount = 0;
   private segmentCount = 0;
 
-  gate(type: GateType, label: string, state?: unknown): GateId {
+  /** `value` seeds a constant gate's output; sequential gates start with no register. */
+  gate(type: GateType, label: string, value?: number): GateId {
     const id = generateId('g') as GateId;
     const slot = this.gateCount++;
-    this.circuit.gates.set(id, {
+    this.circuit.addGate({
       id,
       type,
       pos: {
@@ -59,7 +60,7 @@ class Builder {
         y: Math.floor(slot / GATES_PER_ROW) * GATE_SPACING,
       },
       rotation: 0,
-      state,
+      value,
       label,
     });
     this.gateLabels.set(id, label);
@@ -71,13 +72,13 @@ class Builder {
     const nodeIds: WireNodeId[] = [];
     for (const ref of refs) {
       const nodeId = generateId('n') as WireNodeId;
-      this.circuit.wireNodes.set(nodeId, { id: nodeId, pos: { x: 0, y: 0 }, pin: ref });
+      this.circuit.addWireNode({ id: nodeId, pos: { x: 0, y: 0 }, pin: ref });
       this.nodeNames.set(nodeId, `node#${this.nodeCount++}`);
       nodeIds.push(nodeId);
     }
     for (let i = 1; i < nodeIds.length; i++) {
       const segmentId = generateId('s') as WireSegmentId;
-      this.circuit.wireSegments.set(segmentId, {
+      this.circuit.addWireSegment({
         id: segmentId,
         from: nodeIds[i - 1],
         to: nodeIds[i],
@@ -528,7 +529,7 @@ const nestedComponent: Fixture = {
     const outer = new Builder();
     const ov = outer.gate('input', 'V');
     const ow = outer.gate('input', 'W');
-    const innerInstance = outer.gate('cmp-inner', 'innerInstance');
+    const innerInstance = outer.gate('cmp-inner' as ComponentId, 'innerInstance');
     const inv = outer.gate('not', 'inv');
     const oq = outer.gate('output', 'Q');
     outer.net(op(ov), ip(innerInstance, 0));
@@ -544,7 +545,7 @@ const nestedComponent: Fixture = {
     const b = new Builder();
     const value = b.gate('input', 'value');
     const write = b.gate('input', 'write');
-    const instance = b.gate('cmp-outer', 'instance');
+    const instance = b.gate('cmp-outer' as ComponentId, 'instance');
     const sink = b.gate('output', 'sink');
     b.net(op(value), ip(instance, 0));
     b.net(op(write), ip(instance, 1));

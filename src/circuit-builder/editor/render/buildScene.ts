@@ -3,107 +3,237 @@ import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, Render
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
 import { type Gate, isConstantGate, isInputGate } from '../../simulation/gateTypes.ts';
 import type { Circuit } from '../../simulation/circuit.ts';
+import type { GateId, PinRef, WireNode, WireNodeId, WireSegment, WireSegmentId } from '../types.ts';
 import { isComponentType } from '../../components/componentRegistry.ts';
-import { gateCenter, gateGridOffset, getGateDims, iteratePinPositions, pinRefsEqual } from '../utils/geometry.ts';
+import { gateCenter, gateGridOffset, getGateDims, getPinPositions } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
 import { COLORS, GRID_SIZE, WIRE_COLORS, WIRE_LABEL_MIN_LENGTH, WIRE_LABEL_SPACING } from '../consts.ts';
 
+/**
+ * World-space rectangle the scene is being built for. Anything fully outside is skipped.
+ * Pass null to build the whole circuit (the regression harness does, so it can compare
+ * scene entries index-for-index against the circuit).
+ */
+export interface Viewport {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * Grow the viewport before culling so items whose drawn extent reaches past their
+ * geometric bounds — stroke width, hover rings, selection outlines, value labels — do not
+ * pop in at the edge of the screen.
+ */
+const CULL_MARGIN = 2 * GRID_SIZE;
+
 export function buildScene(
   state: EditorState,
-  mouseWorld: Vec2,
+  viewport: Viewport | null = null,
 ): RenderScene {
+  const bounds = viewport && {
+    left: viewport.left - CULL_MARGIN,
+    top: viewport.top - CULL_MARGIN,
+    right: viewport.right + CULL_MARGIN,
+    bottom: viewport.bottom + CULL_MARGIN,
+  };
+
+  const lens = previewLens(state);
+
   return {
-    wireSegments: buildWireSegments(state),
-    wireNodes: buildWireNodes(state),
-    gates: buildGates(state),
-    pins: buildPins(state),
-    errorSegments: buildErrorSegments(state),
-    selection: buildSelection(state),
+    wireSegments: buildWireSegments(state, bounds, lens),
+    wireNodes: buildWireNodes(state, bounds, lens),
+    gates: buildGates(state, bounds, lens),
+    pins: buildPins(state, bounds, lens),
+    errorSegments: buildErrorSegments(state, bounds, lens),
+    selection: buildSelection(state, lens),
     selectionRect: state.selectionRect,
-    wireInProgress: buildWireInProgress(state, mouseWorld),
+    wireInProgress: buildWireInProgress(state),
     dropPreview: buildDropPreview(state),
     pastePreview: buildPastePreview(state),
   };
 }
 
 // ---------------------------------------------------------------------------
+// Drag preview
+//
+// The circuit is never mutated during a drag, so the scene builder is what makes a drag
+// look like it is happening: positions are offset on the way out, and a split-in-progress
+// is synthesized from the segment it will eventually replace.
+// ---------------------------------------------------------------------------
+
+/** Resolved lookups for the in-flight drag, or null when nothing is being dragged. */
+interface PreviewLens {
+  offset: Vec2;
+  gateIds: ReadonlySet<GateId>;
+  nodeIds: ReadonlySet<WireNodeId>;
+  detachedNodeIds: ReadonlySet<WireNodeId>;
+  split: { segmentId: WireSegmentId; pos: Vec2 } | null;
+}
+
+function previewLens(state: EditorState): PreviewLens | null {
+  const preview = state.dragPreview;
+  if (!preview) return null;
+
+  // Nodes anchored to a dragged gate follow it, unless the drag detached them.
+  const detachedNodeIds = new Set(preview.detachedNodeIds);
+  const nodeIds = new Set(preview.nodeIds);
+  if (preview.gateIds.length > 0) {
+    for (const nodeId of state.circuit.anchoredNodesOf(preview.gateIds)) {
+      if (!detachedNodeIds.has(nodeId)) nodeIds.add(nodeId);
+    }
+  }
+
+  return {
+    offset: preview.offset,
+    gateIds: new Set(preview.gateIds),
+    nodeIds,
+    detachedNodeIds,
+    split: preview.split,
+  };
+}
+
+/** Where a node is drawn: its own position, offset if the drag is carrying it. */
+function nodePos(lens: PreviewLens | null, node: WireNode): Vec2 {
+  if (!lens || !lens.nodeIds.has(node.id)) return node.pos;
+  return Vec2.add(node.pos, lens.offset);
+}
+
+function gateOffset(lens: PreviewLens | null, gateId: GateId): Vec2 | null {
+  if (!lens || !lens.gateIds.has(gateId)) return null;
+  return lens.offset;
+}
+
+// ---------------------------------------------------------------------------
+// Culling helpers
+// ---------------------------------------------------------------------------
+
+function pointVisible(bounds: Viewport | null, p: Vec2): boolean {
+  if (!bounds) return true;
+  return p.x >= bounds.left && p.x <= bounds.right && p.y >= bounds.top && p.y <= bounds.bottom;
+}
+
+/** Axis-aligned overlap test against the box spanned by two points. */
+function spanVisible(bounds: Viewport | null, a: Vec2, b: Vec2): boolean {
+  if (!bounds) return true;
+  return Math.min(a.x, b.x) <= bounds.right
+    && Math.max(a.x, b.x) >= bounds.left
+    && Math.min(a.y, b.y) <= bounds.bottom
+    && Math.max(a.y, b.y) >= bounds.top;
+}
+
+/**
+ * Gate visibility from its center and a square half-extent of max(w, h) / 2 — large enough
+ * to cover every rotation, so the test needs no rotation-specific bounds.
+ */
+function gateVisible(bounds: Viewport | null, center: Vec2, w: number, h: number): boolean {
+  if (!bounds) return true;
+  const half = Math.max(w, h) / 2;
+  return center.x + half >= bounds.left
+    && center.x - half <= bounds.right
+    && center.y + half >= bounds.top
+    && center.y - half <= bounds.bottom;
+}
+
+// ---------------------------------------------------------------------------
 // Wire segments
 // ---------------------------------------------------------------------------
 
-function buildWireSegments(state: EditorState): RenderWireSegment[] {
+function buildWireSegments(
+  state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
+): RenderWireSegment[] {
   const { circuit } = state;
   const result: RenderWireSegment[] = [];
 
   for (const segment of circuit.wireSegments.values()) {
-    const fromNode = circuit.getWireNode(segment.from);
-    const toNode = circuit.getWireNode(segment.to);
-    const from = fromNode.pos;
-    const to = toNode.pos;
+    const from = nodePos(lens, circuit.getWireNode(segment.from));
+    const to = nodePos(lens, circuit.getWireNode(segment.to));
 
-    // Both endpoints of a segment are always in the same net, so either one will do
-    const bitWidth = circuit.getNetBitWidth(segment.from);
-    const thickness = 6;
-    const bodyColor = segment.color ?? COLORS.wireDefault;
-
-    // Signal
-    const value = circuit.getNetValue(segment.from);
-    const sc = value !== null ? signalColor(value, bitWidth) : null;
-
-    // Value labels (only for segments with signal and sufficient length)
-    const valueLabels: RenderWireSegment['valueLabels'] = [];
-    if (value !== null) {
-      const segLen = Vec2.dist(from, to);
-      if (segLen > WIRE_LABEL_MIN_LENGTH) {
-        const text = formatWireValue(value, bitWidth);
-        const pathLen = routeLength(from, to);
-        const labelCount = Math.max(1, Math.floor(pathLen / WIRE_LABEL_SPACING));
-        for (let li = 0; li < labelCount; li++) {
-          const t = labelCount === 1 ? 0.5 : (li + 0.5) / labelCount;
-          valueLabels.push({ text, color: sc!, pos: routePointAt(from, to, t) });
-        }
-      }
+    // A segment being split shows as two halves meeting at the dragged node.
+    if (lens?.split && lens.split.segmentId === segment.id) {
+      const mid = lens.split.pos;
+      pushSegment(result, state, bounds, segment, from, mid);
+      pushSegment(result, state, bounds, segment, mid, to);
+      continue;
     }
-
-    // Name label
-    let nameLabel: RenderWireSegment['nameLabel'] = null;
-    if (segment.label) {
-      const mid = routePointAt(from, to, 0.5);
-      nameLabel = { text: segment.label, color: segment.color ?? '#9ca3af', pos: mid };
-    }
-
-    result.push({ from, to, bodyColor, thickness, multibit: bitWidth > 1, signalColor: sc, valueLabels, nameLabel });
+    pushSegment(result, state, bounds, segment, from, to);
   }
 
   return result;
+}
+
+function pushSegment(
+  result: RenderWireSegment[],
+  state: EditorState,
+  bounds: Viewport | null,
+  segment: WireSegment,
+  from: Vec2,
+  to: Vec2,
+): void {
+  if (!spanVisible(bounds, from, to)) return;
+  const { circuit } = state;
+
+  // Both endpoints of a segment are always in the same net, so either one will do
+  const bitWidth = circuit.getNetBitWidth(segment.from);
+  const thickness = 6;
+  const bodyColor = segment.color ?? COLORS.wireDefault;
+
+  // Signal
+  const value = circuit.getNetValue(segment.from);
+  const sc = value !== null ? signalColor(value, bitWidth) : null;
+
+  // Value labels (only for segments with signal and sufficient length)
+  const valueLabels: RenderWireSegment['valueLabels'] = [];
+  if (value !== null) {
+    const segLen = Vec2.dist(from, to);
+    if (segLen > WIRE_LABEL_MIN_LENGTH) {
+      const text = formatWireValue(value, bitWidth);
+      const pathLen = routeLength(from, to);
+      const labelCount = Math.max(1, Math.floor(pathLen / WIRE_LABEL_SPACING));
+      for (let li = 0; li < labelCount; li++) {
+        const t = labelCount === 1 ? 0.5 : (li + 0.5) / labelCount;
+        valueLabels.push({ text, color: sc!, pos: routePointAt(from, to, t) });
+      }
+    }
+  }
+
+  // Name label
+  let nameLabel: RenderWireSegment['nameLabel'] = null;
+  if (segment.label) {
+    const mid = routePointAt(from, to, 0.5);
+    nameLabel = { text: segment.label, color: segment.color ?? '#9ca3af', pos: mid };
+  }
+
+  result.push({ from, to, bodyColor, thickness, multibit: bitWidth > 1, signalColor: sc, valueLabels, nameLabel });
 }
 
 // ---------------------------------------------------------------------------
 // Wire nodes
 // ---------------------------------------------------------------------------
 
-function buildWireNodes(state: EditorState): RenderWireNode[] {
+function buildWireNodes(
+  state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
+): RenderWireNode[] {
   const { circuit } = state;
   const result: RenderWireNode[] = [];
 
-  // Count segments per node + find first connected segment color
-  const segmentCount = new Map<string, number>();
-  const nodeColor = new Map<string, string>();
-  for (const seg of circuit.wireSegments.values()) {
-    segmentCount.set(seg.from, (segmentCount.get(seg.from) ?? 0) + 1);
-    segmentCount.set(seg.to, (segmentCount.get(seg.to) ?? 0) + 1);
-    if (seg.color) {
-      if (!nodeColor.has(seg.from)) nodeColor.set(seg.from, seg.color);
-      if (!nodeColor.has(seg.to)) nodeColor.set(seg.to, seg.color);
-    }
+  // The node being dragged out of a segment does not exist yet — draw it as a free node.
+  if (lens?.split) {
+    result.push({
+      pos: lens.split.pos, strokeColor: COLORS.selection,
+      signalColor: null, radius: 7, strokeWidth: 3,
+    });
   }
 
   for (const node of circuit.wireNodes.values()) {
-    const count = segmentCount.get(node.id) ?? 0;
-    if (count === 0 && !node.pin) continue;
+    if (circuit.degreeOf(node.id) === 0 && !node.pin) continue;
+    const pos = nodePos(lens, node);
+    if (!pointVisible(bounds, pos)) continue;
 
     let nodePinValue: number | null = null;
     let pinBitWidth: number | undefined;
-    if (node.pin) {
+    if (node.pin && !lens?.detachedNodeIds.has(node.id)) {
       const gate = circuit.gates.get(node.pin.gateId);
       if (gate) {
         nodePinValue = circuit.getPinValue(node.pin.gateId, node.pin.kind, node.pin.index);
@@ -111,7 +241,7 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
       }
     }
     const value = nodePinValue ?? circuit.getNetValue(node.id);
-    const customColor = nodeColor.get(node.id);
+    const customColor = firstSegmentColor(circuit, node.id);
     const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
     const radius = isHovered ? 7 : 5;
@@ -124,32 +254,46 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
       sc = signalColor(value, bw);
     }
 
-    result.push({ pos: node.pos, strokeColor, signalColor: sc, radius, strokeWidth });
+    result.push({ pos, strokeColor, signalColor: sc, radius, strokeWidth });
   }
 
   return result;
+}
+
+/** Colour of the first coloured segment on this node, so the node matches its wire. */
+function firstSegmentColor(circuit: Circuit, nodeId: WireNodeId): string | undefined {
+  for (const segId of circuit.segmentsOf(nodeId)) {
+    const color = circuit.getWireSegment(segId).color;
+    if (color) return color;
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
 // Gates
 // ---------------------------------------------------------------------------
 
-function buildGates(state: EditorState): RenderGate[] {
+function buildGates(
+  state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
+): RenderGate[] {
   const { circuit } = state;
   const result: RenderGate[] = [];
 
   for (const gate of circuit.gates.values()) {
     const { w, h } = getGateDims(gate);
+    const offset = gateOffset(lens, gate.id);
+    const center = offset ? Vec2.add(gateCenter(gate), offset) : gateCenter(gate);
+    if (!gateVisible(bounds, center, w, h)) continue;
     const def = getGateDefinition(gate.type);
-    const center = gateCenter(gate);
 
     let fillColor = def.color ?? COLORS.gateFill;
     let strokeColor = def.stroke ?? COLORS.gateStroke;
-    if (gate.state === 'locked') {
+    const status = state.gateStatuses?.get(gate.id);
+    if (status === 'locked') {
       fillColor = '#333345'; strokeColor = '#555568';
-    } else if (gate.state === 'available') {
+    } else if (status === 'available') {
       fillColor = '#2d3d5d'; strokeColor = '#6cb4ff';
-    } else if (gate.state === 'solved') {
+    } else if (status === 'solved') {
       fillColor = '#2d4d2d'; strokeColor = '#5a8a5a';
     }
 
@@ -208,35 +352,66 @@ function buildGates(state: EditorState): RenderGate[] {
 // Pins
 // ---------------------------------------------------------------------------
 
-function buildPins(state: EditorState): RenderPin[] {
+function buildPins(
+  state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
+): RenderPin[] {
   const { circuit } = state;
   const result: RenderPin[] = [];
+  const hoveredPin = state.hoveredEndpoint?.kind === 'pin' ? state.hoveredEndpoint.pin : null;
 
   for (const gate of circuit.gates.values()) {
-    for (const [pinRef, pos] of iteratePinPositions(gate)) {
-      const value = circuit.getPinValue(gate.id, pinRef.kind, pinRef.index);
-      const bitWidth = getPinBitWidth(gate.type, pinRef.kind, pinRef.index);
-      const isHovered = state.hoveredEndpoint?.kind === 'pin'
-        && pinRefsEqual(state.hoveredEndpoint.pin, pinRef);
+    const { w, h } = getGateDims(gate);
+    const offset = gateOffset(lens, gate.id);
+    const center = offset ? Vec2.add(gateCenter(gate), offset) : gateCenter(gate);
+    if (!gateVisible(bounds, center, w, h)) continue;
 
-      result.push({
-        pos,
-        fillColor: pinColorForValue(value),
-        strokeColor: isHovered ? COLORS.selection : pinStrokeForWidth(bitWidth),
-        radius: isHovered ? 5 : 3.5,
-        strokeWidth: isHovered ? 1.5 : 1,
-      });
+    // Indexed loops rather than iteratePinPositions: this runs for every gate on every
+    // dirty frame, and the generator allocates a PinRef and a tuple per pin.
+    const { inputs, outputs } = getPinPositions(gate);
+    for (let i = 0; i < inputs.length; i++) {
+      const pos = offset ? Vec2.add(inputs[i], offset) : inputs[i];
+      result.push(buildPin(circuit, gate, 'input', i, pos, hoveredPin));
+    }
+    for (let i = 0; i < outputs.length; i++) {
+      const pos = offset ? Vec2.add(outputs[i], offset) : outputs[i];
+      result.push(buildPin(circuit, gate, 'output', i, pos, hoveredPin));
     }
   }
 
   return result;
 }
 
+function buildPin(
+  circuit: Circuit,
+  gate: Gate,
+  kind: 'input' | 'output',
+  index: number,
+  pos: Vec2,
+  hoveredPin: PinRef | null,
+): RenderPin {
+  const value = circuit.getPinValue(gate.id, kind, index);
+  const bitWidth = getPinBitWidth(gate.type, kind, index);
+  const isHovered = hoveredPin !== null
+    && hoveredPin.gateId === gate.id
+    && hoveredPin.kind === kind
+    && hoveredPin.index === index;
+
+  return {
+    pos,
+    fillColor: pinColorForValue(value),
+    strokeColor: isHovered ? COLORS.selection : pinStrokeForWidth(bitWidth),
+    radius: isHovered ? 5 : 3.5,
+    strokeWidth: isHovered ? 1.5 : 1,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Error segments
 // ---------------------------------------------------------------------------
 
-function buildErrorSegments(state: EditorState): RenderErrorSegment[] {
+function buildErrorSegments(
+  state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
+): RenderErrorSegment[] {
   const { circuit } = state;
   const {errorSegmentIds} = circuit.tickResult;
   if (errorSegmentIds.size === 0) return [];
@@ -244,8 +419,9 @@ function buildErrorSegments(state: EditorState): RenderErrorSegment[] {
   const result: RenderErrorSegment[] = [];
   for (const seg of circuit.wireSegments.values()) {
     if (!errorSegmentIds.has(seg.id as string)) continue;
-    const from = circuit.getWireNode(seg.from).pos;
-    const to = circuit.getWireNode(seg.to).pos;
+    const from = nodePos(lens, circuit.getWireNode(seg.from));
+    const to = nodePos(lens, circuit.getWireNode(seg.to));
+    if (!spanVisible(bounds, from, to)) continue;
     const segLen = Vec2.dist(from, to);
     const labelPos = segLen >= 20 ? routePointAt(from, to, 0.5) : null;
     result.push({ from, to, labelPos });
@@ -257,7 +433,7 @@ function buildErrorSegments(state: EditorState): RenderErrorSegment[] {
 // Selection
 // ---------------------------------------------------------------------------
 
-function buildSelection(state: EditorState): RenderSelectionItem[] {
+function buildSelection(state: EditorState, lens: PreviewLens | null): RenderSelectionItem[] {
   const { circuit, selection } = state;
   const result: RenderSelectionItem[] = [];
 
@@ -266,18 +442,21 @@ function buildSelection(state: EditorState): RenderSelectionItem[] {
       const gate = circuit.gates.get(item.id);
       if (!gate) continue;
       const { w, h } = getGateDims(gate);
-      const center = gateCenter(gate);
+      const offset = gateOffset(lens, gate.id);
+      const center = offset ? Vec2.add(gateCenter(gate), offset) : gateCenter(gate);
       result.push({ kind: 'gate', center, w, h, rotation: gate.rotation });
     } else if (item.type === 'wireNode') {
       const node = circuit.wireNodes.get(item.id);
       if (!node) continue;
-      result.push({ kind: 'wireNode', pos: node.pos });
+      result.push({ kind: 'wireNode', pos: nodePos(lens, node) });
     } else if (item.type === 'wireSegment') {
       const seg = circuit.wireSegments.get(item.id);
       if (!seg) continue;
-      const from = circuit.getWireNode(seg.from).pos;
-      const to = circuit.getWireNode(seg.to).pos;
-      result.push({ kind: 'wireSegment', from, to });
+      result.push({
+        kind: 'wireSegment',
+        from: nodePos(lens, circuit.getWireNode(seg.from)),
+        to: nodePos(lens, circuit.getWireNode(seg.to)),
+      });
     }
   }
 
@@ -288,10 +467,10 @@ function buildSelection(state: EditorState): RenderSelectionItem[] {
 // Previews
 // ---------------------------------------------------------------------------
 
-function buildWireInProgress(state: EditorState, mouseWorld: Vec2): RenderScene['wireInProgress'] {
+function buildWireInProgress(state: EditorState): RenderScene['wireInProgress'] {
   if (state.mode.kind !== 'wiring') return null;
   const from = state.mode.start.pos;
-  const to = Vec2.snap(mouseWorld);
+  const to = Vec2.snap(state.mouseWorld);
   const color = state.wireColor === WIRE_COLORS[0] ? COLORS.wireDefault : state.wireColor;
   return { from, to, color };
 }

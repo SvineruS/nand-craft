@@ -1,6 +1,13 @@
 /**
  * Compile a user-provided JS function body in a sandbox where only Math is accessible.
  * Uses a sandboxed iframe to prevent access to the main window's globals.
+ *
+ * NOT a security boundary. The iframe is `allow-same-origin` and is detached right after
+ * the Function constructor is taken from it, so this only stops casual access to the
+ * host realm's globals — it stops nothing determined. That is fine while test code is
+ * authored locally by the person running it. If tests ever become shareable (URL, save
+ * file, level pack), this has to move to a Worker with a structured message protocol
+ * before untrusted code can reach it.
  */
 export function compileTestFunction(
   codeBody: string,

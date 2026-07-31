@@ -1,8 +1,8 @@
 import { signal } from '@preact/signals';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
-import type { LevelId } from '../circuit-builder/editor/types.ts';
+import type { ComponentId, LevelId } from '../circuit-builder/editor/types.ts';
 import { getSolvedLevelIds } from '../circuit-builder/persistence/storage.ts';
-import { getEditor } from '../circuit-builder/editorInstance.ts';
+import { useEditor } from './editorContext.ts';
 
 // ---------------------------------------------------------------------------
 // Signals – reactive app-level state consumed by Preact components
@@ -21,8 +21,24 @@ export const testEditorVisible = signal(false);
 export type ViewMode = 'mainMenu' | 'levelSelect' | 'levelMapEditor' | 'editor' | 'componentEditor' | 'factory' | 'settings';
 export const viewMode = signal<ViewMode>('mainMenu');
 
+// ---------------------------------------------------------------------------
+// What the editor screens should open
+//
+// Navigation states what to open; the screen builds the Editor for it. This replaces
+// "construct an Editor into a global, then navigate and hope the screen finds it".
+// ---------------------------------------------------------------------------
+
+/** Index into LEVELS for the circuit editor to open. */
+export const openLevelIndex = signal<number | null>(null);
+
+/** Component for the component editor to open. null = start a new component. */
+export const openComponentId = signal<ComponentId | null>(null);
+
 /** Set of solved level IDs (persisted in localStorage). */
 export const solvedLevelIds = signal<Set<LevelId>>(getSolvedLevelIds());
+
+/** Message from the last failed save (e.g. storage quota), or null when saving works. */
+export const saveError = signal<string | null>(null);
 
 // ---------------------------------------------------------------------------
 // State bridge – lets Preact read the mutable EditorState on demand
@@ -42,5 +58,5 @@ export function notifyStateChange(): void {
 export function useEditorState(): EditorState {
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   stateVersion.value;
-  return getEditor().getState();
+  return useEditor().getState();
 }

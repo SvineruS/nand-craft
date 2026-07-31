@@ -38,7 +38,7 @@ export function copySelection(state: EditorState): void {
     const g = state.circuit.getGate(gid);
     gateIdxMap.set(gid as string, gates.length);
     const c = gateCenter(g);
-    gates.push({ type: g.type, delta: Vec2.sub(c, center), rotation: g.rotation, state: g.state });
+    gates.push({ type: g.type, delta: Vec2.sub(c, center), rotation: g.rotation, value: g.value });
   }
 
   // Collect relevant wire nodes (anchored to selected gates or explicitly selected free nodes)
@@ -108,10 +108,9 @@ export function pasteClipboard(state: EditorState, pos: Vec2, history: CommandHi
     history.execute(cmd);
     newGateIds.push(cmd.getGateId() as string);
 
-    // Restore gate state from clipboard (e.g. constant values, sequential state)
-    if (cg.state !== undefined) {
-      const gate = state.circuit.getGate(cmd.getGateId());
-      gate.state = cg.state;
+    // Carry the constant's value over; registers deliberately start cleared.
+    if (cg.value !== undefined) {
+      state.circuit.getGate(cmd.getGateId()).value = cg.value;
     }
   }
 

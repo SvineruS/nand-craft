@@ -71,19 +71,8 @@ export class CommandHistory {
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
   private batch: BatchCommand | null = null;
-  private dragInProgress = false;
-
-  /**
-   * Set by InputHandler while an interactive drag is live. When true, any
-   * execute/undo/redo call is a bug — drags must mutate state directly via
-   * dragMutations and commit one atomic batch at mouseup.
-   */
-  setDragInProgress(v: boolean): void {
-    this.dragInProgress = v;
-  }
 
   execute(cmd: Command): void {
-    if (this.dragInProgress) throw new Error('CommandHistory.execute() called during drag');
     if (this.batch) {
       this.batch.add(cmd);
       return;
@@ -106,7 +95,6 @@ export class CommandHistory {
   }
 
   undo(): void {
-    if (this.dragInProgress) return;
     const cmd = this.undoStack.pop();
     if (!cmd) return;
     cmd.undo();
@@ -114,7 +102,6 @@ export class CommandHistory {
   }
 
   redo(): void {
-    if (this.dragInProgress) return;
     const cmd = this.redoStack.pop();
     if (!cmd) return;
     cmd.execute();
@@ -161,7 +148,7 @@ export class AddGateCommand implements Command {
 
   execute(): void {
     const { circuit } = this.state;
-    circuit.gates.set(this.gateId, this.gate);
+    circuit.addGate(this.gate);
     this.reconnectedNodes = reconnectPinNodes(circuit, [this.gateId]);
     this.state.circuitDirty = true;
   }
@@ -169,7 +156,7 @@ export class AddGateCommand implements Command {
   undo(): void {
     const { circuit } = this.state;
     undoReconnectPinNodes(circuit, this.reconnectedNodes);
-    circuit.gates.delete(this.gateId);
+    circuit.removeGate(this.gateId);
     this.state.circuitDirty = true;
   }
 
@@ -201,46 +188,34 @@ export class RemoveGateCommand implements Command {
     // Store gate for undo
     this.gate = { ...gate };
 
-    // Find wire nodes anchored to this gate's pins
+    // Nodes anchored to this gate's pins, and the segments reaching them
     this.removedNodes = [];
     this.removedSegments = [];
 
-    const nodeIdsToRemove = new Set<string>();
-    for (const node of circuit.wireNodes.values()) {
-      if (node.pin && node.pin.gateId === this.gateId) {
-        this.removedNodes.push({ ...node });
-        nodeIdsToRemove.add(node.id as string);
-      }
-    }
+    const nodeIdsToRemove = new Set<WireNodeId>(circuit.anchoredNodesOf([this.gateId]));
+    const seenSegments = new Set<WireSegmentId>();
+    const neighborNodeIds = new Set<WireNodeId>();
 
-    // Find wire segments connected to those nodes
-    for (const seg of circuit.wireSegments.values()) {
-      if (
-        nodeIdsToRemove.has(seg.from as string) ||
-        nodeIdsToRemove.has(seg.to as string)
-      ) {
+    for (const nodeId of nodeIdsToRemove) {
+      this.removedNodes.push({ ...circuit.getWireNode(nodeId) });
+      for (const segId of circuit.segmentsOf(nodeId)) {
+        if (seenSegments.has(segId)) continue;
+        seenSegments.add(segId);
+        const seg = circuit.getWireSegment(segId);
         this.removedSegments.push({ ...seg });
+        // Other endpoints may be left dangling once the segment goes
+        if (!nodeIdsToRemove.has(seg.from)) neighborNodeIds.add(seg.from);
+        if (!nodeIdsToRemove.has(seg.to)) neighborNodeIds.add(seg.to);
       }
-    }
-
-    // Collect neighbor node IDs (other endpoints of removed segments)
-    const neighborNodeIds = new Set<string>();
-    for (const seg of this.removedSegments) {
-      if (!nodeIdsToRemove.has(seg.from as string)) neighborNodeIds.add(seg.from as string);
-      if (!nodeIdsToRemove.has(seg.to as string)) neighborNodeIds.add(seg.to as string);
     }
 
     // Delete in order: segments, nodes, gate
-    for (const seg of this.removedSegments) {
-      circuit.wireSegments.delete(seg.id);
-    }
-    for (const node of this.removedNodes) {
-      circuit.wireNodes.delete(node.id);
-    }
-    circuit.gates.delete(this.gateId);
+    for (const seg of this.removedSegments) circuit.removeWireSegment(seg.id);
+    for (const node of this.removedNodes) circuit.removeWireNode(node.id);
+    circuit.removeGate(this.gateId);
 
     // Clean up orphaned free neighbor nodes
-    this.removedOrphanNodes = cleanupOrphanNodes(circuit, neighborNodeIds as Iterable<WireNodeId>);
+    this.removedOrphanNodes = cleanupOrphanNodes(circuit, neighborNodeIds);
 
     this.state.circuitDirty = true;
   }
@@ -249,14 +224,14 @@ export class RemoveGateCommand implements Command {
     const { circuit } = this.state;
     // Restore orphaned nodes first
     for (const node of this.removedOrphanNodes) {
-      circuit.wireNodes.set(node.id, node);
+      circuit.addWireNode(node);
     }
-    if (this.gate) circuit.gates.set(this.gateId, this.gate);
+    if (this.gate) circuit.addGate(this.gate);
     for (const node of this.removedNodes) {
-      circuit.wireNodes.set(node.id, node);
+      circuit.addWireNode(node);
     }
     for (const seg of this.removedSegments) {
-      circuit.wireSegments.set(seg.id, seg);
+      circuit.addWireSegment(seg);
     }
     this.state.circuitDirty = true;
   }
@@ -272,7 +247,7 @@ export class MoveGatesCommand implements Command {
 
   /** Wire nodes that moved along with the gates (anchored to pins + extra). */
   private movedNodeIds: WireNodeId[] = [];
-  /** Saved pin mappings for disconnect drag undo. */
+  /** Pins detached by a disconnect drag, restored on undo. */
   private detachedPins: { nodeId: WireNodeId; pin: PinRef }[] = [];
   /** Wire nodes reconnected to pins after move. */
   private reconnectedNodes: ReconnectedNode[] = [];
@@ -285,13 +260,21 @@ export class MoveGatesCommand implements Command {
     this.disconnected = disconnected;
   }
 
-  /** Store detached pin mappings (set by InputHandler before execute, for undo support). */
-  saveDetachedPins(detached: { nodeId: WireNodeId; pin: PinRef }[]): void {
-    this.detachedPins = detached;
-  }
-
   execute(): void {
     const { circuit } = this.state;
+
+    // A disconnect drag cuts the gate loose from its wires, which stay put. The detaching
+    // happens here rather than in the drag: the drag is only a visual preview, so execute()
+    // has to be able to produce this state on its own (including on redo).
+    this.detachedPins = [];
+    if (this.disconnected) {
+      for (const nodeId of circuit.anchoredNodesOf(this.gateIds)) {
+        const pin = circuit.getWireNode(nodeId).pin;
+        if (!pin) continue;
+        this.detachedPins.push({ nodeId, pin });
+        circuit.setWireNodePin(nodeId, undefined);
+      }
+    }
 
     for (const gateId of this.gateIds) {
       const gate = circuit.getGate(gateId);
@@ -327,7 +310,7 @@ export class MoveGatesCommand implements Command {
 
     // Restore detached pin connections
     for (const { nodeId, pin } of this.detachedPins) {
-      circuit.getWireNode(nodeId).pin = pin;
+      circuit.setWireNodePin(nodeId, pin);
     }
 
     this.state.circuitDirty = true;
@@ -400,7 +383,7 @@ export class AddWireNodeCommand implements Command {
   }
 
   undo(): void {
-    this.state.circuit.wireNodes.delete(this.nodeId);
+    this.state.circuit.removeWireNode(this.nodeId);
     this.state.circuitDirty = true;
   }
 
@@ -456,7 +439,7 @@ export class AddWireSegmentCommand implements Command {
   }
 
   undo(): void {
-    this.state.circuit.wireSegments.delete(this.segmentId);
+    this.state.circuit.removeWireSegment(this.segmentId);
     this.state.circuitDirty = true;
   }
 
@@ -518,30 +501,31 @@ export class MoveWireNodeCommand implements Command {
   }
 }
 
-export class ChangeGateStateCommand implements Command {
-  readonly description = 'Change gate state';
+/** Set the output value of constant gates. */
+export class ChangeGateValueCommand implements Command {
+  readonly description = 'Change gate value';
   private state: EditorState;
   private gateIds: GateId[];
-  private newValue: unknown;
-  private oldValues: unknown[];
+  private newValue: number | undefined;
+  private oldValues: (number | undefined)[];
 
-  constructor(state: EditorState, gateIds: GateId[], newValue: unknown) {
+  constructor(state: EditorState, gateIds: GateId[], newValue: number | undefined) {
     this.state = state;
     this.gateIds = gateIds;
     this.newValue = newValue;
-    this.oldValues = gateIds.map(id => state.circuit.getGate(id).state);
+    this.oldValues = gateIds.map(id => state.circuit.getGate(id).value);
   }
 
   execute(): void {
     for (const id of this.gateIds) {
-      this.state.circuit.getGate(id).state = this.newValue;
+      this.state.circuit.getGate(id).value = this.newValue;
     }
     this.state.valueDirty = true;
   }
 
   undo(): void {
     for (let i = 0; i < this.gateIds.length; i++) {
-      this.state.circuit.getGate(this.gateIds[i]).state = this.oldValues[i];
+      this.state.circuit.getGate(this.gateIds[i]).value = this.oldValues[i];
     }
     this.state.valueDirty = true;
   }

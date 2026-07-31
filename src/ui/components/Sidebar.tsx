@@ -1,7 +1,8 @@
 import { useRef, type MutableRef } from 'preact/hooks';
 import { type GateDefinition, type GateType, getGateDefinition } from '../../circuit-builder/editor/gates.ts';
+import type { BuiltInGateType } from '../../circuit-builder/simulation/gateTypes.ts';
 import { useEditorState } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 import { isGateAllowed, getGateCount, type GateConstraints } from '../../circuit-builder/levels/levelTypes.ts';
 import type { EditorState } from "../../circuit-builder/editor/EditorState.ts";
 import { getAllComponents, isComponentType } from '../../circuit-builder/components/componentRegistry.ts';
@@ -10,12 +11,7 @@ interface SidebarProps {
   onDragEnd: () => void;
 }
 
-interface Category {
-  label: string;
-  types: GateType[];
-}
-
-const CATEGORIES: Category[] = [
+const CATEGORIES = [
   { label: '1-bit Logic', types: ['nand', 'and', 'or', 'nor', 'xor', 'xnor', 'not', '3bit-or', '3bit-and'] },
   { label: '8-bit Logic', types: ['8bit-or', '8bit-nor', '8bit-not'] },
   { label: 'Math', types: ['2bit-adder', '3bit-adder', '8bit-adder', '8bit-negative', '8bit-subtractor'] },
@@ -28,11 +24,23 @@ const CATEGORIES: Category[] = [
     'output', 'output-8bit', 'output-16bit',
     'output-sw', 'output-8bit-sw', 'output-16bit-sw',
   ]},
-];
+] as const satisfies readonly { label: string; types: readonly BuiltInGateType[] }[];
+
+/**
+ * Every built-in gate type must appear in a category above, or it silently never shows up
+ * in the sidebar and becomes unplaceable. 'level' is excluded: it is the level-map node,
+ * not a gate the player places.
+ *
+ * If this line errors, the type in the message is the one missing from CATEGORIES.
+ */
+type Categorized = typeof CATEGORIES[number]['types'][number];
+type AssertNever<T extends never> = T;
+export type _EveryGateTypeIsCategorized =
+  AssertNever<Exclude<Exclude<BuiltInGateType, 'level'>, Categorized>>;
 
 export function Sidebar({ onDragEnd }: SidebarProps) {
   const didDrag = useRef(false);
-  const { level } = getEditor();
+  const { level } = useEditor();
   const constraints = level?.gateConstraints;
   const editorState = useEditorState();
 
@@ -77,9 +85,9 @@ export function Sidebar({ onDragEnd }: SidebarProps) {
           <>
             <div class="sidebar-header">Components</div>
             {components.map(comp => {
-              const def = getGateDefinition(comp.id as GateType);
+              const def = getGateDefinition(comp.id);
               return (
-                <GateItem key={comp.id} type={comp.id as GateType} def={def} constraints={undefined}
+                <GateItem key={comp.id} type={comp.id} def={def} constraints={undefined}
                   editorState={editorState} didDrag={didDrag} onDragEnd={onDragEnd} />
               );
             })}
@@ -129,8 +137,7 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: G
         requestAnimationFrame(() => document.body.removeChild(empty));
         (e.currentTarget as HTMLElement).style.opacity = '0.6';
         // onDragStart sets stamping mode; we set componentId directly to avoid race
-        const state = getEditor().getState();
-        state.mode = { kind: 'stamping', gateType: type };
+        editorState.mode = { kind: 'stamping', gateType: type };
       }}
       onDragEnd={(e: DragEvent) => {
         (e.currentTarget as HTMLElement).style.opacity = '1';
@@ -139,9 +146,8 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: G
       onClick={() => {
         if (!didDrag.current && !atLimit) {
           // Set stamping mode directly with componentId
-          const state = getEditor().getState();
-          state.mode = { kind: 'stamping', gateType: type };
-          state.renderDirty = true;
+          editorState.mode = { kind: 'stamping', gateType: type };
+          editorState.renderDirty = true;
         }
       }}
     >

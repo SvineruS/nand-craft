@@ -2,7 +2,7 @@ import { useRef } from 'preact/hooks';
 import { useEditorState } from '../editorStore.ts';
 import { getGateDefinition, getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
-import { ChangeGateLabelCommand, ChangeGateStateCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
+import { ChangeGateLabelCommand, ChangeGateValueCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
 import { isConstantGate, isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
 
 
@@ -80,13 +80,13 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
                     let v = parseInt((e.target as HTMLInputElement).value, 10);
                     if (isNaN(v)) v = 0;
                     v = Math.max(0, Math.min(mask, v));
-                    onExecute(new ChangeGateStateCommand(state, [gate.id], v));
+                    onExecute(new ChangeGateValueCommand(state, [gate.id], v));
                   }}
                   onInput={(e) => {
                     let v = parseInt((e.target as HTMLInputElement).value, 10);
                     if (isNaN(v)) return;
                     v = Math.max(0, Math.min(mask, v));
-                    onExecute(new ChangeGateStateCommand(state, [gate.id], v));
+                    onExecute(new ChangeGateValueCommand(state, [gate.id], v));
                   }}
                 />
               </div>

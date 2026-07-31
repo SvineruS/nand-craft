@@ -1,4 +1,4 @@
-import type { Camera, EditorState } from '../EditorState.ts';
+import type { Camera } from '../EditorState.ts';
 import type { GateType } from '../../simulation/gateTypes.ts';
 import { getGateDefinition, componentDefVersion } from '../gates.ts';
 import { cameraBoundingBox } from '../utils/geometry.ts';
@@ -9,17 +9,19 @@ import type {
   RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin,
   RenderErrorSegment, RenderSelectionItem, RenderPastePreview,
 } from './renderScene.ts';
-import { buildScene } from './buildScene.ts';
+import type { Viewport } from './buildScene.ts';
 
+/**
+ * Draws a RenderScene onto a canvas. Owns no time and no state beyond drawing concerns —
+ * it used to own the frame loop as well, which put the decisions about when to rebuild
+ * topology, when to re-tick, and when to re-render Preact inside the render layer. That
+ * sequencing now lives in EditorFrameLoop.
+ */
 export class Renderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private animationId: number | null = null;
-  private lastTime = 0;
   private wireAnimProgress = 0;
   private dpr = 1;
-  private mouseWorld: Vec2 = { x: 0, y: 0 };
-  private lastScene: RenderScene | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -61,48 +63,9 @@ export class Renderer {
     ctx.restore();
   }
 
-  private lastSelection: unknown = null;
-
-  startLoop(getState: () => EditorState, onCircuitDirty?: () => void, onValueDirty?: () => void, onStateChanged?: () => void): void {
-    this.lastTime = performance.now();
-    const tick = (time: number) => {
-      const dt = (time - this.lastTime) / 1000;
-      this.lastTime = time;
-      this.wireAnimProgress = (this.wireAnimProgress + dt * 0.5) % 1;
-
-      const state = getState();
-      this.handleResize();
-      if (state.circuitDirty) {
-        onCircuitDirty?.();
-      }
-      if (state.valueDirty) {
-        onValueDirty?.();
-        state.valueDirty = false;
-      }
-      const needsRedraw = state.renderDirty || state.circuitDirty;
-      if (needsRedraw) {
-        this.lastScene = buildScene(state, this.mouseWorld);
-        // Only notify Preact when UI-relevant state changed (not on every hover/mousemove)
-        if (state.selection !== this.lastSelection || state.circuitDirty) {
-          this.lastSelection = state.selection;
-          onStateChanged?.();
-        }
-        state.renderDirty = false;
-        state.circuitDirty = false;
-      }
-      if (this.lastScene) {
-        this.render(this.lastScene, state.camera);
-      }
-      this.animationId = requestAnimationFrame(tick);
-    };
-    this.animationId = requestAnimationFrame(tick);
-  }
-
-  stopLoop(): void {
-    if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = null;
-    }
+  /** Advance time-based drawing effects (the dashes crawling along active wires). */
+  advanceAnimation(dtSeconds: number): void {
+    this.wireAnimProgress = (this.wireAnimProgress + dtSeconds * 0.5) % 1;
   }
 
   screenToWorld(screen: Vec2, camera: Camera): Vec2 {
@@ -113,12 +76,17 @@ export class Renderer {
     return wts(world, camera, this.canvas.clientWidth, this.canvas.clientHeight);
   }
 
-  setMouseWorld(p: Vec2): void {
-    this.mouseWorld = p;
+  /** World-space rect currently on screen. The scene build culls against it. */
+  viewport(camera: Camera): Viewport {
+    return cameraBoundingBox(camera, {
+      x: this.canvas.clientWidth,
+      y: this.canvas.clientHeight,
+    });
   }
 
-  getMouseWorld(): Vec2 {
-    return this.mouseWorld;
+  /** Match the backing store to the element's CSS size and device pixel ratio. */
+  syncCanvasSize(): void {
+    this.handleResize();
   }
 
   // --- Private helpers ---

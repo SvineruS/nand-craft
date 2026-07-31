@@ -1,5 +1,5 @@
 import { stateVersion } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 import type { QueueCommandStatus } from '../../circuit-builder/levels/levelTypes.ts';
 
 const STATUS_ICONS: Record<QueueCommandStatus, string> = {
@@ -18,7 +18,7 @@ const STATUS_COLORS: Record<QueueCommandStatus, string> = {
 
 export function QueueLog() {
   stateVersion.value;
-  const { tests } = getEditor();
+  const { tests } = useEditor();
   const { queueResults } = tests;
 
   if (queueResults.length === 0) return null;

@@ -37,7 +37,14 @@ export function pinRefKey(ref: PinRef): string {
 export interface WireNode {
   id: WireNodeId;
   pos: Vec2;
-  pin?: PinRef;
+  /**
+   * Pin this node is anchored to, if any.
+   *
+   * Readonly after construction: Circuit indexes nodes by pin, so reassignment has to go
+   * through Circuit.setWireNodePin (or setWireNodePin in circuitMutations) to keep the
+   * index in step. Writing it directly used to be possible and silently invisible.
+   */
+  readonly pin?: PinRef;
 }
 
 export interface WireSegment {

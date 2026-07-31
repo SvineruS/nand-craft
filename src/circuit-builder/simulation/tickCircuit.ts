@@ -22,7 +22,7 @@ export function tick(
   const values = circuit.simState;
 
   setSourceOutputs(program, values, inputs);
-  const contentionNets = propagate(program, {
+  const contentionNets = propagate(circuit, program, {
     values,
     netValues: circuit.netValues,
     contentionNets: [],
@@ -85,8 +85,10 @@ function setSourceOutputs(
         break;
       }
       case SrcOp.CONSTANT:
+        values[slot] = gate.value ?? 0;
+        break;
       case SrcOp.SEQUENTIAL:
-        values[slot] = (gate.state as number) ?? 0;
+        values[slot] = gate.register ?? 0;
         break;
     }
   }
@@ -103,35 +105,35 @@ function advanceSequentialState(program: CompiledProgram, values: SimulationStat
 
     switch (sequentialOpcode[i]) {
       case SeqOp.DELAY:
-        gate.state = readInput(values, base);
+        gate.register = readInput(values, base);
         break;
 
       case SeqOp.RS_LATCH: {
         const set = readInput(values, base);
         const reset = readInput(values, base + 1);
-        let q = (gate.state as number) ?? 0;
+        let q = gate.register ?? 0;
         if (set && !reset) q = 1;
         else if (reset && !set) q = 0;
-        gate.state = q;
+        gate.register = q;
         break;
       }
 
       case SeqOp.MEMORY: {
         const data = readInput(values, base);
         const write = readInput(values, base + 1);
-        if (write) gate.state = data;
+        if (write) gate.register = data;
         break;
       }
 
       case SeqOp.COUNTER:
-        gate.state = (((gate.state as number) ?? 0) + 1) & 0xFF;
+        gate.register = ((gate.register ?? 0) + 1) & 0xFF;
         break;
 
       case SeqOp.COUNTER_RESET: {
         const value = readInput(values, base);
         const override = readInput(values, base + 1);
         // O=1 → override with V, O=0 → increment by 1
-        gate.state = override ? value : (((gate.state as number) ?? 0) + 1) & 0xFF;
+        gate.register = override ? value : ((gate.register ?? 0) + 1) & 0xFF;
         break;
       }
     }
@@ -176,13 +178,13 @@ interface ResolvePass {
  * where its last combinational driver has just evaluated (see buildSchedule).
  * Returns the net indices found in contention.
  */
-function propagate(program: CompiledProgram, pass: ResolvePass): number[] {
+function propagate(circuit: Circuit, program: CompiledProgram, pass: ResolvePass): number[] {
   const { order, resolveAfterOffset, resolveAfterNets, initialNets, unresolvedNets } = program;
 
   resolveRange(program, pass, initialNets, 0, initialNets.length);
 
   for (let step = 0; step < order.length; step++) {
-    evaluateGate(program, pass.values, order[step]);
+    evaluateGate(circuit, program, pass.values, order[step]);
     resolveRange(
       program, pass, resolveAfterNets,
       resolveAfterOffset[step], resolveAfterOffset[step + 1],
@@ -247,6 +249,7 @@ function resolveNet(program: CompiledProgram, pass: ResolvePass, netIndex: numbe
 // ---------------------------------------------------------------------------
 
 function evaluateGate(
+  circuit: Circuit,
   program: CompiledProgram,
   values: SimulationState,
   gateIndex: number,
@@ -333,7 +336,7 @@ function evaluateGate(
     }
 
     case Op.CONSTANT:
-      // setSourceOutputs already seeded this from gate.state; only a missing value falls here
+      // setSourceOutputs already seeded this from gate.value; only a missing value falls here
       if (values[outBase] === HIGH_Z) values[outBase] = 0;
       break;
 
@@ -373,12 +376,18 @@ function evaluateGate(
       }
       break;
 
+    case Op.COMPONENT:
+      evaluateComponent(circuit, program, values, gateIndex);
+      break;
+
     case Op.NOP:
       break;
 
     default:
-      evaluateComponent(program, values, gateIndex);
-      break;
+      // Every opcode opcodeFor() can produce is handled above. Components used to land
+      // here via `default`, which silently turned any unhandled opcode into a component
+      // evaluation.
+      throw new Error(`Unhandled opcode ${program.opcode[gateIndex]}`);
   }
 }
 
@@ -390,6 +399,7 @@ function evaluateGate(
 const evaluatingComponents = new Set<string>();
 
 function evaluateComponent(
+  circuit: Circuit,
   program: CompiledProgram,
   values: SimulationState,
   gateIndex: number,
@@ -404,12 +414,11 @@ function evaluateComponent(
   evaluatingComponents.add(compId);
 
   try {
-    // Get or create inner circuit instance from gate.state
-    // Check instanceof because gate.state may be stale data after deserialization
-    let innerCircuit = gate.state instanceof Circuit ? gate.state : undefined;
+    // Get or create this gate's inner circuit instance, kept on the owning Circuit
+    let innerCircuit = circuit.componentInstances.get(gate.id);
     if (!innerCircuit) {
       innerCircuit = deserializeCircuit(def.circuit);
-      gate.state = innerCircuit;
+      circuit.componentInstances.set(gate.id, innerCircuit);
     }
 
     // Collect inner IO gates in iteration order (same order as buildComponentDefinition)

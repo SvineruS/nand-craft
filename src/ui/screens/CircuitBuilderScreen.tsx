@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'preact/hooks';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
-import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
+import { useEffect, useMemo } from 'preact/hooks';
 import { InputHandler } from '../../circuit-builder/editor/InputHandler.ts';
+import type { Editor } from '../../circuit-builder/editor/Editor.ts';
+import { createLevelEditor } from '../../circuit-builder/levels/levelManager.ts';
 import { Toolbar } from '../components/Toolbar.tsx';
 import { Sidebar } from '../components/Sidebar.tsx';
 import { TestPanel } from '../components/TestPanel.tsx';
@@ -9,75 +9,65 @@ import { LevelDialog } from '../components/LevelDialog.tsx';
 import { LevelCompleteDialog } from '../components/LevelCompleteDialog.tsx';
 import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
 import { useEditorCallbacks } from '../useEditorCallbacks.ts';
-import { notifyStateChange } from '../editorStore.ts';
+import { useCanvasEditor } from '../useCanvasEditor.ts';
+import { EditorContext } from '../editorContext.ts';
+import { notifyStateChange, openLevelIndex, saveError } from '../editorStore.ts';
 import { switchToLevelMap } from '../screenManager.ts';
 
+const AUTOSAVE_INTERVAL_MS = 30_000;
+
 export function CircuitBuilderScreen() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const levelIndex = openLevelIndex.value ?? 0;
+  // This screen owns the Editor: built for the requested level, discarded on unmount.
+  const editor = useMemo(() => createLevelEditor(levelIndex), [levelIndex]);
+
+  return (
+    <EditorContext.Provider value={editor}>
+      <CircuitBuilder editor={editor} />
+    </EditorContext.Provider>
+  );
+}
+
+/** Inner component so the toolbar, sidebar and panels can useEditor() from context. */
+function CircuitBuilder({ editor }: { editor: Editor }) {
   const cb = useEditorCallbacks();
 
-  useEffect(() => {
-    const container = containerRef.current!;
-    const editor = getEditor();
-
-    // Canvas
-    const canvas = document.createElement('canvas');
-    Object.assign(canvas.style, { width: '100%', height: '100%', display: 'block' });
-    container.appendChild(canvas);
-
-    // Renderer + render loop
-    const renderer = new Renderer(canvas);
-    renderer.startLoop(
-      () => editor.getState(),
-      () => {
-        editor.onCircuitChanged();
-        notifyStateChange();
-      },
-      () => {
-        editor.retick();
-        notifyStateChange();
-      },
-      () => notifyStateChange(),
-    );
-
-    // Input
-    const input = new InputHandler(canvas,
+  const containerRef = useCanvasEditor({
+    getState: () => editor.getState(),
+    createInput: (canvas) => new InputHandler(
+      canvas,
       () => editor.getState(),
       () => editor.getHistory(),
-      renderer);
-    input.attach();
+    ),
+    onCircuitDirty: () => {
+      editor.onCircuitChanged();
+      notifyStateChange();
+    },
+    onValueDirty: () => {
+      editor.retick();
+      notifyStateChange();
+    },
+    onStateChanged: () => notifyStateChange(),
+    onTeardown: () => {
+      save(editor);
+      editor.tests.cancelRunAll();
+    },
+  });
 
-    // Mark dirty so the first frame renders
-    editor.getState().renderDirty = true;
-
-    // Resize
-    const onResize = () => {
-      editor.getState().renderDirty = true;
-    };
-    window.addEventListener('resize', onResize);
-
-    // Auto-save: on tab close, tab hide, and periodic interval
-    const saveIfNeeded = () => editor.save();
-    const onBeforeUnload = () => saveIfNeeded();
-    const onVisibilityChange = () => {
-      if (document.hidden) saveIfNeeded();
-    };
-    window.addEventListener('beforeunload', onBeforeUnload);
+  // Auto-save: periodically, when the tab is hidden, and when it closes
+  useEffect(() => {
+    const saveNow = () => save(editor);
+    const onVisibilityChange = () => { if (document.hidden) saveNow(); };
+    window.addEventListener('beforeunload', saveNow);
     document.addEventListener('visibilitychange', onVisibilityChange);
-    const autoSaveInterval = setInterval(saveIfNeeded, 30_000);
+    const interval = setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
 
     return () => {
-      saveIfNeeded(); // Save on unmount (screen switch)
-      editor.tests.cancelRunAll();
-      renderer.stopLoop();
-      input.detach();
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('beforeunload', saveNow);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      clearInterval(autoSaveInterval);
-      container.removeChild(canvas);
+      clearInterval(interval);
     };
-  }, []);
+  }, [editor]);
 
   return (
     <>
@@ -113,4 +103,10 @@ export function CircuitBuilderScreen() {
       )}
     </>
   );
+}
+
+/** Save, surfacing a storage failure in the toolbar rather than swallowing it. */
+function save(editor: Editor): void {
+  const error = editor.save();
+  if (error !== saveError.peek()) saveError.value = error;
 }

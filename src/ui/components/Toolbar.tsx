@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
-import { useEditorState, testEditorVisible, levelDialogVisible } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditorState, testEditorVisible, levelDialogVisible, saveError } from '../editorStore.ts';
+import { useEditor } from '../editorContext.ts';
 import { WIRE_COLORS } from "../../circuit-builder/editor/consts.ts";
 
 interface ToolbarProps {
@@ -14,7 +14,7 @@ interface ToolbarProps {
 
 export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, onResetLevel }: ToolbarProps) {
   const state = useEditorState();
-  const { level } = getEditor();
+  const { level } = useEditor();
   const [showHints, setShowHints] = useState(false);
 
   return (
@@ -24,14 +24,14 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
 
       <div class="toolbar-separator" />
 
-      <span class="toolbar-level-name">{level.name}</span>
+      <span class="toolbar-level-name">{level?.name ?? ''}</span>
 
       <div class="toolbar-separator" />
 
       <button class="toolbar-btn" title="Ctrl+Z" onClick={onUndo}>Undo</button>
       <button class="toolbar-btn" title="Ctrl+Shift+Z" onClick={onRedo}>Redo</button>
       <button class="toolbar-btn" title="Reset level to default" onClick={onResetLevel}>Reset</button>
-      {level.customTests && (
+      {level?.customTests && (
         <button class="toolbar-btn" title="Open test editor" onClick={() => { testEditorVisible.value = !testEditorVisible.value; }}>Tests</button>
       )}
 
@@ -53,12 +53,18 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
 
       <div class="toolbar-spacer" />
 
+      {saveError.value && (
+        <span class="toolbar-save-error" title={saveError.value}>
+          Save failed — progress is not being stored
+        </span>
+      )}
+
       <button class="toolbar-btn" title="Show level description" onClick={() => { levelDialogVisible.value = true; }}>Goals</button>
-      {level.hints && level.hints.length > 0 && (
+      {level?.hints && level.hints.length > 0 && (
         <button class="toolbar-btn" onClick={() => setShowHints(!showHints)}>Hints</button>
       )}
 
-      {showHints && level.hints && (
+      {showHints && level?.hints && (
         <div class="hints-overlay" onClick={() => setShowHints(false)}>
           <div class="hints-card" onClick={(e) => e.stopPropagation()}>
             <div class="hints-header">

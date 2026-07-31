@@ -18,21 +18,11 @@ import { saveCircuit } from "../persistence/storage.ts";
 export class Editor {
   private state: EditorState;
   private history: CommandHistory;
-  readonly level: Level;
+  /** null when editing something that is not a level: a component, or the level map. */
+  readonly level: Level | null;
   readonly tests: LevelTests;
 
-  private static readonly EMPTY_LEVEL: Level = {
-    id: '' as any,
-    name: '',
-    description: '',
-    inputs: [],
-    outputs: [],
-    test: { name: '', description: '' },
-    prerequisites: [],
-    mapPosition: { x: 0, y: 0 },
-  };
-
-  private constructor(circuit: Circuit, level: Level) {
+  private constructor(circuit: Circuit, level: Level | null) {
     this.state = createEditorState();
     this.history = new CommandHistory();
     this.level = level;
@@ -47,13 +37,14 @@ export class Editor {
     return new Editor(circuit, level);
   }
 
-  /** Create an editor without a level (e.g. level map editor). */
+  /** Create an editor without a level (component editor, level map editor). */
   static create(circuit: Circuit): Editor {
-    return new Editor(circuit, Editor.EMPTY_LEVEL);
+    return new Editor(circuit, null);
   }
 
   /** Reset to the level's default circuit, discarding user changes. */
   resetLevel(): void {
+    if (!this.level) return;
     this.history = new CommandHistory();
     this.state.circuit = buildLevelCircuit(this.level);
     this.state.selection = [];
@@ -109,19 +100,23 @@ export class Editor {
   /** Tick the live circuit with given input values. Updates pins, detects errors. */
   applyInputs(inputs: Map<GateId, number>, resetDelay = false): void {
     if (resetDelay) {
-      // Only reset sequential gate state (delay, latch, memory, counter).
-      // Constants use gate.state for user-set values — don't touch those.
+      // Registers only (delay, latch, memory, counter) — gate.value holds the player's
+      // constants and must survive.
       for (const gate of this.state.circuit.gates.values()) {
-        if (isSequentialGate(gate.type)) gate.state = undefined;
+        if (isSequentialGate(gate.type)) gate.register = undefined;
       }
     }
     this.getCircuit().tick(inputs);
     this.state.renderDirty = true;
   }
 
-  save() {
-    if (!this.level.id) return; // No level ID = level map editor, skip save
-    saveCircuit(this.level.id, this.getCircuit());
+  /**
+   * Persist the circuit. Returns null on success, or a message describing the failure.
+   * Circuits without a level (components, the level map) are saved by their own screens.
+   */
+  save(): string | null {
+    if (!this.level) return null;
+    return saveCircuit(this.level.id, this.getCircuit());
   }
 }
 

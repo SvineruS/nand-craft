@@ -1,67 +1,51 @@
-import { useEffect, useRef } from 'preact/hooks';
-import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
+import { useMemo } from 'preact/hooks';
 import { InputHandler } from '../../circuit-builder/editor/InputHandler.ts';
+import type { Editor } from '../../circuit-builder/editor/Editor.ts';
+import { useCanvasEditor } from '../useCanvasEditor.ts';
+import { EditorContext, useEditor } from '../editorContext.ts';
 import { notifyStateChange } from '../editorStore.ts';
 import { navigateTo } from '../screenManager.ts';
 import { Sidebar } from '../components/Sidebar.tsx';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
 import {
-  buildLevelMapEditable,
+  createLevelMapEditor,
   exportLevelMap,
 } from '../../circuit-builder/levels/levelManager.ts';
 import { WIRE_COLORS } from '../../circuit-builder/editor/consts.ts';
 
 
 export function LevelMapEditorScreen() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const initialized = useRef(false);
+  // This screen owns the Editor over the level map graph.
+  const editor = useMemo(() => createLevelMapEditor(), []);
 
-  // Create editor before first render so Sidebar can access getEditor()
-  if (!initialized.current) {
-    buildLevelMapEditable();
-    initialized.current = true;
-  }
+  return (
+    <EditorContext.Provider value={editor}>
+      <LevelMapEditor />
+    </EditorContext.Provider>
+  );
+}
 
-  useEffect(() => {
-    const container = containerRef.current!;
-    const editor = getEditor();
+function LevelMapEditor() {
+  const editor: Editor = useEditor();
 
-    // Canvas
-    const canvas = document.createElement('canvas');
-    Object.assign(canvas.style, { width: '100%', height: '100%', display: 'block' });
-    container.appendChild(canvas);
-
-    // Renderer
-    const renderer = new Renderer(canvas);
-    renderer.startLoop(
+  const containerRef = useCanvasEditor({
+    getState: () => editor.getState(),
+    createInput: (canvas) => new InputHandler(
+      canvas,
       () => editor.getState(),
-      () => { editor.onCircuitChanged(); notifyStateChange(); },
-      undefined,
-      () => notifyStateChange(),
-    );
+      () => editor.getHistory(),
+    ),
+    onCircuitDirty: () => { editor.onCircuitChanged(); notifyStateChange(); },
+    onStateChanged: () => notifyStateChange(),
+  });
 
-    // Input
-    const input = new InputHandler(canvas, () => editor.getState(), () => editor.getHistory(), renderer);
-    input.attach();
-
-    editor.getState().renderDirty = true;
-
-    const onResize = () => { editor.getState().renderDirty = true; };
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      renderer.stopLoop();
-      input.detach();
-      window.removeEventListener('resize', onResize);
-      container.removeChild(canvas);
-    };
-  }, []);
-
-  function handleUndo() { getEditor().undo(); notifyStateChange(); }
-  function handleRedo() { getEditor().redo(); notifyStateChange(); }
-  function handleExport() { exportLevelMap(); alert('Exported to console — check DevTools'); }
-  function handleColorChange(color: string) { getEditor().getState().wireColor = color; notifyStateChange(); }
-  function handleDragEnd() { getEditor().getState().mode = { kind: 'normal' }; }
+  function handleUndo() { editor.undo(); notifyStateChange(); }
+  function handleRedo() { editor.redo(); notifyStateChange(); }
+  function handleExport() {
+    exportLevelMap(editor.getCircuit());
+    alert('Exported to console — check DevTools');
+  }
+  function handleColorChange(color: string) { editor.getState().wireColor = color; notifyStateChange(); }
+  function handleDragEnd() { editor.getState().mode = { kind: 'normal' }; }
 
   return (
     <>

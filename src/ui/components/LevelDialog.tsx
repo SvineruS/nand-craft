@@ -1,11 +1,12 @@
 import { levelDialogVisible } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 
 export function LevelDialog() {
-  const { level } = getEditor();
+  const { level } = useEditor();
   const visible = levelDialogVisible.value;
 
-  if (!visible) return null;
+  // Nothing to introduce when the editor is not on a level (component / level map).
+  if (!visible || !level) return null;
 
   return (
     <div class="level-dialog-overlay">
