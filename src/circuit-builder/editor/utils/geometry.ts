@@ -204,6 +204,8 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
     const gate = circuit.getGate(gateId);
 
     for (const [pinRef, pos] of iteratePinPositions(gate)) {
+      // A pin that already has a node must not gain a second one
+      if (circuit.findNodeForPin(pinRef)) continue;
       for (const node of circuit.wireNodes.values()) {
         if (node.pin) continue;
         if (Vec2.near(node.pos, pos, 2)) {

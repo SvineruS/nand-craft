@@ -22,7 +22,15 @@ export class Circuit {
 
   /** Segments incident to each node. Only nodes with at least one segment appear. */
   private readonly segmentsByNode = new Map<WireNodeId, Set<WireSegmentId>>();
-  /** Node anchored to each pin, keyed by pinRefKey. First claimant wins, as before. */
+  /**
+   * Node anchored to each pin, keyed by pinRefKey.
+   *
+   * Two nodes on one pin is malformed but reachable: detach a gate, wire something else to
+   * the freed pin, then undo the detach. The tie-break is "earliest surviving claim wins",
+   * and releasing the winner promotes another claimant. The pre-index code resolved the
+   * same case by map insertion order, which was an artifact of scanning rather than a
+   * decision; either way only one of the two nodes tracks the pin.
+   */
   private readonly nodeByPin = new Map<string, WireNodeId>();
   /** All nodes anchored to any pin of a gate. */
   private readonly nodesByGate = new Map<GateId, Set<WireNodeId>>();
@@ -176,7 +184,6 @@ export class Circuit {
 
   private claimPin(pin: PinRef, nodeId: WireNodeId): void {
     const key = pinRefKey(pin);
-    // First claimant wins, matching the old "first match in insertion order" scan.
     if (!this.nodeByPin.has(key)) this.nodeByPin.set(key, nodeId);
 
     let nodes = this.nodesByGate.get(pin.gateId);

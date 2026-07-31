@@ -59,6 +59,33 @@ export interface ClipboardData {
   wires: ClipboardWire[];
 }
 
+/**
+ * In-flight drag, expressed as a visual overlay instead of a mutation.
+ *
+ * Drags used to edit the Circuit live and then undo themselves at mouseup so the real
+ * command batch could apply to a pristine state. That rollback had to restore ids exactly,
+ * and CommandHistory needed a runtime guard to catch commands executed mid-drag. Now the
+ * circuit is untouched until the drag commits: buildScene applies this overlay, and
+ * mouseup executes one command with the final offset.
+ */
+export interface DragPreview {
+  /** Snapped world-space offset applied to the gates and nodes below. */
+  offset: Vec2;
+  gateIds: readonly GateId[];
+  nodeIds: readonly WireNodeId[];
+  /** Nodes drawn as if unanchored — a disconnect drag leaves their wires behind. */
+  detachedNodeIds: readonly WireNodeId[];
+  /**
+   * Segment shown split by a node being dragged out of it. The segment is replaced by two
+   * running through `pos`; nothing is split for real until mouseup.
+   */
+  split: { segmentId: WireSegmentId; pos: Vec2 } | null;
+}
+
+export function emptyDragPreview(): DragPreview {
+  return { offset: { x: 0, y: 0 }, gateIds: [], nodeIds: [], detachedNodeIds: [], split: null };
+}
+
 export interface EditorState {
   circuit: Circuit;
   camera: Camera;
@@ -72,6 +99,8 @@ export interface EditorState {
   wireColor: string;
   /** Set only by the level map; null in the circuit editor. */
   gateStatuses: Map<GateId, LevelNodeStatus> | null;
+  /** Non-null only while a drag is in flight. Purely visual — see DragPreview. */
+  dragPreview: DragPreview | null;
   renderDirty: boolean;
   circuitDirty: boolean;
   valueDirty: boolean;
@@ -97,6 +126,7 @@ export function createEditorState(): EditorState {
     clipboard: sharedClipboard,
     wireColor: WIRE_COLORS[0],
     gateStatuses: null,
+    dragPreview: null,
     renderDirty: true,
     circuitDirty: true,
     valueDirty: false,

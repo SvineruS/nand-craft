@@ -71,19 +71,8 @@ export class CommandHistory {
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
   private batch: BatchCommand | null = null;
-  private dragInProgress = false;
-
-  /**
-   * Set by InputHandler while an interactive drag is live. When true, any
-   * execute/undo/redo call is a bug — drags must mutate state directly via
-   * dragMutations and commit one atomic batch at mouseup.
-   */
-  setDragInProgress(v: boolean): void {
-    this.dragInProgress = v;
-  }
 
   execute(cmd: Command): void {
-    if (this.dragInProgress) throw new Error('CommandHistory.execute() called during drag');
     if (this.batch) {
       this.batch.add(cmd);
       return;
@@ -106,7 +95,6 @@ export class CommandHistory {
   }
 
   undo(): void {
-    if (this.dragInProgress) return;
     const cmd = this.undoStack.pop();
     if (!cmd) return;
     cmd.undo();
@@ -114,7 +102,6 @@ export class CommandHistory {
   }
 
   redo(): void {
-    if (this.dragInProgress) return;
     const cmd = this.redoStack.pop();
     if (!cmd) return;
     cmd.execute();
@@ -260,7 +247,7 @@ export class MoveGatesCommand implements Command {
 
   /** Wire nodes that moved along with the gates (anchored to pins + extra). */
   private movedNodeIds: WireNodeId[] = [];
-  /** Saved pin mappings for disconnect drag undo. */
+  /** Pins detached by a disconnect drag, restored on undo. */
   private detachedPins: { nodeId: WireNodeId; pin: PinRef }[] = [];
   /** Wire nodes reconnected to pins after move. */
   private reconnectedNodes: ReconnectedNode[] = [];
@@ -273,13 +260,21 @@ export class MoveGatesCommand implements Command {
     this.disconnected = disconnected;
   }
 
-  /** Store detached pin mappings (set by InputHandler before execute, for undo support). */
-  saveDetachedPins(detached: { nodeId: WireNodeId; pin: PinRef }[]): void {
-    this.detachedPins = detached;
-  }
-
   execute(): void {
     const { circuit } = this.state;
+
+    // A disconnect drag cuts the gate loose from its wires, which stay put. The detaching
+    // happens here rather than in the drag: the drag is only a visual preview, so execute()
+    // has to be able to produce this state on its own (including on redo).
+    this.detachedPins = [];
+    if (this.disconnected) {
+      for (const nodeId of circuit.anchoredNodesOf(this.gateIds)) {
+        const pin = circuit.getWireNode(nodeId).pin;
+        if (!pin) continue;
+        this.detachedPins.push({ nodeId, pin });
+        circuit.setWireNodePin(nodeId, undefined);
+      }
+    }
 
     for (const gateId of this.gateIds) {
       const gate = circuit.getGate(gateId);
