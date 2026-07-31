@@ -1,7 +1,8 @@
 import { signal } from '@preact/signals';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import type { ComponentId, LevelId } from '../circuit-builder/editor/types.ts';
-import { getSolvedLevelIds } from '../circuit-builder/persistence/storage.ts';
+import { getSolvedLevelIds, getBackgroundStyle, saveBackgroundStyle } from '../circuit-builder/persistence/storage.ts';
+import type { BackgroundStyle } from '../circuit-builder/editor/render/backgroundPattern.ts';
 import { useEditor } from './editorContext.ts';
 
 // ---------------------------------------------------------------------------
@@ -39,6 +40,14 @@ export const solvedLevelIds = signal<Set<LevelId>>(getSolvedLevelIds());
 
 /** Message from the last failed save (e.g. storage quota), or null when saving works. */
 export const saveError = signal<string | null>(null);
+
+/** Grid + ornament drawn behind every canvas (persisted in localStorage). */
+export const backgroundStyle = signal<BackgroundStyle>(getBackgroundStyle());
+
+export function setBackgroundStyle(style: BackgroundStyle): void {
+  backgroundStyle.value = style;
+  saveBackgroundStyle(style);
+}
 
 // ---------------------------------------------------------------------------
 // State bridge – lets Preact read the mutable EditorState on demand

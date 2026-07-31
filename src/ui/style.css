@@ -816,6 +816,59 @@ body {
   }
 }
 
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-label {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pattern-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.pattern-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+
+  & canvas {
+    display: block;
+    border-radius: 3px;
+  }
+}
+
+.pattern-option-selected {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 /* ------------------------------------------------------------------ */
 /* Factory screen                                                      */
 /* ------------------------------------------------------------------ */

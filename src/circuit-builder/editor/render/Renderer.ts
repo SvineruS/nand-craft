@@ -4,7 +4,10 @@ import { getGateDefinition, componentDefVersion } from '../gates.ts';
 import { cameraBoundingBox } from '../utils/geometry.ts';
 import { routeCorner, Vec2 } from '../utils/vec2.ts';
 import { screenToWorld as stw, worldToScreen as wts } from '../../../engine/camera.ts';
-import { COLORS, GRID_DOT_RADIUS, GRID_SIZE, MAJOR_GRID_DOT_RADIUS, MAJOR_GRID_EVERY, WIRE_DASH_SIZE } from "../consts.ts";
+import { COLORS, GRID_SIZE, WIRE_DASH_SIZE } from "../consts.ts";
+import {
+  type BackgroundStyle, DEFAULT_BACKGROUND_STYLE, drawBackground,
+} from './backgroundPattern.ts';
 import type {
   RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin,
   RenderErrorSegment, RenderSelectionItem, RenderPastePreview,
@@ -22,6 +25,7 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private wireAnimProgress = 0;
   private dpr = 1;
+  private backgroundStyle: BackgroundStyle = DEFAULT_BACKGROUND_STYLE;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -47,7 +51,7 @@ export class Renderer {
     );
     ctx.scale(camera.zoom, camera.zoom);
 
-    this.drawGrid(camera);
+    this.drawBackground(camera);
     this.drawWireSegments(scene.wireSegments);
     this.drawWireNodes(scene.wireNodes);
     this.drawGates(scene.gates);
@@ -61,6 +65,14 @@ export class Renderer {
 
     ctx.restore();
     ctx.restore();
+  }
+
+  /**
+   * Pick the grid and ornament drawn behind the circuit. A style is passed in rather than
+   * read from a global so a level could later ship its own look.
+   */
+  setBackgroundStyle(style: BackgroundStyle): void {
+    this.backgroundStyle = style;
   }
 
   /** Advance time-based drawing effects (the dashes crawling along active wires). */
@@ -187,26 +199,8 @@ export class Renderer {
     }
   }
 
-  private drawGrid(camera: Camera): void {
-    const { ctx } = this;
-    const { left, top, right, bottom } = cameraBoundingBox(camera, {
-      x: this.canvas.clientWidth,
-      y: this.canvas.clientHeight,
-    });
-
-    const startX = Math.floor(left / GRID_SIZE) * GRID_SIZE;
-    const startY = Math.floor(top / GRID_SIZE) * GRID_SIZE;
-
-    ctx.fillStyle = COLORS.gridDot;
-    const majorStep = GRID_SIZE * MAJOR_GRID_EVERY;
-    for (let gx = startX; gx <= right; gx += GRID_SIZE) {
-      for (let gy = startY; gy <= bottom; gy += GRID_SIZE) {
-        const isMajor = gx % majorStep === 0 || gy % majorStep === 0;
-        ctx.beginPath();
-        ctx.arc(gx, gy, isMajor ? MAJOR_GRID_DOT_RADIUS : GRID_DOT_RADIUS, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+  private drawBackground(camera: Camera): void {
+    drawBackground(this.ctx, this.backgroundStyle, this.viewport(camera), camera.zoom);
   }
 
   private drawWireSegments(segments: RenderWireSegment[]): void {

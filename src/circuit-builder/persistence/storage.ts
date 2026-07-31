@@ -2,9 +2,14 @@ import { Circuit } from '../simulation/circuit.ts';
 import type { LevelId } from '../editor/types.ts';
 import { serializeCircuit, deserializeCircuitFromJson } from './serialize.ts';
 import type { Level } from "../levels/levelTypes.ts";
+import {
+  type BackgroundStyle, DEFAULT_BACKGROUND_STYLE, isGridPatternId, isOrnamentPatternId,
+} from '../editor/render/backgroundPattern.ts';
 
 const PREFIX = 'nand-craft';
 const SOLVED_KEY = `${PREFIX}:solved`;
+const BACKGROUND_GRID_KEY = `${PREFIX}:backgroundGrid`;
+const BACKGROUND_ORNAMENT_KEY = `${PREFIX}:backgroundOrnament`;
 
 function circuitKey(levelId: LevelId): string {
   return `${PREFIX}:circuit:${levelId}`;
@@ -58,6 +63,27 @@ export function markLevelSolved(levelId: LevelId): void {
     localStorage.setItem(SOLVED_KEY, JSON.stringify([...solved]));
   } catch (e) {
     console.error('Failed to persist solved levels:', e);
+  }
+}
+
+/** Stored background style. Either half falls back when absent or no longer a known id. */
+export function getBackgroundStyle(): BackgroundStyle {
+  const grid = localStorage.getItem(BACKGROUND_GRID_KEY);
+  const ornament = localStorage.getItem(BACKGROUND_ORNAMENT_KEY);
+  return {
+    grid: grid && isGridPatternId(grid) ? grid : DEFAULT_BACKGROUND_STYLE.grid,
+    ornament: ornament && isOrnamentPatternId(ornament)
+      ? ornament
+      : DEFAULT_BACKGROUND_STYLE.ornament,
+  };
+}
+
+export function saveBackgroundStyle(style: BackgroundStyle): void {
+  try {
+    localStorage.setItem(BACKGROUND_GRID_KEY, style.grid);
+    localStorage.setItem(BACKGROUND_ORNAMENT_KEY, style.ornament);
+  } catch (e) {
+    console.error('Failed to persist background style:', e);
   }
 }
 

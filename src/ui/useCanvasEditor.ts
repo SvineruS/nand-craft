@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { effect } from '@preact/signals';
 import type { RefObject } from 'preact';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import { Renderer } from '../circuit-builder/editor/render/Renderer.ts';
 import { EditorFrameLoop } from '../circuit-builder/editor/render/EditorFrameLoop.ts';
+import { backgroundStyle } from './editorStore.ts';
 
 /** Anything with a DOM listener lifecycle — InputHandler and CanvasInput both qualify. */
 export interface AttachableInput {
@@ -55,6 +57,12 @@ export function useCanvasEditor(options: CanvasEditorOptions): RefObject<HTMLDiv
     });
     loop.start();
 
+    // Runs once immediately, then again whenever the setting changes.
+    const stopWatchingBackground = effect(() => {
+      renderer.setBackgroundStyle(backgroundStyle.value);
+      latest.current.getState().renderDirty = true;
+    });
+
     const input = latest.current.createInput?.(canvas);
     input?.attach();
 
@@ -66,6 +74,7 @@ export function useCanvasEditor(options: CanvasEditorOptions): RefObject<HTMLDiv
 
     return () => {
       latest.current.onTeardown?.();
+      stopWatchingBackground();
       loop.stop();
       input?.detach();
       window.removeEventListener('resize', onResize);
