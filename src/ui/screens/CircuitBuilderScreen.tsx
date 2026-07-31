@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import { getEditor } from '../../circuit-builder/editorInstance.ts';
-import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
 import { InputHandler } from '../../circuit-builder/editor/InputHandler.ts';
 import { Toolbar } from '../components/Toolbar.tsx';
 import { Sidebar } from '../components/Sidebar.tsx';
@@ -9,76 +8,49 @@ import { LevelDialog } from '../components/LevelDialog.tsx';
 import { LevelCompleteDialog } from '../components/LevelCompleteDialog.tsx';
 import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
 import { useEditorCallbacks } from '../useEditorCallbacks.ts';
+import { useCanvasEditor } from '../useCanvasEditor.ts';
 import { notifyStateChange, saveError } from '../editorStore.ts';
 import { switchToLevelMap } from '../screenManager.ts';
 
+const AUTOSAVE_INTERVAL_MS = 30_000;
+
 export function CircuitBuilderScreen() {
-  const containerRef = useRef<HTMLDivElement>(null);
   const cb = useEditorCallbacks();
 
+  const containerRef = useCanvasEditor({
+    getState: () => getEditor().getState(),
+    createInput: (canvas, renderer) => new InputHandler(
+      canvas,
+      () => getEditor().getState(),
+      () => getEditor().getHistory(),
+      renderer,
+    ),
+    onCircuitDirty: () => {
+      getEditor().onCircuitChanged();
+      notifyStateChange();
+    },
+    onValueDirty: () => {
+      getEditor().retick();
+      notifyStateChange();
+    },
+    onStateChanged: () => notifyStateChange(),
+    onTeardown: () => {
+      saveNow();
+      getEditor().tests.cancelRunAll();
+    },
+  });
+
+  // Auto-save: periodically, when the tab is hidden, and when it closes
   useEffect(() => {
-    const container = containerRef.current!;
-    const editor = getEditor();
-
-    // Canvas
-    const canvas = document.createElement('canvas');
-    Object.assign(canvas.style, { width: '100%', height: '100%', display: 'block' });
-    container.appendChild(canvas);
-
-    // Renderer + render loop
-    const renderer = new Renderer(canvas);
-    renderer.startLoop(
-      () => editor.getState(),
-      () => {
-        editor.onCircuitChanged();
-        notifyStateChange();
-      },
-      () => {
-        editor.retick();
-        notifyStateChange();
-      },
-      () => notifyStateChange(),
-    );
-
-    // Input
-    const input = new InputHandler(canvas,
-      () => editor.getState(),
-      () => editor.getHistory(),
-      renderer);
-    input.attach();
-
-    // Mark dirty so the first frame renders
-    editor.getState().renderDirty = true;
-
-    // Resize
-    const onResize = () => {
-      editor.getState().renderDirty = true;
-    };
-    window.addEventListener('resize', onResize);
-
-    // Auto-save: on tab close, tab hide, and periodic interval
-    const saveIfNeeded = () => {
-      const error = editor.save();
-      if (error !== saveError.peek()) saveError.value = error;
-    };
-    const onBeforeUnload = () => saveIfNeeded();
-    const onVisibilityChange = () => {
-      if (document.hidden) saveIfNeeded();
-    };
-    window.addEventListener('beforeunload', onBeforeUnload);
+    const onVisibilityChange = () => { if (document.hidden) saveNow(); };
+    window.addEventListener('beforeunload', saveNow);
     document.addEventListener('visibilitychange', onVisibilityChange);
-    const autoSaveInterval = setInterval(saveIfNeeded, 30_000);
+    const interval = setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
 
     return () => {
-      saveIfNeeded(); // Save on unmount (screen switch)
-      editor.tests.cancelRunAll();
-      renderer.stopLoop();
-      input.detach();
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('beforeunload', saveNow);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      clearInterval(autoSaveInterval);
-      container.removeChild(canvas);
+      clearInterval(interval);
     };
   }, []);
 
@@ -116,4 +88,10 @@ export function CircuitBuilderScreen() {
       )}
     </>
   );
+}
+
+/** Save, surfacing a storage failure in the toolbar rather than swallowing it. */
+function saveNow(): void {
+  const error = getEditor().save();
+  if (error !== saveError.peek()) saveError.value = error;
 }

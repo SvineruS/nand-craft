@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { getEditor, hasEditor } from '../../circuit-builder/editorInstance.ts';
-import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
 import { CanvasInput } from '../../engine/input.ts';
+import { useCanvasEditor } from '../useCanvasEditor.ts';
+import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
 import { notifyStateChange, solvedLevelIds } from '../editorStore.ts';
 import { navigateTo } from '../screenManager.ts';
 import { openComponentEditor, editComponent } from '../componentNav.ts';
@@ -18,35 +19,25 @@ import { LEVELS } from '../../circuit-builder/levels/registry.ts';
 import { getSolvedLevelIds, markLevelSolved } from '../../circuit-builder/persistence/storage.ts';
 
 export function LevelSelectScreen() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // The level map is a plain EditorState, not an Editor: it is displayed, never edited.
+  const mapState = useRef<EditorState | null>(null);
 
+  // Declared before useCanvasEditor so it runs first — effects fire in declaration order,
+  // and the canvas loop reads mapState as soon as it starts.
   useEffect(() => {
-    const container = containerRef.current!;
-
-    // Save current circuit before showing level map
-    if (hasEditor()) {
-      const editor = getEditor();
-      editor.save();
-    }
-
-    // Build level map state (persistent in levelManager)
+    if (hasEditor()) getEditor().save();
     buildLevelMap();
-    const levelMapState = getLevelMapState()!;
+    mapState.current = getLevelMapState()!;
+  }, []);
 
-    // Canvas
-    const canvas = document.createElement('canvas');
-    Object.assign(canvas.style, { width: '100%', height: '100%', display: 'block' });
-    container.appendChild(canvas);
-
-    // Renderer + render loop
-    const renderer = new Renderer(canvas);
-    renderer.startLoop(() => levelMapState);
-
-    // Input — click to select level, middle-click to pan
-    const input = new CanvasInput(canvas, {
+  const containerRef = useCanvasEditor({
+    getState: () => mapState.current!,
+    // Click to select a level or open a component; middle-click to pan.
+    createInput: (canvas) => new CanvasInput(canvas, {
       onPointerUp(e) {
+        const state = mapState.current!;
         // Check for component node clicks first
-        for (const gate of levelMapState.circuit.gates.values()) {
+        for (const gate of state.circuit.gates.values()) {
           if (!hitTestGate_({ x: e.world.x, y: e.world.y }, gate)) continue;
           const id = gate.id as string;
           if (id.startsWith('cmp:')) {
@@ -55,30 +46,18 @@ export function LevelSelectScreen() {
           }
         }
         // Then check level clicks
-        const idx = hitTestLevel(levelMapState, getLevelGateMap(), LEVELS, solvedLevelIds.value, e.world.x, e.world.y);
+        const idx = hitTestLevel(state, getLevelGateMap(), LEVELS, solvedLevelIds.value, e.world.x, e.world.y);
         if (idx !== null) {
           loadLevel(idx);
           navigateTo('editor');
         }
       },
     }, {
-      getCamera: () => levelMapState.camera,
-      onCameraChange() { levelMapState.renderDirty = true; },
+      getCamera: () => mapState.current!.camera,
+      onCameraChange() { mapState.current!.renderDirty = true; },
       shouldPan: (e) => e.button === 1,
-    });
-    input.attach();
-
-    // Resize
-    const onResize = () => { levelMapState.renderDirty = true; };
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      renderer.stopLoop();
-      input.detach();
-      window.removeEventListener('resize', onResize);
-      container.removeChild(canvas);
-    };
-  }, []);
+    }),
+  });
 
   return (
     <>

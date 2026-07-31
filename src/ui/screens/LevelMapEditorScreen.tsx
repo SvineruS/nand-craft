@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'preact/hooks';
-import { Renderer } from '../../circuit-builder/editor/render/Renderer.ts';
+import { useRef } from 'preact/hooks';
 import { InputHandler } from '../../circuit-builder/editor/InputHandler.ts';
+import { useCanvasEditor } from '../useCanvasEditor.ts';
 import { notifyStateChange } from '../editorStore.ts';
 import { navigateTo } from '../screenManager.ts';
 import { Sidebar } from '../components/Sidebar.tsx';
@@ -13,7 +13,6 @@ import { WIRE_COLORS } from '../../circuit-builder/editor/consts.ts';
 
 
 export function LevelMapEditorScreen() {
-  const containerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
   // Create editor before first render so Sidebar can access getEditor()
@@ -22,40 +21,17 @@ export function LevelMapEditorScreen() {
     initialized.current = true;
   }
 
-  useEffect(() => {
-    const container = containerRef.current!;
-    const editor = getEditor();
-
-    // Canvas
-    const canvas = document.createElement('canvas');
-    Object.assign(canvas.style, { width: '100%', height: '100%', display: 'block' });
-    container.appendChild(canvas);
-
-    // Renderer
-    const renderer = new Renderer(canvas);
-    renderer.startLoop(
-      () => editor.getState(),
-      () => { editor.onCircuitChanged(); notifyStateChange(); },
-      undefined,
-      () => notifyStateChange(),
-    );
-
-    // Input
-    const input = new InputHandler(canvas, () => editor.getState(), () => editor.getHistory(), renderer);
-    input.attach();
-
-    editor.getState().renderDirty = true;
-
-    const onResize = () => { editor.getState().renderDirty = true; };
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      renderer.stopLoop();
-      input.detach();
-      window.removeEventListener('resize', onResize);
-      container.removeChild(canvas);
-    };
-  }, []);
+  const containerRef = useCanvasEditor({
+    getState: () => getEditor().getState(),
+    createInput: (canvas, renderer) => new InputHandler(
+      canvas,
+      () => getEditor().getState(),
+      () => getEditor().getHistory(),
+      renderer,
+    ),
+    onCircuitDirty: () => { getEditor().onCircuitChanged(); notifyStateChange(); },
+    onStateChanged: () => notifyStateChange(),
+  });
 
   function handleUndo() { getEditor().undo(); notifyStateChange(); }
   function handleRedo() { getEditor().redo(); notifyStateChange(); }
