@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "tsc && tsc -p tsconfig.scripts.json",
     "preview": "vite preview",
     "sim:snapshot": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --snapshot",
     "sim:check": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --check",
@@ -14,6 +15,7 @@
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",
+    "@types/node": "^26.1.2",
     "typescript": "~5.9.3",
     "vite": "^8.0.0"
   },

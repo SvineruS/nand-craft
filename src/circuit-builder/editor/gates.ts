@@ -562,11 +562,6 @@ export function getGatePinMeta(gateType: GateType): GatePinMeta {
   return meta;
 }
 
-/** All built-in gate type entries for iteration (e.g. sidebar). */
-export function getAllGateDefinitions(): [GateType, GateDefinition][] {
-  return Object.entries(GATE_DEFS) as [GateType, GateDefinition][];
-}
-
 /** Get bitWidth for a specific pin from the gate definition. */
 export function getPinBitWidth(gateType: GateType, kind: 'input' | 'output', index: number): number {
   const meta = getGatePinMeta(gateType);
