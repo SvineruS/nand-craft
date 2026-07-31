@@ -77,9 +77,9 @@ export function Sidebar({ onDragEnd }: SidebarProps) {
           <>
             <div class="sidebar-header">Components</div>
             {components.map(comp => {
-              const def = getGateDefinition(comp.id as GateType);
+              const def = getGateDefinition(comp.id);
               return (
-                <GateItem key={comp.id} type={comp.id as GateType} def={def} constraints={undefined}
+                <GateItem key={comp.id} type={comp.id} def={def} constraints={undefined}
                   editorState={editorState} didDrag={didDrag} onDragEnd={onDragEnd} />
               );
             })}

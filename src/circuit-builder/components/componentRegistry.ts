@@ -1,4 +1,5 @@
 import type { ComponentId } from '../editor/types.ts';
+import type { GateType } from '../simulation/gateTypes.ts';
 import type { ComponentDefinition } from './componentTypes.ts';
 
 const STORAGE_KEY = 'nand-craft:components';
@@ -39,8 +40,8 @@ export function deleteComponent(id: ComponentId): void {
   localStorage.removeItem(COMPONENT_PREFIX + id);
 }
 
-/** Fast check if a type string is a registered component (O(1) map lookup). */
-export function isComponentType(type: string): boolean {
+/** Fast check if a gate type is a registered component (O(1) map lookup). */
+export function isComponentType(type: GateType): boolean {
   return components.has(type as ComponentId);
 }
 

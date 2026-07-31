@@ -1,4 +1,4 @@
-import type { GateId, Rotation, Vec2 } from "../editor/types.ts";
+import type { ComponentId, GateId, Rotation, Vec2 } from "../editor/types.ts";
 
 export interface Gate {
   id: GateId;
@@ -33,7 +33,14 @@ export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(
 export function isConstantGate(type: GateType): boolean { return CONSTANT_TYPES.has(type); }
 export function isSequentialGate(type: GateType): boolean { return SEQUENTIAL_TYPES.has(type); }
 
-export type GateType =
+/**
+ * A gate type is either one of these built-ins or a user component's id.
+ *
+ * Keeping them as distinct types is what makes `Record<BuiltInGateType, ...>` exhaustive
+ * and stops an arbitrary string from passing as a gate type — the previous
+ * `| (string & {})` escape hatch accepted any typo silently.
+ */
+export type BuiltInGateType =
   | 'nand'
   | 'and'
   | 'or'
@@ -80,5 +87,6 @@ export type GateType =
   | 'output-sw'
   | 'output-8bit-sw'
   | 'output-16bit-sw'
-  | 'level'
-  | (string & {}); // Component IDs (e.g. 'cmp_123')
+  | 'level';
+
+export type GateType = BuiltInGateType | ComponentId;

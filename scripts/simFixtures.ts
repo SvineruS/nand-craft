@@ -529,7 +529,7 @@ const nestedComponent: Fixture = {
     const outer = new Builder();
     const ov = outer.gate('input', 'V');
     const ow = outer.gate('input', 'W');
-    const innerInstance = outer.gate('cmp-inner', 'innerInstance');
+    const innerInstance = outer.gate('cmp-inner' as ComponentId, 'innerInstance');
     const inv = outer.gate('not', 'inv');
     const oq = outer.gate('output', 'Q');
     outer.net(op(ov), ip(innerInstance, 0));
@@ -545,7 +545,7 @@ const nestedComponent: Fixture = {
     const b = new Builder();
     const value = b.gate('input', 'value');
     const write = b.gate('input', 'write');
-    const instance = b.gate('cmp-outer', 'instance');
+    const instance = b.gate('cmp-outer' as ComponentId, 'instance');
     const sink = b.gate('output', 'sink');
     b.net(op(value), ip(instance, 0));
     b.net(op(write), ip(instance, 1));

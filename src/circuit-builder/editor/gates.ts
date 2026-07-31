@@ -1,5 +1,5 @@
 export type { Gate, GateType } from '../simulation/gateTypes.ts';
-import type { GateType } from '../simulation/gateTypes.ts';
+import type { BuiltInGateType, GateType } from '../simulation/gateTypes.ts';
 import * as SVG from './gateSvg.ts';
 
 export interface PinDef {
@@ -31,7 +31,7 @@ export interface GateDefinition {
 }
 
 
-const GATE_DEFS: Record<GateType, GateDefinition> = {
+const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
   nand: {
     label: 'NAND', description: 'Bitwise NAND gate', width: 3, height: 2,    color: '#3b2d50', stroke: '#7c5aad',
     pins: [
@@ -479,11 +479,14 @@ import type { ComponentId } from '../editor/types.ts';
 /** Component definition cache. */
 const componentDefCache = new Map<string, GateDefinition>();
 
+/** True for the built-in gate types keyed in GATE_DEFS; false for component ids. */
+export function isBuiltInGateType(type: GateType): type is BuiltInGateType {
+  return Object.hasOwn(GATE_DEFS, type);
+}
+
 /** Look up gate definition. For component gates, type IS the component ID. */
 export function getGateDefinition(type: GateType): GateDefinition {
-  // Built-in gate
-  const builtIn = GATE_DEFS[type as keyof typeof GATE_DEFS];
-  if (builtIn) return builtIn;
+  if (isBuiltInGateType(type)) return GATE_DEFS[type];
 
   // Component gate — type is the component ID
   const cached = componentDefCache.get(type);
