@@ -1,7 +1,7 @@
 import type { EditorState } from "../EditorState.ts";
 import type { GateId, WireNodeId, WireSegmentId } from "../types.ts";
 import { Vec2, routeCorner } from "./vec2.ts";
-import { getGateDims, iteratePinPositions, snapToGrid, type WireEndpoint } from "./geometry.ts";
+import { getGateDims, getPinPositions, snapToGrid, type WireEndpoint } from "./geometry.ts";
 import type { Gate } from "../gates.ts";
 import { GRID_SIZE } from "../consts.ts";
 
@@ -88,13 +88,23 @@ export function hitTestEndpoint(pos: Vec2, state: EditorState, excludeNode?: Wir
     }
   }
 
-  // Check pins (computed positions)
+  // Check pins (computed positions). Indexed loops rather than iteratePinPositions: this
+  // runs for every gate on every mouse move, and the generator allocates a PinRef and a
+  // tuple per pin just to throw them away.
   for (const gate of state.circuit.gates.values()) {
-    for (const [pinRef, pinPos] of iteratePinPositions(gate)) {
-      const d = Vec2.dist(pos, pinPos);
+    const { inputs, outputs } = getPinPositions(gate);
+    for (let i = 0; i < inputs.length; i++) {
+      const d = Vec2.dist(pos, inputs[i]);
       if (d < bestDist) {
         bestDist = d;
-        best = { kind: 'pin', pin: pinRef, pos: Vec2.copy(pinPos) };
+        best = { kind: 'pin', pin: { gateId: gate.id, kind: 'input', index: i }, pos: Vec2.copy(inputs[i]) };
+      }
+    }
+    for (let i = 0; i < outputs.length; i++) {
+      const d = Vec2.dist(pos, outputs[i]);
+      if (d < bestDist) {
+        bestDist = d;
+        best = { kind: 'pin', pin: { gateId: gate.id, kind: 'output', index: i }, pos: Vec2.copy(outputs[i]) };
       }
     }
   }

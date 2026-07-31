@@ -9,7 +9,7 @@ import type {
   RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin,
   RenderErrorSegment, RenderSelectionItem, RenderPastePreview,
 } from './renderScene.ts';
-import { buildScene } from './buildScene.ts';
+import { buildScene, type Viewport } from './buildScene.ts';
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -81,7 +81,7 @@ export class Renderer {
       }
       const needsRedraw = state.renderDirty || state.circuitDirty;
       if (needsRedraw) {
-        this.lastScene = buildScene(state, this.mouseWorld);
+        this.lastScene = buildScene(state, this.mouseWorld, this.viewport(state.camera));
         // Only notify Preact when UI-relevant state changed (not on every hover/mousemove)
         if (state.selection !== this.lastSelection || state.circuitDirty) {
           this.lastSelection = state.selection;
@@ -122,6 +122,14 @@ export class Renderer {
   }
 
   // --- Private helpers ---
+
+  /** World-space rect currently on screen, used to cull the scene build. */
+  private viewport(camera: Camera): Viewport {
+    return cameraBoundingBox(camera, {
+      x: this.canvas.clientWidth,
+      y: this.canvas.clientHeight,
+    });
+  }
 
   private handleResize(): void {
     this.dpr = window.devicePixelRatio || 1;
