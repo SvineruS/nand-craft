@@ -130,6 +130,14 @@ body {
   margin-right: 4px;
 }
 
+.toolbar-save-error {
+  color: var(--fail);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
 .toolbar-color-label {
   color: var(--text);
   font-size: 11px;

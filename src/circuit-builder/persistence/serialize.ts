@@ -16,13 +16,38 @@ export interface SerializedCircuit {
   wireSegments: [string, Omit<WireSegment, 'id'>][];
 }
 
+/**
+ * Persisted gate fields, listed explicitly rather than spread.
+ *
+ * A spread would also capture runtime-only values living on the gate — most importantly
+ * a component gate's `state`, which holds a live Circuit (with its compiled program and
+ * typed arrays). JSON.stringify turns that into kilobytes of unrecoverable noise per
+ * instance, because the inner Maps flatten to `{}`.
+ */
+function serializeGate(gate: Gate): Omit<Gate, 'id'> {
+  const out: Omit<Gate, 'id'> = {
+    type: gate.type,
+    pos: { x: gate.pos.x, y: gate.pos.y },
+    rotation: gate.rotation,
+  };
+  if (gate.label !== undefined) out.label = gate.label;
+  if (gate.canRemove !== undefined) out.canRemove = gate.canRemove;
+  if (gate.canMove !== undefined) out.canMove = gate.canMove;
+  // Only primitive state round-trips: constant values, sequential registers, and the
+  // level-map status string. Object state (a component's inner Circuit) is rebuilt on
+  // demand by evaluateComponent, so it is deliberately dropped.
+  if (isPersistableState(gate.state)) out.state = gate.state;
+  return out;
+}
+
+function isPersistableState(state: unknown): boolean {
+  return typeof state === 'number' || typeof state === 'string' || typeof state === 'boolean';
+}
+
 export function serializeCircuit(circuit: Circuit): string {
   const data: SerializedCircuit = {
     version: 1,
-    gates: [...circuit.gates.entries()].map(([id, g]) => {
-      const { id: _, ...rest } = g;
-      return [id as string, rest];
-    }),
+    gates: [...circuit.gates.entries()].map(([id, g]) => [id as string, serializeGate(g)]),
     wireNodes: [...circuit.wireNodes.entries()].map(([id, n]) => {
       const { id: _, ...rest } = n;
       return [id as string, rest];

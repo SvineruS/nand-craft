@@ -24,6 +24,9 @@ export const viewMode = signal<ViewMode>('mainMenu');
 /** Set of solved level IDs (persisted in localStorage). */
 export const solvedLevelIds = signal<Set<LevelId>>(getSolvedLevelIds());
 
+/** Message from the last failed save (e.g. storage quota), or null when saving works. */
+export const saveError = signal<string | null>(null);
+
 // ---------------------------------------------------------------------------
 // State bridge – lets Preact read the mutable EditorState on demand
 // ---------------------------------------------------------------------------

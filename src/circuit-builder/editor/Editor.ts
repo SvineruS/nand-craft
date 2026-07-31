@@ -119,9 +119,10 @@ export class Editor {
     this.state.renderDirty = true;
   }
 
-  save() {
-    if (!this.level.id) return; // No level ID = level map editor, skip save
-    saveCircuit(this.level.id, this.getCircuit());
+  /** Persist the circuit. Returns null on success, or a message describing the failure. */
+  save(): string | null {
+    if (!this.level.id) return null; // No level ID = level map editor, skip save
+    return saveCircuit(this.level.id, this.getCircuit());
   }
 }
 

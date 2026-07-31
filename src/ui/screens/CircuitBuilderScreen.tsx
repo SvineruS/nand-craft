@@ -9,7 +9,7 @@ import { LevelDialog } from '../components/LevelDialog.tsx';
 import { LevelCompleteDialog } from '../components/LevelCompleteDialog.tsx';
 import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
 import { useEditorCallbacks } from '../useEditorCallbacks.ts';
-import { notifyStateChange } from '../editorStore.ts';
+import { notifyStateChange, saveError } from '../editorStore.ts';
 import { switchToLevelMap } from '../screenManager.ts';
 
 export function CircuitBuilderScreen() {
@@ -57,7 +57,10 @@ export function CircuitBuilderScreen() {
     window.addEventListener('resize', onResize);
 
     // Auto-save: on tab close, tab hide, and periodic interval
-    const saveIfNeeded = () => editor.save();
+    const saveIfNeeded = () => {
+      const error = editor.save();
+      if (error !== saveError.peek()) saveError.value = error;
+    };
     const onBeforeUnload = () => saveIfNeeded();
     const onVisibilityChange = () => {
       if (document.hidden) saveIfNeeded();

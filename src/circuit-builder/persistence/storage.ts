@@ -10,8 +10,22 @@ function circuitKey(levelId: LevelId): string {
   return `${PREFIX}:circuit:${levelId}`;
 }
 
-export function saveCircuit(levelId: LevelId, circuit: Circuit): void {
-  localStorage.setItem(circuitKey(levelId), serializeCircuit(circuit));
+/**
+ * Persist a circuit. Returns null on success, or a message describing the failure.
+ *
+ * Autosave runs from an interval, `visibilitychange`, and `beforeunload`, so a thrown
+ * QuotaExceededError here would disappear into a handler and silently stop saving —
+ * the caller surfaces the message instead.
+ */
+export function saveCircuit(levelId: LevelId, circuit: Circuit): string | null {
+  try {
+    localStorage.setItem(circuitKey(levelId), serializeCircuit(circuit));
+    return null;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`Failed to save circuit for level ${levelId}:`, e);
+    return message;
+  }
 }
 
 export function loadCircuit(levelId: LevelId): Circuit | null {
@@ -40,7 +54,11 @@ export function getSolvedLevelIds(): Set<LevelId> {
 export function markLevelSolved(levelId: LevelId): void {
   const solved = getSolvedLevelIds();
   solved.add(levelId);
-  localStorage.setItem(SOLVED_KEY, JSON.stringify([...solved]));
+  try {
+    localStorage.setItem(SOLVED_KEY, JSON.stringify([...solved]));
+  } catch (e) {
+    console.error('Failed to persist solved levels:', e);
+  }
 }
 
 export function isLevelUnlocked(level: Level, solvedIds: Set<LevelId>): boolean {
