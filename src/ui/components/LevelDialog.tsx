@@ -1,8 +1,8 @@
 import { levelDialogVisible } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 
 export function LevelDialog() {
-  const { level } = getEditor();
+  const { level } = useEditor();
   const visible = levelDialogVisible.value;
 
   if (!visible) return null;

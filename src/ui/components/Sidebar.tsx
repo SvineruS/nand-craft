@@ -1,7 +1,7 @@
 import { useRef, type MutableRef } from 'preact/hooks';
 import { type GateDefinition, type GateType, getGateDefinition } from '../../circuit-builder/editor/gates.ts';
 import { useEditorState } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 import { isGateAllowed, getGateCount, type GateConstraints } from '../../circuit-builder/levels/levelTypes.ts';
 import type { EditorState } from "../../circuit-builder/editor/EditorState.ts";
 import { getAllComponents, isComponentType } from '../../circuit-builder/components/componentRegistry.ts';
@@ -32,7 +32,7 @@ const CATEGORIES: Category[] = [
 
 export function Sidebar({ onDragEnd }: SidebarProps) {
   const didDrag = useRef(false);
-  const { level } = getEditor();
+  const { level } = useEditor();
   const constraints = level?.gateConstraints;
   const editorState = useEditorState();
 
@@ -129,8 +129,7 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: G
         requestAnimationFrame(() => document.body.removeChild(empty));
         (e.currentTarget as HTMLElement).style.opacity = '0.6';
         // onDragStart sets stamping mode; we set componentId directly to avoid race
-        const state = getEditor().getState();
-        state.mode = { kind: 'stamping', gateType: type };
+        editorState.mode = { kind: 'stamping', gateType: type };
       }}
       onDragEnd={(e: DragEvent) => {
         (e.currentTarget as HTMLElement).style.opacity = '1';
@@ -139,9 +138,8 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: G
       onClick={() => {
         if (!didDrag.current && !atLimit) {
           // Set stamping mode directly with componentId
-          const state = getEditor().getState();
-          state.mode = { kind: 'stamping', gateType: type };
-          state.renderDirty = true;
+          editorState.mode = { kind: 'stamping', gateType: type };
+          editorState.renderDirty = true;
         }
       }}
     >

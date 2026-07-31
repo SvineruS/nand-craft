@@ -9,7 +9,8 @@ import { parseDsl, convertToTestCases } from '../../circuit-builder/testing/dslP
 import { compileTestFunction, enumerateInputs } from '../../circuit-builder/testing/codeSandbox.ts';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
+import type { Circuit } from '../../circuit-builder/simulation/circuit.ts';
 import { notifyStateChange } from '../editorStore.ts';
 import { isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
 import { getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
@@ -26,10 +27,10 @@ const PLACEHOLDER = `# Press ? for help
 1 1 | 0
 `;
 
-function collectGateLabels(): { inputs: Set<string>; outputs: Set<string> } {
+function collectGateLabels(circuit: Circuit): { inputs: Set<string>; outputs: Set<string> } {
   const inputs = new Set<string>();
   const outputs = new Set<string>();
-  for (const gate of getEditor().getState().circuit.gates.values()) {
+  for (const gate of circuit.gates.values()) {
     if (!gate.label) continue;
     if (isInputGate(gate.type)) inputs.add(gate.label);
     if (isOutputGate(gate.type)) outputs.add(gate.label);
@@ -47,7 +48,11 @@ const dslHighlightStyle = HighlightStyle.define([
   { tag: tags.punctuation, color: '#888' },
 ]);
 
-const dslLinter = linter((view) => {
+/**
+ * Built per editor rather than once at module scope: the linter checks DSL labels against
+ * the circuit's gates, and the circuit belongs to whichever editor is open.
+ */
+const createDslLinter = (circuit: Circuit) => linter((view) => {
   const doc = view.state.doc;
   const { mode, cases, errors, inputLabels, outputLabels } = parseDsl(doc.toString());
   const diagnostics: Diagnostic[] = [];
@@ -57,7 +62,7 @@ const dslLinter = linter((view) => {
     diagnostics.push({ from: line.from, to: line.to, severity: 'error', message: err.message });
   }
 
-  const labels = collectGateLabels();
+  const labels = collectGateLabels(circuit);
   const lines = doc.toString().split('\n');
 
   // Check @inputs/@outputs labels against circuit
@@ -118,6 +123,7 @@ function findCommandLine(lines: string[], label: string, startFrom: number): num
 }
 
 export function TestEditorDialog() {
+  const editor = useEditor();
   const visible = testEditorVisible.value;
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -133,7 +139,7 @@ export function TestEditorDialog() {
       extensions: [
         dslLanguage,
         syntaxHighlighting(dslHighlightStyle),
-        dslLinter,
+        createDslLinter(editor.getCircuit()),
         EditorView.theme({
           '&': { height: '100%', fontSize: '13px' },
           '.cm-content': { fontFamily: 'monospace', padding: '8px 0' },
@@ -177,8 +183,6 @@ export function TestEditorDialog() {
     const result = parseDsl(doc);
     if (result.errors.length > 0) return;
 
-    const editor = getEditor();
-
     if (result.mode === 'queue') {
       // Queue mode: flatten commands with case boundary markers
       const allCommands = result.cases.flatMap(c => c.commands);
@@ -203,7 +207,7 @@ export function TestEditorDialog() {
     let cases: TestCase[];
     try {
       if (result.mode === 'code') {
-        cases = generateCodeTestCases(result);
+        cases = generateCodeTestCases(result, editor.getCircuit());
       } else {
         cases = convertToTestCases(result);
       }
@@ -278,13 +282,11 @@ export function TestEditorDialog() {
   );
 }
 
-function generateCodeTestCases(result: ReturnType<typeof parseDsl>): TestCase[] {
+function generateCodeTestCases(result: ReturnType<typeof parseDsl>, circuit: Circuit): TestCase[] {
   const { inputLabels, outputLabels, codeBody } = result;
   if (!inputLabels || !outputLabels || !codeBody) return [];
 
   // Get bit widths from circuit
-  const editor = getEditor();
-  const circuit = editor.getState().circuit;
   const bitWidths = inputLabels.map(label => {
     for (const gate of circuit.gates.values()) {
       if (gate.label === label && isInputGate(gate.type)) {

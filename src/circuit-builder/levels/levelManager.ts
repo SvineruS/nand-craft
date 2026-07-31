@@ -9,10 +9,10 @@ import { buildLevelMapCircuit, gateIdToLevelId } from './levelMap.ts';
 import type { Level } from './levelTypes.ts';
 import { LEVELS } from './registry.ts';
 import { isLevelUnlocked, loadCircuit } from '../persistence/storage.ts';
-import { getEditor, hasEditor, setEditor } from '../editorInstance.ts';
 import {
   levelDialogVisible,
   notifyStateChange,
+  openLevelIndex,
   solvedLevelIds,
 } from '../../ui/editorStore.ts';
 import { Vec2 } from "../editor/utils/vec2.ts";
@@ -26,22 +26,20 @@ import { getAllComponents } from '../components/componentRegistry.ts';
 let levelMapState: EditorState | null = null;
 let levelGateMap: LevelGateMap = new Map();
 
-export function loadLevel(index: number): void {
-  // Save previous level's circuit
-  if (hasEditor()) {
-    const prev = getEditor();
-    prev.tests.cancelRunAll();
-    prev.save();
-  }
-
-  const level = LEVELS[index];
-  const savedCircuit = loadCircuit(level.id) ?? undefined;
-  const editor = Editor.loadLevel(level, savedCircuit);
-
-  setEditor(editor);
-
+/**
+ * Ask the circuit editor screen to open a level. The screen builds the Editor when it
+ * mounts (see createLevelEditor); the previous screen saves its own circuit on unmount.
+ */
+export function requestLevel(index: number): void {
+  openLevelIndex.value = index;
   levelDialogVisible.value = true;
   notifyStateChange();
+}
+
+/** Build the Editor for a level index, restoring the player's saved circuit if any. */
+export function createLevelEditor(index: number): Editor {
+  const level = LEVELS[index];
+  return Editor.loadLevel(level, loadCircuit(level.id) ?? undefined);
 }
 
 export function buildLevelMap(): void {
@@ -104,26 +102,21 @@ export function getLevelGateMap(): LevelGateMap {
 // Level map editor — uses Editor.create() without a level
 // ---------------------------------------------------------------------------
 
-export function buildLevelMapEditable(): void {
-  if (hasEditor()) getEditor().save();
-
+/** Build a level-less Editor over the level map, centred on the map, for editing it. */
+export function createLevelMapEditor(): Editor {
   const map = buildLevelMapCircuit(LEVELS, solvedLevelIds.value, true);
   const editor = Editor.create(map.circuit);
 
   const points: Vec2[] = [...map.circuit.gates.values()].map(g => gateCenter(g));
-  const center = Vec2.avg(points);
   const state = editor.getState();
-  state.camera.pos = center;
+  state.camera.pos = Vec2.avg(points);
   state.gateStatuses = map.gateStatuses;
   state.circuitDirty = false;
 
-  setEditor(editor);
+  return editor;
 }
 
-export function exportLevelMap(): void {
-  if (!hasEditor()) return;
-  const circuit = getEditor().getCircuit();
-
+export function exportLevelMap(circuit: Circuit): void {
   // Strip runtime fields from gates so export matches the clean format
   const STRIP_FIELDS = new Set(['value', 'register', 'canRemove', 'canMove', 'label']);
   const data = {

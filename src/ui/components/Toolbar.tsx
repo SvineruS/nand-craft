@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { useEditorState, testEditorVisible, levelDialogVisible, saveError } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 import { WIRE_COLORS } from "../../circuit-builder/editor/consts.ts";
 
 interface ToolbarProps {
@@ -14,7 +14,7 @@ interface ToolbarProps {
 
 export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, onResetLevel }: ToolbarProps) {
   const state = useEditorState();
-  const { level } = getEditor();
+  const { level } = useEditor();
   const [showHints, setShowHints] = useState(false);
 
   return (

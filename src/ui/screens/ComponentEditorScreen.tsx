@@ -1,12 +1,14 @@
-import { useState } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
 import { InputHandler } from '../../circuit-builder/editor/InputHandler.ts';
+import type { Editor } from '../../circuit-builder/editor/Editor.ts';
 import { useCanvasEditor } from '../useCanvasEditor.ts';
-import { notifyStateChange, testEditorVisible } from '../editorStore.ts';
+import { EditorContext, useEditor } from '../editorContext.ts';
+import { componentEditorName, createComponentEditor } from '../componentNav.ts';
+import { notifyStateChange, openComponentId, testEditorVisible } from '../editorStore.ts';
 import { navigateTo } from '../screenManager.ts';
 import { Sidebar } from '../components/Sidebar.tsx';
 import { TestPanel } from '../components/TestPanel.tsx';
 import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
 import { WIRE_COLORS } from '../../circuit-builder/editor/consts.ts';
 import { buildComponentDefinition } from '../../circuit-builder/components/componentBuilder.ts';
 import { saveComponent, deleteComponent } from '../../circuit-builder/components/componentRegistry.ts';
@@ -14,48 +16,45 @@ import { clearComponentDefCache } from '../../circuit-builder/editor/gates.ts';
 import type { ComponentId } from '../../circuit-builder/editor/types.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 
-/** ID of the component being edited. Set before navigating to this screen. */
-let editingComponentId: ComponentId | null = null;
-let editingComponentName = 'New Component';
-
-export function setEditingComponent(id: ComponentId | null, name?: string): void {
-  editingComponentId = id;
-  editingComponentName = name ?? 'New Component';
-}
-
-export function getEditingComponentId(): ComponentId | null {
-  return editingComponentId;
-}
-
 export function ComponentEditorScreen() {
-  const [name, setName] = useState(editingComponentName);
+  const requested = openComponentId.value;
+  // This screen owns the Editor for the component being edited.
+  const editor = useMemo(() => createComponentEditor(requested), [requested]);
+
+  return (
+    <EditorContext.Provider value={editor}>
+      <ComponentEditor initialId={requested} initialName={componentEditorName(requested)} />
+    </EditorContext.Provider>
+  );
+}
+
+function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | null; initialName: string }) {
+  const editor: Editor = useEditor();
+  const [name, setName] = useState(initialName);
+  // Saving a new component assigns it an id, which later saves reuse.
+  const [componentId, setComponentId] = useState<ComponentId | null>(initialId);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const containerRef = useCanvasEditor({
-    getState: () => getEditor().getState(),
+    getState: () => editor.getState(),
     createInput: (canvas, renderer) => new InputHandler(
       canvas,
-      () => getEditor().getState(),
-      () => getEditor().getHistory(),
+      () => editor.getState(),
+      () => editor.getHistory(),
       renderer,
     ),
-    onCircuitDirty: () => { getEditor().onCircuitChanged(); notifyStateChange(); },
-    onValueDirty: () => { getEditor().retick(); notifyStateChange(); },
+    onCircuitDirty: () => { editor.onCircuitChanged(); notifyStateChange(); },
+    onValueDirty: () => { editor.retick(); notifyStateChange(); },
     onStateChanged: () => notifyStateChange(),
   });
 
   function handleSave() {
-    const editor = getEditor();
     try {
-      const def = buildComponentDefinition(
-        editor.getCircuit(),
-        name,
-        editingComponentId ?? undefined,
-      );
+      const def = buildComponentDefinition(editor.getCircuit(), name, componentId ?? undefined);
       saveComponent(def);
       clearComponentDefCache();
-      editingComponentId = def.id;
+      setComponentId(def.id);
       setSaveError(null);
       setSaveStatus('saved');
     } catch (e) {
@@ -66,31 +65,31 @@ export function ComponentEditorScreen() {
   }
 
   function handleDelete() {
-    if (!editingComponentId) return;
+    if (!componentId) return;
     if (!confirm(`Delete component "${name}"?`)) return;
-    deleteComponent(editingComponentId);
+    deleteComponent(componentId);
     clearComponentDefCache();
     navigateTo('levelSelect');
   }
 
-  function handleUndo() { getEditor().undo(); notifyStateChange(); }
-  function handleRedo() { getEditor().redo(); notifyStateChange(); }
-  function handleColorChange(color: string) { getEditor().getState().wireColor = color; notifyStateChange(); }
-  function handleDragEnd() { getEditor().getState().mode = { kind: 'normal' }; }
-  function handleExecuteCommand(cmd: Command) { getEditor().executeCommand(cmd); }
+  function handleUndo() { editor.undo(); notifyStateChange(); }
+  function handleRedo() { editor.redo(); notifyStateChange(); }
+  function handleColorChange(color: string) { editor.getState().wireColor = color; notifyStateChange(); }
+  function handleDragEnd() { editor.getState().mode = { kind: 'normal' }; }
+  function handleExecuteCommand(cmd: Command) { editor.executeCommand(cmd); }
 
   // Test panel callbacks
-  function handleReset() { getEditor().tests.reset(); notifyStateChange(); }
+  function handleReset() { editor.tests.reset(); notifyStateChange(); }
   function handleStep() {
-    const { tests } = getEditor();
+    const { tests } = editor;
     tests.cancelRunAll();
     tests.step();
     notifyStateChange();
   }
   function handleRunAll() {
-    getEditor().tests.runAllAnimated(() => notifyStateChange(), () => {});
+    editor.tests.runAllAnimated(() => notifyStateChange(), () => {});
   }
-  function handlePause() { getEditor().tests.cancelRunAll(); notifyStateChange(); }
+  function handlePause() { editor.tests.cancelRunAll(); notifyStateChange(); }
 
   return (
     <>
@@ -121,7 +120,7 @@ export function ComponentEditorScreen() {
             class="toolbar-swatch"
             style={{
               background: color,
-              borderColor: getEditor().getState().wireColor === color ? '#ffffff' : 'transparent',
+              borderColor: editor.getState().wireColor === color ? '#ffffff' : 'transparent',
             }}
             onClick={() => handleColorChange(color)}
           />
@@ -142,7 +141,7 @@ export function ComponentEditorScreen() {
         >
           Save
         </button>
-        {editingComponentId && (
+        {componentId && (
           <button class="toolbar-btn" style={{ color: 'var(--fail)' }} onClick={handleDelete}>Delete</button>
         )}
       </div>

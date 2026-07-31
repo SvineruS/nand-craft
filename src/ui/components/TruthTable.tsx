@@ -1,5 +1,5 @@
 import { stateVersion } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 
 function rowBg(passed?: boolean, isCurrent?: boolean): string {
   if (isCurrent) {
@@ -13,7 +13,7 @@ function rowBg(passed?: boolean, isCurrent?: boolean): string {
 
 export function TruthTable() {
   stateVersion.value; // subscribe to updates
-  const { tests } = getEditor();
+  const { tests } = useEditor();
   const { level, results, caseIndex } = tests;
 
   if (!level.test.cases || level.test.cases.length === 0) {

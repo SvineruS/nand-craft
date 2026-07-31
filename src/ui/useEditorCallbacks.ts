@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'preact/hooks';
-import { getEditor } from '../circuit-builder/editorInstance.ts';
+import { useEditor } from './editorContext.ts';
 import type { Command } from '../circuit-builder/editor/commands.ts';
 import { notifyStateChange, solvedLevelIds } from './editorStore.ts';
 import { navigateTo, switchToLevelMap } from './screenManager.ts';
@@ -7,73 +7,72 @@ import { getSolvedLevelIds, markLevelSolved } from '../circuit-builder/persisten
 import type { GateType } from "../circuit-builder/editor/gates.ts";
 
 export function useEditorCallbacks() {
+  const editor = useEditor();
   const [showLevelComplete, setShowLevelComplete] = useState(false);
 
   const onLevelComplete = useCallback(() => setShowLevelComplete(true), []);
 
   const handleLevelComplete = useCallback(() => {
-    const editor = getEditor();
     markLevelSolved(editor.level.id);
     solvedLevelIds.value = getSolvedLevelIds();
     onLevelComplete();
-  }, []);
+  }, [editor]);
 
   // Toolbar
   const handleUndo = useCallback(() => {
-    getEditor().undo();
-  }, []);
+    editor.undo();
+  }, [editor]);
   const handleRedo = useCallback(() => {
-    getEditor().redo();
-  }, []);
+    editor.redo();
+  }, [editor]);
 
   const handleColorChange = useCallback((color: string) => {
-    getEditor().getState().wireColor = color;
+    editor.getState().wireColor = color;
     notifyStateChange();
-  }, []);
+  }, [editor]);
 
   const handleShowLevels = useCallback(() => {
     switchToLevelMap();
-  }, []);
+  }, [editor]);
 
   const handleMenu = useCallback(() => {
     navigateTo('mainMenu');
-  }, []);
+  }, [editor]);
 
   const handleResetLevel = useCallback(() => {
     if (!confirm('Reset level to default? All changes will be lost.')) return;
-    const editor = getEditor();
     editor.resetLevel();
     editor.tests.reset();
     notifyStateChange();
-  }, []);
+  }, [editor]);
 
   // Sidebar
   const handleStamp = useCallback((type: GateType) => {
-    const state = getEditor().getState();
+    const state = editor.getState();
     state.mode = { kind: 'stamping', gateType: type };
     state.renderDirty = true;
-  }, []);
+  }, [editor]);
 
   const handleDragStart = useCallback((type: GateType) => {
-    getEditor().getState().mode = { kind: 'stamping', gateType: type };
-  }, []);
+    editor.getState().mode = { kind: 'stamping', gateType: type };
+  }, [editor]);
 
   const handleDragEnd = useCallback(() => {
-    getEditor().getState().mode = { kind: 'normal' };
-  }, []);
+    editor.getState().mode = { kind: 'normal' };
+  }, [editor]);
 
   const handleExecuteCommand = useCallback((cmd: Command) => {
-    getEditor().executeCommand(cmd);
-  }, []);
+    editor.executeCommand(cmd);
+  }, [editor]);
 
   // Test panel
   const handleReset = useCallback(() => {
-    getEditor().tests.reset();
+    editor.tests.reset();
     notifyStateChange();
-  }, []);
+  }, [editor]);
 
   const handleStep = useCallback(() => {
-    const { tests } = getEditor();
+    const { tests } = editor;
     tests.cancelRunAll();
     if (tests.mode === 'queue') {
       // Queue mode: tick once
@@ -95,15 +94,15 @@ export function useEditorCallbacks() {
       }
     }
     notifyStateChange();
-  }, []);
+  }, [editor]);
 
   const handlePause = useCallback(() => {
-    getEditor().tests.cancelRunAll();
+    editor.tests.cancelRunAll();
     notifyStateChange();
-  }, []);
+  }, [editor]);
 
   const handleRunAll = useCallback(() => {
-    const { tests } = getEditor();
+    const { tests } = editor;
     if (tests.mode === 'queue') {
       // Queue mode: run with animated ticking
       tests.runQueueAnimated(() => notifyStateChange(), handleLevelComplete);
@@ -113,7 +112,7 @@ export function useEditorCallbacks() {
         handleLevelComplete,
       );
     }
-  }, []);
+  }, [editor]);
 
   return {
     showLevelComplete,

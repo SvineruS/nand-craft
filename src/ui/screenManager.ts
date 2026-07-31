@@ -1,12 +1,12 @@
-import { hasEditor, getEditor } from '../circuit-builder/editorInstance.ts';
 import { notifyStateChange, viewMode, type ViewMode } from './editorStore.ts';
 
-/** Navigate to a view mode, pushing browser history for back/forward navigation. */
+/**
+ * Navigate to a view mode, pushing browser history for back/forward navigation.
+ *
+ * Saving is deliberately not done here: each editor screen owns its Editor and saves it in
+ * its own teardown, which the view-mode change triggers by unmounting the screen.
+ */
 export function navigateTo(mode: ViewMode): void {
-  // Save editor state when leaving the editor
-  if (viewMode.value === 'editor' && hasEditor()) {
-    getEditor().save();
-  }
   viewMode.value = mode;
   history.pushState({ viewMode: mode }, '');
   notifyStateChange();
@@ -21,9 +21,6 @@ export function switchToLevelMap(): void {
 window.addEventListener('popstate', (e) => {
   const mode = e.state?.viewMode as ViewMode | undefined;
   if (mode) {
-    if (viewMode.value === 'editor' && hasEditor()) {
-      getEditor().save();
-    }
     viewMode.value = mode;
     notifyStateChange();
   }

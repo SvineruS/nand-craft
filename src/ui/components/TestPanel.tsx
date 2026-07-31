@@ -1,5 +1,5 @@
 import { stateVersion } from '../editorStore.ts';
-import { getEditor } from '../../circuit-builder/editorInstance.ts';
+import { useEditor } from '../editorContext.ts';
 import { TruthTable } from './TruthTable.tsx';
 import { QueueLog } from './QueueLog.tsx';
 import { PropertiesPanel } from './PropertiesPanel.tsx';
@@ -16,7 +16,7 @@ interface TestPanelProps {
 
 export function TestPanel({ onReset, onStep, onRunAll, onPause, onExecuteCommand }: TestPanelProps) {
   stateVersion.value; // subscribe to updates
-  const editor = getEditor();
+  const editor = useEditor();
   const { level, results, queueResults } = editor.tests;
   const isQueue = editor.tests.mode === 'queue';
   const warning = getWarning(editor)

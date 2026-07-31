@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { getEditor, hasEditor } from '../../circuit-builder/editorInstance.ts';
 import { CanvasInput } from '../../engine/input.ts';
 import { useCanvasEditor } from '../useCanvasEditor.ts';
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
@@ -13,7 +12,7 @@ import {
   getLevelGateMap,
   getLevelMapState,
   hitTestLevel,
-  loadLevel,
+  requestLevel,
 } from '../../circuit-builder/levels/levelManager.ts';
 import { LEVELS } from '../../circuit-builder/levels/registry.ts';
 import { getSolvedLevelIds, markLevelSolved } from '../../circuit-builder/persistence/storage.ts';
@@ -25,7 +24,6 @@ export function LevelSelectScreen() {
   // Declared before useCanvasEditor so it runs first — effects fire in declaration order,
   // and the canvas loop reads mapState as soon as it starts.
   useEffect(() => {
-    if (hasEditor()) getEditor().save();
     buildLevelMap();
     mapState.current = getLevelMapState()!;
   }, []);
@@ -48,7 +46,7 @@ export function LevelSelectScreen() {
         // Then check level clicks
         const idx = hitTestLevel(state, getLevelGateMap(), LEVELS, solvedLevelIds.value, e.world.x, e.world.y);
         if (idx !== null) {
-          loadLevel(idx);
+          requestLevel(idx);
           navigateTo('editor');
         }
       },
