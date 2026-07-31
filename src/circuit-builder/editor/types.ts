@@ -1,5 +1,3 @@
-import { Circuit } from '../simulation/circuit.ts';
-
 export interface Vec2 { x: number; y: number }
 
 // Branded types for type-safe IDs
@@ -54,14 +52,4 @@ export interface Net {
   id: NetId;
   nodeIds: WireNodeId[];
   segmentIds: WireSegmentId[];
-}
-
-// user defined components (sub-circuits)
-export interface Component {
-  id: ComponentId;
-  name: string;
-  circuit: Circuit;
-  isBuiltin: boolean;
-  icon?: string;
-  evaluateFn?: (inputs: (number | null)[]) => (number | null)[];
 }

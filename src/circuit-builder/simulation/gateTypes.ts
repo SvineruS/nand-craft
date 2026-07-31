@@ -1,6 +1,4 @@
-import type { GateId, PinRef, Rotation, Vec2 } from "../editor/types.ts";
-import { pinRefKey } from "../editor/types.ts";
-import type { SimulationState } from "./types.ts";
+import type { GateId, Rotation, Vec2 } from "../editor/types.ts";
 
 export interface Gate {
   id: GateId;
@@ -24,16 +22,6 @@ export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(ty
 export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
 export function isConstantGate(type: GateType): boolean { return CONSTANT_TYPES.has(type); }
 export function isSequentialGate(type: GateType): boolean { return SEQUENTIAL_TYPES.has(type); }
-
-/** Read a pin value from simulation state. Absent = null (high-Z). */
-export function pinValue(simState: SimulationState, gateId: GateId, kind: 'input' | 'output', index: number): number | null {
-  return simState.get(pinRefKey({ gateId, kind, index })) ?? null;
-}
-
-/** Write a pin value to simulation state. */
-export function writePinValue(simState: SimulationState, ref: PinRef, value: number | null): void {
-  simState.set(pinRefKey(ref), value);
-}
 
 export type GateType =
   | 'nand'

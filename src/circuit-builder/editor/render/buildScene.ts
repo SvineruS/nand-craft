@@ -1,10 +1,9 @@
 import type { EditorState } from '../EditorState.ts';
 import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderErrorSegment, RenderSelectionItem, RenderPastePreview } from './renderScene.ts';
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
-import { type Gate, isConstantGate, isInputGate, pinValue } from '../../simulation/gateTypes.ts';
+import { type Gate, isConstantGate, isInputGate } from '../../simulation/gateTypes.ts';
 import type { Circuit } from '../../simulation/circuit.ts';
 import { isComponentType } from '../../components/componentRegistry.ts';
-import { pinRefKey } from '../types.ts';
 import { gateCenter, gateGridOffset, getGateDims, iteratePinPositions, pinRefsEqual } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
 import { COLORS, GRID_SIZE, WIRE_COLORS, WIRE_LABEL_MIN_LENGTH, WIRE_LABEL_SPACING } from '../consts.ts';
@@ -33,7 +32,6 @@ export function buildScene(
 
 function buildWireSegments(state: EditorState): RenderWireSegment[] {
   const { circuit } = state;
-  const { nodeValues, nodeBitWidths } = circuit.tickResult;
   const result: RenderWireSegment[] = [];
 
   for (const segment of circuit.wireSegments.values()) {
@@ -42,12 +40,13 @@ function buildWireSegments(state: EditorState): RenderWireSegment[] {
     const from = fromNode.pos;
     const to = toNode.pos;
 
-    const bitWidth = nodeBitWidths.get(segment.from) ?? nodeBitWidths.get(segment.to) ?? 1;
+    // Both endpoints of a segment are always in the same net, so either one will do
+    const bitWidth = circuit.getNetBitWidth(segment.from);
     const thickness = 6;
     const bodyColor = segment.color ?? COLORS.wireDefault;
 
     // Signal
-    const value = nodeValues.get(segment.from) ?? nodeValues.get(segment.to) ?? null;
+    const value = circuit.getNetValue(segment.from);
     const sc = value !== null ? signalColor(value, bitWidth) : null;
 
     // Value labels (only for segments with signal and sufficient length)
@@ -84,7 +83,6 @@ function buildWireSegments(state: EditorState): RenderWireSegment[] {
 
 function buildWireNodes(state: EditorState): RenderWireNode[] {
   const { circuit } = state;
-  const { nodeValues, nodeBitWidths } = circuit.tickResult;
   const result: RenderWireNode[] = [];
 
   // Count segments per node + find first connected segment color
@@ -108,11 +106,11 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
     if (node.pin) {
       const gate = circuit.gates.get(node.pin.gateId);
       if (gate) {
-        nodePinValue = pinValue(circuit.simState, node.pin.gateId, node.pin.kind, node.pin.index);
+        nodePinValue = circuit.getPinValue(node.pin.gateId, node.pin.kind, node.pin.index);
         pinBitWidth = getPinBitWidth(gate.type, node.pin.kind, node.pin.index);
       }
     }
-    const value = nodePinValue ?? nodeValues.get(node.id) ?? null;
+    const value = nodePinValue ?? circuit.getNetValue(node.id);
     const customColor = nodeColor.get(node.id);
     const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
@@ -122,7 +120,7 @@ function buildWireNodes(state: EditorState): RenderWireNode[] {
 
     let sc: string | null = null;
     if (value !== null) {
-      const bw = pinBitWidth ?? nodeBitWidths.get(node.id) ?? 1;
+      const bw = pinBitWidth ?? circuit.getNetBitWidth(node.id);
       sc = signalColor(value, bw);
     }
 
@@ -170,7 +168,7 @@ function buildGates(state: EditorState): RenderGate[] {
       labelColor = COLORS.gateText;
       labelPos = { x: labelX, y: labelY - 0.6 * GRID_SIZE };
 
-      const val = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'output', index: 0 })) ?? null;
+      const val = circuit.getPinValue(gate.id, 'output', 0);
       const valText = val !== null ? String(val) : '?';
       const valColor = val !== null ? signalColor(val) : COLORS.gateText;
       valueLabel = { text: valText, color: valColor, pos: { x: labelX, y: labelY } };
@@ -216,7 +214,7 @@ function buildPins(state: EditorState): RenderPin[] {
 
   for (const gate of circuit.gates.values()) {
     for (const [pinRef, pos] of iteratePinPositions(gate)) {
-      const value = pinValue(circuit.simState, gate.id, pinRef.kind, pinRef.index);
+      const value = circuit.getPinValue(gate.id, pinRef.kind, pinRef.index);
       const bitWidth = getPinBitWidth(gate.type, pinRef.kind, pinRef.index);
       const isHovered = state.hoveredEndpoint?.kind === 'pin'
         && pinRefsEqual(state.hoveredEndpoint.pin, pinRef);
@@ -425,11 +423,11 @@ function getSvgLayers(gate: Gate, circuit: Circuit): number[] {
 
   // MUX/decoder variants: pick one based on input value
   if (gate.type === 'mux' || gate.type === '8bit-mux') {
-    const sValue = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index: 0 })) ?? null;
+    const sValue = circuit.getPinValue(gate.id, 'input', 0);
     return [sValue ? 1 : 0];
   }
   if (gate.type === '1bit-decoder') {
-    const aValue = circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index: 0 })) ?? null;
+    const aValue = circuit.getPinValue(gate.id, 'input', 0);
     return [aValue ? 1 : 0];
   }
   return [0];

@@ -522,7 +522,44 @@ export let componentDefVersion = 0;
 /** Clear component definition cache (call when components are saved/deleted). */
 export function clearComponentDefCache(): void {
   componentDefCache.clear();
+  pinMetaCache.clear();
   componentDefVersion++;
+}
+
+/** Pin counts and bit widths, split by kind and indexed by pin index. */
+export interface GatePinMeta {
+  inputBitWidths: readonly number[];
+  outputBitWidths: readonly number[];
+  inputCount: number;
+  outputCount: number;
+}
+
+const pinMetaCache = new Map<GateType, GatePinMeta>();
+
+/**
+ * Cached per-type pin metadata. Hot: called per pin per gate during build and
+ * rendering, so it must not allocate — derive everything from here rather than
+ * filtering GateDefinition.pins at each call site.
+ */
+export function getGatePinMeta(gateType: GateType): GatePinMeta {
+  const cached = pinMetaCache.get(gateType);
+  if (cached) return cached;
+
+  const inputBitWidths: number[] = [];
+  const outputBitWidths: number[] = [];
+  for (const pin of getGateDefinition(gateType).pins) {
+    const widths = pin.kind === 'input' ? inputBitWidths : outputBitWidths;
+    widths.push(pin.bitWidth ?? 1);
+  }
+
+  const meta: GatePinMeta = {
+    inputBitWidths,
+    outputBitWidths,
+    inputCount: inputBitWidths.length,
+    outputCount: outputBitWidths.length,
+  };
+  pinMetaCache.set(gateType, meta);
+  return meta;
 }
 
 /** All built-in gate type entries for iteration (e.g. sidebar). */
@@ -532,18 +569,13 @@ export function getAllGateDefinitions(): [GateType, GateDefinition][] {
 
 /** Get bitWidth for a specific pin from the gate definition. */
 export function getPinBitWidth(gateType: GateType, kind: 'input' | 'output', index: number): number {
-  const def = getGateDefinition(gateType);
-  const pins = def.pins.filter(p => p.kind === kind);
-  return pins[index]?.bitWidth ?? 1;
+  const meta = getGatePinMeta(gateType);
+  const widths = kind === 'input' ? meta.inputBitWidths : meta.outputBitWidths;
+  return widths[index] ?? 1;
 }
 
 /** Count input/output pins from gate definition. */
 export function getPinCounts(gateType: GateType): { inputs: number; outputs: number } {
-  const def = getGateDefinition(gateType);
-  let inputs = 0, outputs = 0;
-  for (const p of def.pins) {
-    if (p.kind === 'input') inputs++;
-    else outputs++;
-  }
-  return { inputs, outputs };
+  const meta = getGatePinMeta(gateType);
+  return { inputs: meta.inputCount, outputs: meta.outputCount };
 }

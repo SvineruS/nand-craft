@@ -1,18 +1,24 @@
-import type { GateId, Net, NetId, PinRef } from '../editor/types.ts';
-export { pinRefKey } from '../editor/types.ts';
+import type { GateId, Net, NetId } from '../editor/types.ts';
+import type { CompiledProgram } from './program.ts';
 
-/** Flat map of pin values keyed by pinRefKey. Absent key = null (high-Z). */
-export type SimulationState = Map<string, number | null>;
+/**
+ * Pin values indexed by the compiled program's pin slots.
+ *
+ * HIGH_Z (-1) stands in for null / undriven. Safe as a sentinel because every gate
+ * output is masked to an unsigned 1/8/16-bit value and so is never negative.
+ */
+export type SimulationState = Int32Array;
+
+export const HIGH_Z = -1;
 
 /** Cached structural analysis — recomputed only when circuit topology changes. */
 export interface BuildResult {
+  /** Nets by ID, for the renderer and hit-testing. Not used by the tick loop. */
   nets: Map<NetId, Net>;
-  evaluationOrder: GateId[];
-  pinToNet: Map<string, NetId>;  // key is pinRefKey(PinRef)
-  netDrivers: Map<NetId, PinRef[]>;
-  netReceivers: Map<NetId, PinRef[]>;
-  netBitWidths: Map<NetId, number>;
+  /** Gates caught in combinational feedback loops. */
   shortCircuitGates: GateId[];
+  /** Integer-indexed compiled topology consumed by tick(). */
+  program: CompiledProgram;
 }
 
 /** Per-tick simulation output — everything the renderer and UI need. */
@@ -20,6 +26,10 @@ export interface TickResult {
   outputs: Map<GateId, number | null>;
   contentionNets: string[];
   errorSegmentIds: Set<string>;
-  nodeValues: Map<string, number | null>;
-  nodeBitWidths: Map<string, number>;
+  /**
+   * Resolved value per net, indexed by net — the same value delivered to the net's
+   * receiver pins, so a contended or width-mismatched net reads as high-Z. Read it via
+   * Circuit.getNetValue().
+   */
+  netValues: Int32Array;
 }

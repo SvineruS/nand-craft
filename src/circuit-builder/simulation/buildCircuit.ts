@@ -1,19 +1,9 @@
 import { Circuit } from './circuit.ts';
-import type { GateId, Net, NetId, PinRef, WireNodeId, WireSegmentId, } from '../editor/types.ts';
+import type { GateId, Net, NetId, WireNodeId, WireSegmentId, } from '../editor/types.ts';
 import { generateId, pinRefKey } from '../editor/types.ts';
-import { type GateType, isInputGate, isOutputGate, isSequentialGate } from "./gateTypes.ts";
 import type { BuildResult } from './types.ts';
-import { getPinBitWidth, getPinCounts } from '../editor/gates.ts';
-
-/** Derived: anything not sequential, not a pure IO gate, and not 'level'. */
-function isCombinational(type: GateType): boolean {
-  if (type === 'level') return false;
-  if (isSequentialGate(type)) return false;
-  // Plain IO gates are sources/sinks; switch variants have both inputs and outputs
-  if (isInputGate(type)) return getPinCounts(type).inputs > 0;
-  if (isOutputGate(type)) return getPinCounts(type).outputs > 0;
-  return true;
-}
+import { getPinCounts } from '../editor/gates.ts';
+import { compileProgram, isCombinational } from './program.ts';
 
 // --- Union-Find for building nets ---
 
@@ -82,19 +72,13 @@ class UnionFind<T> {
 export function build(circuit: Circuit): BuildResult {
   const nets = buildNets(circuit);
   const pinToNet = buildPinToNet(circuit, nets);
-  const { netDrivers, netReceivers, netBitWidths } =
-    classifyNetPins(circuit, nets);
   const evaluationOrder = topologicalSort(circuit, nets, pinToNet);
   const shortCircuitGates = detectCycles(circuit, nets, pinToNet).flat();
 
   return {
     nets,
-    evaluationOrder,
-    pinToNet,
-    netDrivers,
-    netReceivers,
-    netBitWidths,
     shortCircuitGates,
+    program: compileProgram(circuit, nets, evaluationOrder, shortCircuitGates),
   };
 }
 
@@ -152,47 +136,6 @@ function buildPinToNet(
     }
   }
   return pinToNet;
-}
-
-/** Classify pins per net into drivers (output) and receivers (input). */
-function classifyNetPins(
-  circuit: Circuit,
-  nets: Map<NetId, Net>,
-): {
-  netDrivers: Map<NetId, PinRef[]>;
-  netReceivers: Map<NetId, PinRef[]>;
-  netBitWidths: Map<NetId, number>;
-} {
-  const netDrivers = new Map<NetId, PinRef[]>();
-  const netReceivers = new Map<NetId, PinRef[]>();
-  const netBitWidths = new Map<NetId, number>();
-
-  for (const netId of nets.keys()) {
-    netDrivers.set(netId, []);
-    netReceivers.set(netId, []);
-    netBitWidths.set(netId, 1);
-  }
-
-  // Iterate wire nodes to collect PinRefs for each net
-  for (const net of nets.values()) {
-    for (const nodeId of net.nodeIds) {
-      const node = circuit.getWireNode(nodeId);
-      if (!node.pin) continue;
-      const ref = node.pin;
-      const gate = circuit.getGate(ref.gateId);
-      const bitWidth = getPinBitWidth(gate.type, ref.kind, ref.index);
-
-      if (ref.kind === 'output') {
-        netDrivers.get(net.id)!.push(ref);
-      } else {
-        netReceivers.get(net.id)!.push(ref);
-      }
-      // TODO: detect bitWidth mismatch across pins in a net
-      netBitWidths.set(net.id, bitWidth);
-    }
-  }
-
-  return { netDrivers, netReceivers, netBitWidths };
 }
 
 /**

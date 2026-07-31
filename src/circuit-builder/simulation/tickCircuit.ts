@@ -1,13 +1,10 @@
-import { type ComponentId, type GateId, type NetId, pinRefKey } from "../editor/types.ts";
-import type { BuildResult, SimulationState, TickResult } from "./types.ts";
+import type { ComponentId, GateId } from "../editor/types.ts";
+import { type BuildResult, HIGH_Z, type SimulationState, type TickResult } from "./types.ts";
 import { Circuit } from "./circuit.ts";
-import { type Gate, isConstantGate, isInputGate, isOutputGate, pinValue, writePinValue } from "./gateTypes.ts";
-import { getPinBitWidth, getPinCounts } from "../editor/gates.ts";
+import { isInputGate, isOutputGate } from "./gateTypes.ts";
+import { type CompiledProgram, Op, SeqOp, SrcOp } from "./program.ts";
 import { getComponent } from "../components/componentRegistry.ts";
 import { deserializeCircuit } from "../persistence/serialize.ts";
-
-
-
 
 /**
  * Execute one simulation tick:
@@ -18,447 +15,386 @@ import { deserializeCircuit } from "../persistence/serialize.ts";
  */
 export function tick(
   circuit: Circuit,
-  simState: SimulationState,
   buildResult: BuildResult,
   inputs: Map<GateId, number>,
 ): TickResult {
-  setSourceOutputs(circuit, simState, inputs);
-  const contentionNets = propagate(circuit, simState, buildResult);
-  advanceSequentialState(circuit, simState);
-  const outputs = collectOutputs(circuit, simState);
-  const derived = computeDerivedState(circuit, simState, buildResult, contentionNets);
+  const { program } = buildResult;
+  const values = circuit.simState;
+
+  setSourceOutputs(program, values, inputs);
+  const contentionNets = propagate(program, {
+    values,
+    netValues: circuit.netValues,
+    contentionNets: [],
+    contentionSeen: circuit.contentionSeen,
+  });
+  advanceSequentialState(program, values);
 
   return {
-    outputs,
-    contentionNets: contentionNets.map(id => id as string),
-    errorSegmentIds: derived.errorSegmentIds,
-    nodeValues: derived.nodeValues,
-    nodeBitWidths: derived.nodeBitWidths,
+    outputs: collectOutputs(program, values),
+    contentionNets: contentionNets.map(netIndex => program.netIds[netIndex] as string),
+    errorSegmentIds: buildErrorSegments(program, buildResult, contentionNets),
+    netValues: circuit.netValues,
   };
 }
 
-/** Set outputValues for all source gates (inputs, constants, sequential). */
-function setSourceOutputs(circuit: Circuit, simState: SimulationState, inputs: Map<GateId, number>): void {
-  for (const gate of circuit.gates.values()) {
-    if (isInputGate(gate.type) || gate.type === 'level') {
-      const value = inputs.get(gate.id);
-      if (value !== undefined) {
-        const key = pinRefKey({ gateId: gate.id, kind: 'output', index: 0 });
-        simState.set(key, value);
-      }
-      continue;
-    }
+// ---------------------------------------------------------------------------
+// Slot access
+//
+// HIGH_Z is the undriven sentinel. Two distinct nullable readings exist and the
+// difference is load-bearing, so they get separate helpers:
+//  - readInput   treats undriven as 0 (most gates)
+//  - isLow       treats undriven as false, matching how `!value` read when values
+//                were `number | null` (mux select, input-gate enable)
+// A raw `!== 0` comparison, as used by tri-state enable, deliberately lets an
+// undriven pin count as enabled — preserved from the original switch.
+// ---------------------------------------------------------------------------
 
-    if (isConstantGate(gate.type)) {
-      const key = pinRefKey({ gateId: gate.id, kind: 'output', index: 0 });
-      simState.set(key, (gate.state as number) ?? 0);
-      continue;
-    }
+function readInput(values: SimulationState, slot: number): number {
+  const value = values[slot];
+  return value === HIGH_Z ? 0 : value;
+}
 
-    switch (gate.type) {
-      case 'delay':
-      case 'rs-latch':
-      case '1bit-memory':
-      case '8bit-memory':
-      case '8bit-counter':
-      case '8bit-counter-reset': {
-        const key = pinRefKey({ gateId: gate.id, kind: 'output', index: 0 });
-        simState.set(key, (gate.state as number) ?? 0);
+function isLow(value: number): boolean {
+  return value === HIGH_Z || value === 0;
+}
+
+// ---------------------------------------------------------------------------
+// Sources and sequential state
+// ---------------------------------------------------------------------------
+
+/** Seed outputValues for all source gates (inputs, constants, sequential). */
+function setSourceOutputs(
+  program: CompiledProgram,
+  values: SimulationState,
+  inputs: Map<GateId, number>,
+): void {
+  const { sourceGates, sourceOpcode, gates, outputBase, outputCount } = program;
+
+  for (let i = 0; i < sourceGates.length; i++) {
+    const gateIndex = sourceGates[i];
+    if (outputCount[gateIndex] === 0) continue;
+    const gate = gates[gateIndex];
+    const slot = outputBase[gateIndex];
+
+    switch (sourceOpcode[i]) {
+      case SrcOp.DRIVEN: {
+        // Undriven inputs keep their cleared value rather than falling back to 0
+        const value = inputs.get(gate.id);
+        if (value !== undefined) values[slot] = value;
         break;
       }
+      case SrcOp.CONSTANT:
+      case SrcOp.SEQUENTIAL:
+        values[slot] = (gate.state as number) ?? 0;
+        break;
     }
   }
 }
 
-/** Update sequential gate state from current inputValues (delivered by propagation). */
-function advanceSequentialState(circuit: Circuit, simState: SimulationState): void {
-  for (const gate of circuit.gates.values()) {
-    switch (gate.type) {
-      case 'delay': {
-        const key = pinRefKey({ gateId: gate.id, kind: 'input', index: 0 });
-        gate.state = simState.get(key) ?? 0;
+/** Update sequential gate state from current input values (delivered by propagation). */
+function advanceSequentialState(program: CompiledProgram, values: SimulationState): void {
+  const { sequentialGates, sequentialOpcode, gates, inputBase } = program;
+
+  for (let i = 0; i < sequentialGates.length; i++) {
+    const gateIndex = sequentialGates[i];
+    const gate = gates[gateIndex];
+    const base = inputBase[gateIndex];
+
+    switch (sequentialOpcode[i]) {
+      case SeqOp.DELAY:
+        gate.state = readInput(values, base);
         break;
-      }
-      case 'rs-latch': {
-        const sKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 0 });
-        const rKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 1 });
-        const s = simState.get(sKey) ?? 0;
-        const r = simState.get(rKey) ?? 0;
+
+      case SeqOp.RS_LATCH: {
+        const set = readInput(values, base);
+        const reset = readInput(values, base + 1);
         let q = (gate.state as number) ?? 0;
-        if (s && !r) q = 1;
-        else if (r && !s) q = 0;
+        if (set && !reset) q = 1;
+        else if (reset && !set) q = 0;
         gate.state = q;
         break;
       }
-      case '1bit-memory':
-      case '8bit-memory': {
-        const dKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 0 });
-        const wKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 1 });
-        const d = simState.get(dKey) ?? 0;
-        const w = simState.get(wKey) ?? 0;
-        if (w) gate.state = d;
+
+      case SeqOp.MEMORY: {
+        const data = readInput(values, base);
+        const write = readInput(values, base + 1);
+        if (write) gate.state = data;
         break;
       }
-      case '8bit-counter': {
+
+      case SeqOp.COUNTER:
         gate.state = (((gate.state as number) ?? 0) + 1) & 0xFF;
         break;
-      }
-      case '8bit-counter-reset': {
-        const vKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 0 });
-        const oKey = pinRefKey({ gateId: gate.id, kind: 'input', index: 1 });
-        const v = simState.get(vKey) ?? 0;
-        const o = simState.get(oKey) ?? 0;
+
+      case SeqOp.COUNTER_RESET: {
+        const value = readInput(values, base);
+        const override = readInput(values, base + 1);
         // O=1 → override with V, O=0 → increment by 1
-        gate.state = o ? v : (((gate.state as number) ?? 0) + 1) & 0xFF;
+        gate.state = override ? value : (((gate.state as number) ?? 0) + 1) & 0xFF;
         break;
       }
     }
   }
 }
 
-function collectOutputs(circuit: Circuit, simState: SimulationState): Map<GateId, number | null> {
+function collectOutputs(
+  program: CompiledProgram,
+  values: SimulationState,
+): Map<GateId, number | null> {
   const outputs = new Map<GateId, number | null>();
-  for (const gate of circuit.gates.values()) {
-    if (!isOutputGate(gate.type)) continue;
-    const key = pinRefKey({ gateId: gate.id, kind: 'input', index: 0 });
-    outputs.set(gate.id, simState.get(key) ?? null);
+  const { outputGates, gates, inputBase, inputCount } = program;
+
+  for (let i = 0; i < outputGates.length; i++) {
+    const gateIndex = outputGates[i];
+    if (inputCount[gateIndex] === 0) {
+      outputs.set(gates[gateIndex].id, null);
+      continue;
+    }
+    const value = values[inputBase[gateIndex]];
+    outputs.set(gates[gateIndex].id, value === HIGH_Z ? null : value);
   }
   return outputs;
 }
 
+// ---------------------------------------------------------------------------
+// Propagation
+// ---------------------------------------------------------------------------
 
-
-/**
- * Resolve net values from driver pins. Sets receiver pins.
- * Returns net IDs with bus contention.
- */
-function resolveNets(circuit: Circuit, simState: SimulationState, buildResult: BuildResult): NetId[] {
-  const contentionNets: NetId[] = [];
-
-  for (const [netId, net] of buildResult.nets) {
-    const driverRefs = buildResult.netDrivers.get(netId) ?? [];
-    const receiverRefs = buildResult.netReceivers.get(netId) ?? [];
-
-    // Check bit width consistency
-    const allRefs = [...driverRefs, ...receiverRefs];
-    let widthMismatch = false;
-    if (allRefs.length > 1) {
-      const firstGate = circuit.getGate(allRefs[0].gateId);
-      const bw = getPinBitWidth(firstGate.type, allRefs[0].kind, allRefs[0].index);
-      for (let i = 1; i < allRefs.length; i++) {
-        const g = circuit.getGate(allRefs[i].gateId);
-        if (getPinBitWidth(g.type, allRefs[i].kind, allRefs[i].index) !== bw) {
-          widthMismatch = true;
-          break;
-        }
-      }
-    }
-
-    // Resolve value from drivers
-    const activeDriverValues: (number | null)[] = [];
-    for (const ref of driverRefs) {
-      const val = pinValue(simState, ref.gateId, ref.kind, ref.index);
-      if (val !== null) activeDriverValues.push(val);
-    }
-
-    let netValue: number | null;
-    if (widthMismatch || activeDriverValues.length > 1) {
-      contentionNets.push(net.id);
-      netValue = null;
-    } else if (activeDriverValues.length === 1) {
-      netValue = activeDriverValues[0];
-    } else {
-      netValue = null;
-    }
-
-    for (const ref of receiverRefs) {
-      writePinValue(simState, ref, netValue);
-    }
-  }
-
-  return contentionNets;
+/** Mutable accumulators threaded through one tick's resolve pass. */
+interface ResolvePass {
+  values: SimulationState;
+  /** Resolved value per net — also the value the renderer draws on the wire. */
+  netValues: Int32Array;
+  contentionNets: number[];
+  /** Keeps contentionNets unique when a net gets resolved more than once. */
+  contentionSeen: Uint8Array;
 }
 
-
 /**
- * Compute derived rendering data from tick results.
+ * One tick of combinational propagation. Each net resolves exactly once, at the step
+ * where its last combinational driver has just evaluated (see buildSchedule).
+ * Returns the net indices found in contention.
  */
-function computeDerivedState(
-  circuit: Circuit,
-  simState: SimulationState,
-  buildResult: BuildResult,
-  contentionNets: NetId[],
-): {
-  errorSegmentIds: Set<string>;
-  nodeValues: Map<string, number | null>;
-  nodeBitWidths: Map<string, number>;
-} {
-  // Error segments
-  const errorSegments = new Set<string>();
+function propagate(program: CompiledProgram, pass: ResolvePass): number[] {
+  const { order, resolveAfterOffset, resolveAfterNets, initialNets, unresolvedNets } = program;
 
-  if (buildResult.shortCircuitGates.length > 0) {
-    const errorGateIds = new Set<string>(
-      buildResult.shortCircuitGates.map(id => id as string),
+  resolveRange(program, pass, initialNets, 0, initialNets.length);
+
+  for (let step = 0; step < order.length; step++) {
+    evaluateGate(program, pass.values, order[step]);
+    resolveRange(
+      program, pass, resolveAfterNets,
+      resolveAfterOffset[step], resolveAfterOffset[step + 1],
     );
-    for (const net of buildResult.nets.values()) {
-      let touches = false;
-      for (const nid of net.nodeIds) {
-        const node = circuit.getWireNode(nid);
-        if (node.pin && errorGateIds.has(node.pin.gateId as string)) {
-          touches = true;
-          break;
-        }
-      }
-      if (touches) {
-        for (const sid of net.segmentIds)
-          errorSegments.add(sid as string);
-      }
-    }
   }
 
-  if (contentionNets.length > 0) {
-    const contentionSet = new Set(
-      contentionNets.map(id => id as string),
-    );
-    for (const net of buildResult.nets.values()) {
-      if (contentionSet.has(net.id as string)) {
-        for (const sid of net.segmentIds)
-          errorSegments.add(sid as string);
-      }
-    }
-  }
+  // Nets fed by gates stranded in a cycle never got a scheduled resolve of their own
+  resolveRange(program, pass, unresolvedNets, 0, unresolvedNets.length);
 
-  // Node values & bit widths
-  const nodeValues = new Map<string, number | null>();
-  const nodeBitWidths = new Map<string, number>();
-  for (const net of buildResult.nets.values()) {
-    let netValue: number | null = null;
-    let netBitWidth = 1;
-    for (const nodeId of net.nodeIds) {
-      const node = circuit.getWireNode(nodeId);
-      if (node.pin) {
-        const val = pinValue(simState, node.pin.gateId, node.pin.kind, node.pin.index);
-        if (val !== null) netValue = val;
-        const gate = circuit.getGate(node.pin.gateId);
-        netBitWidth = getPinBitWidth(
-          gate.type,
-          node.pin.kind,
-          node.pin.index,
-        );
-      }
-    }
-    for (const nodeId of net.nodeIds) {
-      nodeValues.set(nodeId as string, netValue);
-      nodeBitWidths.set(nodeId as string, netBitWidth);
-    }
-  }
-
-  return { errorSegmentIds: errorSegments, nodeValues, nodeBitWidths };
+  return pass.contentionNets;
 }
 
-/**
- * One tick of combinational propagation using cached build data.
- * Returns contention net IDs from the final resolution.
- */
-function propagate(
-  circuit: Circuit,
-  simState: SimulationState,
-  buildResult: BuildResult,
-): NetId[] {
-  // Initial net resolution to propagate input gate values
-  let contentionNets = resolveNets(circuit, simState, buildResult);
-
-  for (const gateId of buildResult.evaluationOrder) {
-    const gate = circuit.getGate(gateId);
-    evaluateGate(simState, gate);
-    contentionNets = resolveNets(circuit, simState, buildResult);
+function resolveRange(
+  program: CompiledProgram,
+  pass: ResolvePass,
+  netList: Int32Array,
+  from: number,
+  to: number,
+): void {
+  for (let i = from; i < to; i++) {
+    resolveNet(program, pass, netList[i]);
   }
-
-  return contentionNets;
 }
 
-function evaluateGate(simState: SimulationState, gate: Gate): void {
-  switch (gate.type) {
-    case 'nand':
-      evaluateBinaryGate(simState, gate, (a, b, mask) => (~(a & b) & mask) >>> 0);
+/** Resolve one net's value from its drivers and write it to every receiver pin. */
+function resolveNet(program: CompiledProgram, pass: ResolvePass, netIndex: number): void {
+  const { values } = pass;
+  const driverFrom = program.netDriverOffset[netIndex];
+  const driverTo = program.netDriverOffset[netIndex + 1];
+
+  let activeDrivers = 0;
+  let netValue = HIGH_Z;
+  for (let i = driverFrom; i < driverTo; i++) {
+    const value = values[program.netDriverSlots[i]];
+    if (value !== HIGH_Z) {
+      activeDrivers++;
+      netValue = value;
+    }
+  }
+
+  if (program.netWidthMismatch[netIndex] === 1 || activeDrivers > 1) {
+    netValue = HIGH_Z;
+    if (pass.contentionSeen[netIndex] === 0) {
+      pass.contentionSeen[netIndex] = 1;
+      pass.contentionNets.push(netIndex);
+    }
+  } else if (activeDrivers === 0) {
+    netValue = HIGH_Z;
+  }
+
+  pass.netValues[netIndex] = netValue;
+
+  const receiverFrom = program.netReceiverOffset[netIndex];
+  const receiverTo = program.netReceiverOffset[netIndex + 1];
+  for (let i = receiverFrom; i < receiverTo; i++) {
+    values[program.netReceiverSlots[i]] = netValue;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Gate evaluation
+// ---------------------------------------------------------------------------
+
+function evaluateGate(
+  program: CompiledProgram,
+  values: SimulationState,
+  gateIndex: number,
+): void {
+  const inBase = program.inputBase[gateIndex];
+  const outBase = program.outputBase[gateIndex];
+  const mask = program.slotMask[outBase];
+
+  switch (program.opcode[gateIndex]) {
+    case Op.NAND:
+      values[outBase] = (~(readInput(values, inBase) & readInput(values, inBase + 1)) & mask) >>> 0;
       break;
-    case 'and':
-      evaluateBinaryGate(simState, gate, (a, b) => a & b);
+    case Op.AND:
+      values[outBase] = readInput(values, inBase) & readInput(values, inBase + 1);
       break;
-    case 'or':
-      evaluateBinaryGate(simState, gate, (a, b) => a | b);
+    case Op.OR:
+      values[outBase] = readInput(values, inBase) | readInput(values, inBase + 1);
       break;
-    case 'nor':
-      evaluateBinaryGate(simState, gate, (a, b, mask) => (~(a | b) & mask) >>> 0);
+    case Op.NOR:
+      values[outBase] = (~(readInput(values, inBase) | readInput(values, inBase + 1)) & mask) >>> 0;
       break;
-    case 'xor':
-      evaluateBinaryGate(simState, gate, (a, b) => a ^ b);
+    case Op.XOR:
+      values[outBase] = readInput(values, inBase) ^ readInput(values, inBase + 1);
       break;
-    case 'xnor':
-      evaluateBinaryGate(simState, gate, (a, b, mask) => (~(a ^ b) & mask) >>> 0);
+    case Op.XNOR:
+      values[outBase] = (~(readInput(values, inBase) ^ readInput(values, inBase + 1)) & mask) >>> 0;
       break;
-    case 'not':
-    case '8bit-not':
-      evaluateUnaryGate(simState, gate, (a, mask) => (~a & mask) >>> 0);
+    case Op.NOT:
+      values[outBase] = (~readInput(values, inBase) & mask) >>> 0;
       break;
-    case '8bit-or':
-      evaluateBinaryGate(simState, gate, (a, b) => a | b);
+
+    case Op.OR3:
+      values[outBase] = readInput(values, inBase)
+        | readInput(values, inBase + 1)
+        | readInput(values, inBase + 2);
       break;
-    case '8bit-nor':
-      evaluateBinaryGate(simState, gate, (a, b, mask) => (~(a | b) & mask) >>> 0);
+    case Op.AND3:
+      values[outBase] = readInput(values, inBase)
+        & readInput(values, inBase + 1)
+        & readInput(values, inBase + 2);
       break;
-    case '3bit-or': {
-      const a = readInput(simState, gate, 0);
-      const b = readInput(simState, gate, 1);
-      const c = readInput(simState, gate, 2);
-      writeOutput(simState, gate, 0, a | b | c);
+
+    case Op.ADD2: {
+      const sum = readInput(values, inBase) + readInput(values, inBase + 1);
+      values[outBase] = sum & 1;            // S
+      values[outBase + 1] = (sum >> 1) & 1; // C
       break;
     }
-    case '3bit-and': {
-      const a = readInput(simState, gate, 0);
-      const b = readInput(simState, gate, 1);
-      const c = readInput(simState, gate, 2);
-      writeOutput(simState, gate, 0, a & b & c);
+    case Op.ADD3: {
+      const sum = readInput(values, inBase)
+        + readInput(values, inBase + 1)
+        + readInput(values, inBase + 2);
+      values[outBase] = sum & 1;            // S
+      values[outBase + 1] = (sum >> 1) & 1; // Cout
       break;
     }
-    case '2bit-adder': {
-      const a = readInput(simState, gate, 0);
-      const b = readInput(simState, gate, 1);
-      const sum = a + b;
-      writeOutput(simState, gate, 0, sum & 1);        // S
-      writeOutput(simState, gate, 1, (sum >> 1) & 1);  // C
+    case Op.ADD8: {
+      const carryIn = readInput(values, inBase);
+      const sum = readInput(values, inBase + 1) + readInput(values, inBase + 2) + carryIn;
+      values[outBase] = sum & 0xFF;
+      values[outBase + 1] = (sum >> 8) & 1;
       break;
     }
-    case '3bit-adder': {
-      const a = readInput(simState, gate, 0);
-      const b = readInput(simState, gate, 1);
-      const cin = readInput(simState, gate, 2);
-      const sum = a + b + cin;
-      writeOutput(simState, gate, 0, sum & 1);        // S
-      writeOutput(simState, gate, 1, (sum >> 1) & 1);  // Cout
+    case Op.NEG8:
+      values[outBase] = (-readInput(values, inBase) & 0xFF) >>> 0;
+      break;
+    case Op.SUB8:
+      values[outBase] = ((readInput(values, inBase) - readInput(values, inBase + 1)) & 0xFF) >>> 0;
+      break;
+
+    case Op.DEC1: {
+      const isZero = readInput(values, inBase) === 0;
+      values[outBase] = isZero ? 1 : 0;
+      values[outBase + 1] = isZero ? 0 : 1;
       break;
     }
-    case '1bit-decoder': {
-      const a = readInput(simState, gate, 0);
-      writeOutput(simState, gate, 0, a === 0 ? 1 : 0);
-      writeOutput(simState, gate, 1, a === 0 ? 0 : 1);
+    case Op.DEC3: {
+      const index = (readInput(values, inBase + 2) << 2)
+        | (readInput(values, inBase + 1) << 1)
+        | readInput(values, inBase);
+      const count = program.outputCount[gateIndex];
+      for (let i = 0; i < count; i++) values[outBase + i] = i === index ? 1 : 0;
       break;
     }
-    case '3bit-decoder': {
-      const a = readInput(simState, gate, 0);
-      const b = readInput(simState, gate, 1);
-      const c = readInput(simState, gate, 2);
-      const idx = (c << 2) | (b << 1) | a;
-      const outputCount = getPinCounts(gate.type).outputs;
-      for (let i = 0; i < outputCount; i++) {
-        writeOutput(simState, gate, i, i === idx ? 1 : 0);
-      }
+
+    case Op.CONSTANT:
+      // setSourceOutputs already seeded this from gate.state; only a missing value falls here
+      if (values[outBase] === HIGH_Z) values[outBase] = 0;
+      break;
+
+    case Op.MUX: {
+      const select = values[inBase];
+      values[outBase] = isLow(select)
+        ? readInput(values, inBase + 1)
+        : readInput(values, inBase + 2);
       break;
     }
-    case '8bit-adder': {
-      const ci = readInput(simState, gate, 0);
-      const a = readInput(simState, gate, 1);
-      const b = readInput(simState, gate, 2);
-      const sum = a + b + ci;
-      writeOutput(simState, gate, 0, sum & 0xFF);
-      writeOutput(simState, gate, 1, (sum >> 8) & 1);
+
+    case Op.TRISTATE:
+      // Enable low *or* unwired blocks the output, matching mux select and input-gate
+      // enable. An unwired enable used to pass the input through, which silently made a
+      // half-wired buffer drive the bus.
+      values[outBase] = isLow(values[inBase + 1]) ? HIGH_Z : values[inBase];
+      break;
+
+    case Op.SPLITTER: {
+      const input = readInput(values, inBase);
+      const count = program.outputCount[gateIndex];
+      for (let i = 0; i < count; i++) values[outBase + i] = (input >>> i) & 1;
       break;
     }
-    case '8bit-negative': {
-      const a = readInput(simState, gate, 0);
-      writeOutput(simState, gate, 0, (-a & 0xFF) >>> 0);
-      break;
-    }
-    case '8bit-subtractor': {
-      const a = readInput(simState, gate, 0);
-      const b = readInput(simState, gate, 1);
-      writeOutput(simState, gate, 0, ((a - b) & 0xFF) >>> 0);
-      break;
-    }
-    case 'constant':
-    case 'constant-8bit':
-    case 'constant-16bit': {
-      const current = simState.get(pinRefKey({ gateId: gate.id, kind: 'output', index: 0 }));
-      if (current === null || current === undefined) {
-        writeOutput(simState, gate, 0, 0);
-      }
-      break;
-    }
-    case 'mux':
-    case '8bit-mux': {
-      const sel = readInputNullable(simState, gate, 0);
-      const inA = readInput(simState, gate, 1);
-      const inB = readInput(simState, gate, 2);
-      writeOutput(simState, gate, 0, (sel !== null && sel !== 0) ? inB : inA);
-      break;
-    }
-    case 'tristate':
-    case '8bit-tristate': {
-      const input = readInputNullable(simState, gate, 0);
-      const enable = readInputNullable(simState, gate, 1);
-      writeOutput(simState, gate, 0, (enable !== 0) ? input : null);
-      break;
-    }
-    case 'splitter': {
-      const inputVal = readInput(simState, gate, 0);
-      const outputCount = getPinCounts(gate.type).outputs;
-      for (let i = 0; i < outputCount; i++) {
-        writeOutput(simState, gate, i, (inputVal >>> i) & 1);
-      }
-      break;
-    }
-    case 'joiner': {
+    case Op.JOINER: {
       let result = 0;
-      const inputCount = getPinCounts(gate.type).inputs;
-      for (let i = 0; i < inputCount; i++) {
-        result |= (readInput(simState, gate, i) & 1) << i;
-      }
-      writeOutput(simState, gate, 0, result);
+      const count = program.inputCount[gateIndex];
+      for (let i = 0; i < count; i++) result |= (readInput(values, inBase + i) & 1) << i;
+      values[outBase] = result;
       break;
     }
-    case 'input':
-    case 'input-8bit':
-    case 'input-16bit':
-    case 'input-sw':
-    case 'input-8bit-sw':
-    case 'input-16bit-sw':
-    case 'output':
-    case 'output-8bit':
-    case 'output-16bit':
-    case 'output-sw':
-    case 'output-8bit-sw':
-    case 'output-16bit-sw': {
-      if (isInputGate(gate.type)) {
-        const inputCount = getPinCounts(gate.type).inputs;
-        if (inputCount > 0) {
-          // Enable pin: null (unconnected) or 0 → output null (high-Z)
-          const enableValue = readInputNullable(simState, gate, 0);
-          if (!enableValue) {
-            writeOutput(simState, gate, 0, null);
-            return;
-          }
-        }
-      } else {
-        // output gate - enable is input[1] if present
-        const inputCount = getPinCounts(gate.type).inputs;
-        if (inputCount > 1) {
-          const enableValue = readInputNullable(simState, gate, 1);
-          if (!enableValue) return;
-        }
+
+    case Op.INPUT_ENABLE:
+      // Switch-style inputs: enable low (or unwired) forces the output to high-Z
+      if (program.inputCount[gateIndex] > 0 && isLow(values[inBase])) {
+        values[outBase] = HIGH_Z;
       }
       break;
-    }
+
+    case Op.NOP:
+      break;
+
     default:
-      // Component gates — type is the component ID
-      evaluateComponent(simState, gate);
+      evaluateComponent(program, values, gateIndex);
       break;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Component gates
+// ---------------------------------------------------------------------------
 
 /** Track component evaluation chain to detect circular references. */
 const evaluatingComponents = new Set<string>();
 
-function evaluateComponent(simState: SimulationState, gate: Gate): void {
+function evaluateComponent(
+  program: CompiledProgram,
+  values: SimulationState,
+  gateIndex: number,
+): void {
+  const gate = program.gates[gateIndex];
   const compId = gate.type as ComponentId;
   const def = getComponent(compId);
   if (!def) return; // Not a component gate — unknown type, silently skip
@@ -485,56 +421,43 @@ function evaluateComponent(simState: SimulationState, gate: Gate): void {
     }
 
     // Map component input pins → inner circuit input gate values
+    const inBase = program.inputBase[gateIndex];
+    const inCount = program.inputCount[gateIndex];
     const inputs = new Map<GateId, number>();
-    for (let i = 0; i < def.inputs.length && i < innerInputIds.length; i++) {
-      inputs.set(innerInputIds[i], readInput(simState, gate, i));
+    for (let i = 0; i < def.inputs.length && i < innerInputIds.length && i < inCount; i++) {
+      inputs.set(innerInputIds[i], readInput(values, inBase + i));
     }
 
     // Tick the inner circuit
     innerCircuit.tick(inputs);
 
     // Read inner circuit output gate values → component output pins
-    for (let i = 0; i < def.outputs.length && i < innerOutputIds.length; i++) {
-      const val = innerCircuit.tickResult.outputs.get(innerOutputIds[i]) ?? null;
-      writeOutput(simState, gate, i, val);
+    const outBase = program.outputBase[gateIndex];
+    const outCount = program.outputCount[gateIndex];
+    for (let i = 0; i < def.outputs.length && i < innerOutputIds.length && i < outCount; i++) {
+      const value = innerCircuit.tickResult.outputs.get(innerOutputIds[i]) ?? null;
+      values[outBase + i] = value === null ? HIGH_Z : value;
     }
   } finally {
     evaluatingComponents.delete(compId);
   }
 }
 
+// ---------------------------------------------------------------------------
+// Derived render data
+// ---------------------------------------------------------------------------
 
-function readInput(simState: SimulationState, gate: Gate, index: number): number {
-  return simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index })) ?? 0;
-}
-
-function readInputNullable(simState: SimulationState, gate: Gate, index: number): number | null {
-  return simState.get(pinRefKey({ gateId: gate.id, kind: 'input', index })) ?? null;
-}
-
-function writeOutput(simState: SimulationState, gate: Gate, index: number, value: number | null): void {
-  simState.set(pinRefKey({ gateId: gate.id, kind: 'output', index }), value);
-}
-
-function evaluateBinaryGate(
-  simState: SimulationState,
-  gate: Gate,
-  op: (a: number, b: number, mask: number) => number,
-): void {
-  const inA = readInput(simState, gate, 0);
-  const inB = readInput(simState, gate, 1);
-  const bitWidth = getPinBitWidth(gate.type, 'output', 0);
-  const mask = ((1 << bitWidth) >>> 0) - 1;
-  writeOutput(simState, gate, 0, op(inA, inB, mask));
-}
-
-function evaluateUnaryGate(
-  simState: SimulationState,
-  gate: Gate,
-  op: (a: number, mask: number) => number,
-): void {
-  const input = readInput(simState, gate, 0);
-  const bitWidth = getPinBitWidth(gate.type, 'output', 0);
-  const mask = ((1 << bitWidth) >>> 0) - 1;
-  writeOutput(simState, gate, 0, op(input, mask));
+/** Short-circuit segments are static; contention segments come from this tick. */
+function buildErrorSegments(
+  program: CompiledProgram,
+  buildResult: BuildResult,
+  contentionNets: number[],
+): Set<string> {
+  const segments = new Set(program.shortCircuitSegmentIds);
+  for (const netIndex of contentionNets) {
+    const net = buildResult.nets.get(program.netIds[netIndex]);
+    if (!net) continue;
+    for (const segmentId of net.segmentIds) segments.add(segmentId as string);
+  }
+  return segments;
 }

@@ -1,5 +1,5 @@
 import { Circuit } from '../../simulation/circuit.ts';
-import { pinRefKey, type GateId, type PinRef, type Rotation, type WireNode, type WireNodeId } from '../types.ts';
+import type { GateId, PinRef, Rotation, WireNode, WireNodeId } from '../types.ts';
 import { type Gate, getGateDefinition, getPinCounts } from '../gates.ts';
 import { Vec2 } from './vec2.ts';
 import { GRID_SIZE } from "../consts.ts";
@@ -32,7 +32,7 @@ export function getPinRefs(gate: Gate): PinRef[] {
 
 /** Check if two PinRefs refer to the same pin. */
 export function pinRefsEqual(a: PinRef, b: PinRef): boolean {
-  return pinRefKey(a) === pinRefKey(b);
+  return a.gateId === b.gateId && a.kind === b.kind && a.index === b.index;
 }
 
 /** Get gate pixel dimensions from definition. */

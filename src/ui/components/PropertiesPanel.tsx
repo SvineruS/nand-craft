@@ -3,7 +3,6 @@ import { useEditorState } from '../editorStore.ts';
 import { getGateDefinition, getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { ChangeGateLabelCommand, ChangeGateStateCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
-import { pinRefKey } from '../../circuit-builder/editor/types.ts';
 import { isConstantGate, isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
 
 
@@ -25,7 +24,7 @@ export function PropertiesPanel({ onExecute }: PropertiesPanelProps) {
       // Value field for input/constant
       const hasOutput = isInputGate(gate.type) || isConstantGate(gate.type);
       const outValue = hasOutput
-        ? state.circuit.simState.get(pinRefKey({ gateId: gate.id, kind: 'output', index: 0 })) ?? null
+        ? state.circuit.getPinValue(gate.id, 'output', 0)
         : undefined;
       const outBitWidth = hasOutput ? getPinBitWidth(gate.type, 'output', 0) : 1;
       const mask = ((1 << outBitWidth) >>> 0) - 1;

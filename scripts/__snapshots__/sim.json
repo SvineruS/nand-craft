@@ -1,0 +1,9107 @@
+{
+ "comb/nand": [
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  }
+ ],
+ "comb/and": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  }
+ ],
+ "comb/or": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  }
+ ],
+ "comb/nor": [
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  }
+ ],
+ "comb/xor": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  }
+ ],
+ "comb/xnor": [
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  }
+ ],
+ "comb/not": [
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1"
+   }
+  }
+ ],
+ "comb/8bit-or": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 127,
+    "dut:out:0": 127,
+    "in0:out:0": 0,
+    "in1:out:0": 127,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:out:0": 255,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "1/8",
+    "node#5": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 129
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 128,
+    "dut:out:0": 129,
+    "in0:out:0": 1,
+    "in1:out:0": 128,
+    "out0:in:0": 129
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "129/8",
+    "node#5": "129/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 0,
+    "dut:out:0": 127,
+    "in0:out:0": 127,
+    "in1:out:0": 0,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 127,
+    "dut:out:0": 127,
+    "in0:out:0": 127,
+    "in1:out:0": 127,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 255,
+    "dut:out:0": 255,
+    "in0:out:0": 127,
+    "in1:out:0": 255,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 129
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 1,
+    "dut:out:0": 129,
+    "in0:out:0": 128,
+    "in1:out:0": 1,
+    "out0:in:0": 129
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "129/8",
+    "node#5": "129/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 128,
+    "dut:out:0": 128,
+    "in0:out:0": 128,
+    "in1:out:0": 128,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 0,
+    "dut:out:0": 255,
+    "in0:out:0": 255,
+    "in1:out:0": 0,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 127,
+    "dut:out:0": 255,
+    "in0:out:0": 255,
+    "in1:out:0": 127,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 255,
+    "dut:out:0": 255,
+    "in0:out:0": 255,
+    "in1:out:0": 255,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  }
+ ],
+ "comb/8bit-nor": [
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 255,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 127,
+    "dut:out:0": 128,
+    "in0:out:0": 0,
+    "in1:out:0": 127,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 254
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 254,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 254
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "254/8",
+    "node#5": "254/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 126
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 128,
+    "dut:out:0": 126,
+    "in0:out:0": 1,
+    "in1:out:0": 128,
+    "out0:in:0": 126
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "126/8",
+    "node#5": "126/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 0,
+    "dut:out:0": 128,
+    "in0:out:0": 127,
+    "in1:out:0": 0,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 127,
+    "dut:out:0": 128,
+    "in0:out:0": 127,
+    "in1:out:0": 127,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 127,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 126
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 1,
+    "dut:out:0": 126,
+    "in0:out:0": 128,
+    "in1:out:0": 1,
+    "out0:in:0": 126
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "126/8",
+    "node#5": "126/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 128,
+    "dut:out:0": 127,
+    "in0:out:0": 128,
+    "in1:out:0": 128,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  }
+ ],
+ "comb/8bit-not": [
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:out:0": 255,
+    "in0:out:0": 0,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "255/8",
+    "node#3": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 254
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:out:0": 254,
+    "in0:out:0": 1,
+    "out0:in:0": 254
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "254/8",
+    "node#3": "254/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:out:0": 128,
+    "in0:out:0": 127,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "128/8",
+    "node#3": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:out:0": 127,
+    "in0:out:0": 128,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "127/8",
+    "node#3": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/8",
+    "node#3": "0/8"
+   }
+  }
+ ],
+ "comb/3bit-or": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  }
+ ],
+ "comb/3bit-and": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  }
+ ],
+ "comb/2bit-adder": [
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 1,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": 1,
+    "dut:out:1": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": 1,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  }
+ ],
+ "comb/3bit-adder": [
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 1,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 1,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 1,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 1,
+    "dut:out:1": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 1,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 1,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  }
+ ],
+ "comb/1bit-decoder": [
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:out:0": 1,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "out0:in:0": 1,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  }
+ ],
+ "comb/3bit-decoder": [
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 0,
+    "out2": 0,
+    "out3": 0,
+    "out4": 0,
+    "out5": 0,
+    "out6": 0,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 1,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 1,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/1",
+    "node#18": "0/1",
+    "node#19": "0/1",
+    "node#20": "0/1",
+    "node#21": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0,
+    "out2": 0,
+    "out3": 0,
+    "out4": 1,
+    "out5": 0,
+    "out6": 0,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 1,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 1,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "0/1",
+    "node#17": "0/1",
+    "node#18": "0/1",
+    "node#19": "0/1",
+    "node#20": "0/1",
+    "node#21": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0,
+    "out2": 1,
+    "out3": 0,
+    "out4": 0,
+    "out5": 0,
+    "out6": 0,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "dut:out:2": 1,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 0,
+    "out2:in:0": 1,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/1",
+    "node#18": "0/1",
+    "node#19": "0/1",
+    "node#20": "0/1",
+    "node#21": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0,
+    "out2": 0,
+    "out3": 0,
+    "out4": 0,
+    "out5": 0,
+    "out6": 1,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 1,
+    "dut:out:7": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 1,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/1",
+    "node#18": "1/1",
+    "node#19": "1/1",
+    "node#20": "0/1",
+    "node#21": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1,
+    "out2": 0,
+    "out3": 0,
+    "out4": 0,
+    "out5": 0,
+    "out6": 0,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 1,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/1",
+    "node#18": "0/1",
+    "node#19": "0/1",
+    "node#20": "0/1",
+    "node#21": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0,
+    "out2": 0,
+    "out3": 0,
+    "out4": 0,
+    "out5": 1,
+    "out6": 0,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 1,
+    "dut:out:6": 0,
+    "dut:out:7": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 1,
+    "out6:in:0": 0,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "1/1",
+    "node#17": "1/1",
+    "node#18": "0/1",
+    "node#19": "0/1",
+    "node#20": "0/1",
+    "node#21": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0,
+    "out2": 0,
+    "out3": 1,
+    "out4": 0,
+    "out5": 0,
+    "out6": 0,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 1,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 1,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/1",
+    "node#18": "0/1",
+    "node#19": "0/1",
+    "node#20": "0/1",
+    "node#21": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0,
+    "out2": 0,
+    "out3": 0,
+    "out4": 0,
+    "out5": 0,
+    "out6": 0,
+    "out7": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/1",
+    "node#18": "0/1",
+    "node#19": "0/1",
+    "node#20": "1/1",
+    "node#21": "1/1"
+   }
+  }
+ ],
+ "comb/8bit-adder": [
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 128,
+    "dut:out:0": 128,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 128,
+    "out0:in:0": 128,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "128/8",
+    "node#5": "128/8",
+    "node#6": "128/8",
+    "node#7": "128/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 2,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 2,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 2,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "2/8",
+    "node#7": "2/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 255,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 255,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 254,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 127,
+    "dut:in:2": 127,
+    "dut:out:0": 254,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 127,
+    "in2:out:0": 127,
+    "out0:in:0": 254,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "127/8",
+    "node#5": "127/8",
+    "node#6": "254/8",
+    "node#7": "254/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 128,
+    "dut:in:2": 0,
+    "dut:out:0": 128,
+    "dut:out:1": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 128,
+    "in2:out:0": 0,
+    "out0:in:0": 128,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "128/8",
+    "node#7": "128/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 128,
+    "dut:in:2": 128,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 128,
+    "in2:out:0": 128,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "128/8",
+    "node#5": "128/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "in2:out:0": 1,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 254,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:in:2": 255,
+    "dut:out:0": 254,
+    "dut:out:1": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "in2:out:0": 255,
+    "out0:in:0": 254,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "254/8",
+    "node#7": "254/8",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 127,
+    "dut:out:0": 128,
+    "dut:out:1": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 127,
+    "out0:in:0": 128,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "127/8",
+    "node#5": "127/8",
+    "node#6": "128/8",
+    "node#7": "128/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 2,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 2,
+    "dut:out:1": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 2,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "2/8",
+    "node#7": "2/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 130,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 128,
+    "dut:out:0": 130,
+    "dut:out:1": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 128,
+    "out0:in:0": 130,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "128/8",
+    "node#5": "128/8",
+    "node#6": "130/8",
+    "node#7": "130/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 129,
+    "out1": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 127,
+    "dut:in:2": 1,
+    "dut:out:0": 129,
+    "dut:out:1": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 127,
+    "in2:out:0": 1,
+    "out0:in:0": 129,
+    "out1:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "129/8",
+    "node#7": "129/8",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 127,
+    "dut:in:2": 255,
+    "dut:out:0": 127,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 127,
+    "in2:out:0": 255,
+    "out0:in:0": 127,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "127/8",
+    "node#7": "127/8",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 128,
+    "dut:in:2": 127,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 128,
+    "in2:out:0": 127,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "127/8",
+    "node#5": "127/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 255,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 255,
+    "in2:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128,
+    "out1": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 255,
+    "dut:in:2": 128,
+    "dut:out:0": 128,
+    "dut:out:1": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 255,
+    "in2:out:0": 128,
+    "out0:in:0": 128,
+    "out1:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "128/8",
+    "node#5": "128/8",
+    "node#6": "128/8",
+    "node#7": "128/8",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  }
+ ],
+ "comb/8bit-negative": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/8",
+    "node#3": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:out:0": 255,
+    "in0:out:0": 1,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "255/8",
+    "node#3": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 129
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:out:0": 129,
+    "in0:out:0": 127,
+    "out0:in:0": 129
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "129/8",
+    "node#3": "129/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:out:0": 128,
+    "in0:out:0": 128,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "128/8",
+    "node#3": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:out:0": 1,
+    "in0:out:0": 255,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "1/8",
+    "node#3": "1/8"
+   }
+  }
+ ],
+ "comb/8bit-subtractor": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 129
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 127,
+    "dut:out:0": 129,
+    "in0:out:0": 0,
+    "in1:out:0": 127,
+    "out0:in:0": 129
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "129/8",
+    "node#5": "129/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "1/8",
+    "node#5": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 129
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 128,
+    "dut:out:0": 129,
+    "in0:out:0": 1,
+    "in1:out:0": 128,
+    "out0:in:0": 129
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "129/8",
+    "node#5": "129/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 0,
+    "dut:out:0": 127,
+    "in0:out:0": 127,
+    "in1:out:0": 0,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 127,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 255,
+    "dut:out:0": 128,
+    "in0:out:0": 127,
+    "in1:out:0": 255,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 1,
+    "dut:out:0": 127,
+    "in0:out:0": 128,
+    "in1:out:0": 1,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 128,
+    "dut:out:0": 0,
+    "in0:out:0": 128,
+    "in1:out:0": 128,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 0,
+    "dut:out:0": 255,
+    "in0:out:0": 255,
+    "in1:out:0": 0,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 127,
+    "dut:out:0": 128,
+    "in0:out:0": 255,
+    "in1:out:0": 127,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  }
+ ],
+ "comb/mux": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  }
+ ],
+ "comb/8bit-mux": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "0/8",
+    "node#7": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 128,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 128,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "128/8",
+    "node#5": "128/8",
+    "node#6": "0/8",
+    "node#7": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "1/8",
+    "node#7": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 255,
+    "dut:out:0": 1,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 255,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "1/8",
+    "node#7": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 127,
+    "dut:in:2": 127,
+    "dut:out:0": 127,
+    "in0:out:0": 0,
+    "in1:out:0": 127,
+    "in2:out:0": 127,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "127/8",
+    "node#5": "127/8",
+    "node#6": "127/8",
+    "node#7": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 128,
+    "dut:in:2": 0,
+    "dut:out:0": 128,
+    "in0:out:0": 0,
+    "in1:out:0": 128,
+    "in2:out:0": 0,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "128/8",
+    "node#7": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 128,
+    "dut:in:2": 128,
+    "dut:out:0": 128,
+    "in0:out:0": 0,
+    "in1:out:0": 128,
+    "in2:out:0": 128,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "128/8",
+    "node#5": "128/8",
+    "node#6": "128/8",
+    "node#7": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:in:2": 1,
+    "dut:out:0": 255,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "in2:out:0": 1,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "255/8",
+    "node#7": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:in:2": 255,
+    "dut:out:0": 255,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "in2:out:0": 255,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "255/8",
+    "node#7": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 127,
+    "dut:out:0": 127,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 127,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "127/8",
+    "node#5": "127/8",
+    "node#6": "127/8",
+    "node#7": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "0/8",
+    "node#7": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 128,
+    "dut:out:0": 128,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 128,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "128/8",
+    "node#5": "128/8",
+    "node#6": "128/8",
+    "node#7": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 127,
+    "dut:in:2": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 127,
+    "in2:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "1/8",
+    "node#7": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 127,
+    "dut:in:2": 255,
+    "dut:out:0": 255,
+    "in0:out:0": 1,
+    "in1:out:0": 127,
+    "in2:out:0": 255,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "255/8",
+    "node#7": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 128,
+    "dut:in:2": 127,
+    "dut:out:0": 127,
+    "in0:out:0": 1,
+    "in1:out:0": 128,
+    "in2:out:0": 127,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "127/8",
+    "node#5": "127/8",
+    "node#6": "127/8",
+    "node#7": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 255,
+    "dut:in:2": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 255,
+    "in2:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "0/8",
+    "node#7": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 255,
+    "dut:in:2": 128,
+    "dut:out:0": 128,
+    "in0:out:0": 1,
+    "in1:out:0": 255,
+    "in2:out:0": 128,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "128/8",
+    "node#5": "128/8",
+    "node#6": "128/8",
+    "node#7": "128/8"
+   }
+  }
+ ],
+ "comb/tristate": [
+  {
+   "outputs": {
+    "out0": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": null,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "Z/1",
+    "node#5": "Z/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": null,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": null
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "Z/1",
+    "node#5": "Z/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  }
+ ],
+ "comb/8bit-tristate": [
+  {
+   "outputs": {
+    "out0": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": null,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "Z/8",
+    "node#5": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:out:0": null,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "out0:in:0": null
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "Z/8",
+    "node#5": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/8",
+    "node#5": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 0,
+    "dut:out:0": null,
+    "in0:out:0": 127,
+    "in1:out:0": 0,
+    "out0:in:0": null
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "Z/8",
+    "node#5": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 1,
+    "dut:out:0": 127,
+    "in0:out:0": 127,
+    "in1:out:0": 1,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 0,
+    "dut:out:0": null,
+    "in0:out:0": 128,
+    "in1:out:0": 0,
+    "out0:in:0": null
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "Z/8",
+    "node#5": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 1,
+    "dut:out:0": 128,
+    "in0:out:0": 128,
+    "in1:out:0": 1,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 0,
+    "dut:out:0": null,
+    "in0:out:0": 255,
+    "in1:out:0": 0,
+    "out0:in:0": null
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "Z/8",
+    "node#5": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 1,
+    "dut:out:0": 255,
+    "in0:out:0": 255,
+    "in1:out:0": 1,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  }
+ ],
+ "comb/splitter": [
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0,
+    "out2": 0,
+    "out3": 0,
+    "out4": 0,
+    "out5": 0,
+    "out6": 0,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 0,
+    "in0:out:0": 0,
+    "out0:in:0": 0,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 0,
+    "out2": 0,
+    "out3": 0,
+    "out4": 0,
+    "out5": 0,
+    "out6": 0,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:out:0": 1,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 0,
+    "in0:out:0": 1,
+    "out0:in:0": 1,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 1,
+    "out2": 1,
+    "out3": 1,
+    "out4": 1,
+    "out5": 1,
+    "out6": 1,
+    "out7": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:out:0": 1,
+    "dut:out:1": 1,
+    "dut:out:2": 1,
+    "dut:out:3": 1,
+    "dut:out:4": 1,
+    "dut:out:5": 1,
+    "dut:out:6": 1,
+    "dut:out:7": 0,
+    "in0:out:0": 127,
+    "out0:in:0": 1,
+    "out1:in:0": 1,
+    "out2:in:0": 1,
+    "out3:in:0": 1,
+    "out4:in:0": 1,
+    "out5:in:0": 1,
+    "out6:in:0": 1,
+    "out7:in:0": 0
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "0/1",
+    "node#17": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0,
+    "out1": 0,
+    "out2": 0,
+    "out3": 0,
+    "out4": 0,
+    "out5": 0,
+    "out6": 0,
+    "out7": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:out:0": 0,
+    "dut:out:1": 0,
+    "dut:out:2": 0,
+    "dut:out:3": 0,
+    "dut:out:4": 0,
+    "dut:out:5": 0,
+    "dut:out:6": 0,
+    "dut:out:7": 1,
+    "in0:out:0": 128,
+    "out0:in:0": 0,
+    "out1:in:0": 0,
+    "out2:in:0": 0,
+    "out3:in:0": 0,
+    "out4:in:0": 0,
+    "out5:in:0": 0,
+    "out6:in:0": 0,
+    "out7:in:0": 1
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "1/1",
+    "node#17": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1,
+    "out1": 1,
+    "out2": 1,
+    "out3": 1,
+    "out4": 1,
+    "out5": 1,
+    "out6": 1,
+    "out7": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:out:0": 1,
+    "dut:out:1": 1,
+    "dut:out:2": 1,
+    "dut:out:3": 1,
+    "dut:out:4": 1,
+    "dut:out:5": 1,
+    "dut:out:6": 1,
+    "dut:out:7": 1,
+    "in0:out:0": 255,
+    "out0:in:0": 1,
+    "out1:in:0": 1,
+    "out2:in:0": 1,
+    "out3:in:0": 1,
+    "out4:in:0": 1,
+    "out5:in:0": 1,
+    "out6:in:0": 1,
+    "out7:in:0": 1
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "1/1",
+    "node#17": "1/1"
+   }
+  }
+ ],
+ "comb/joiner": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:in:3": 0,
+    "dut:in:4": 0,
+    "dut:in:5": 0,
+    "dut:in:6": 0,
+    "dut:in:7": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "in3:out:0": 0,
+    "in4:out:0": 0,
+    "in5:out:0": 0,
+    "in6:out:0": 0,
+    "in7:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "0/8",
+    "node#17": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 208
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:in:3": 0,
+    "dut:in:4": 1,
+    "dut:in:5": 0,
+    "dut:in:6": 1,
+    "dut:in:7": 1,
+    "dut:out:0": 208,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "in3:out:0": 0,
+    "in4:out:0": 1,
+    "in5:out:0": 0,
+    "in6:out:0": 1,
+    "in7:out:0": 1,
+    "out0:in:0": 208
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "208/8",
+    "node#17": "208/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 104
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:in:3": 1,
+    "dut:in:4": 0,
+    "dut:in:5": 1,
+    "dut:in:6": 1,
+    "dut:in:7": 0,
+    "dut:out:0": 104,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "in3:out:0": 1,
+    "in4:out:0": 0,
+    "in5:out:0": 1,
+    "in6:out:0": 1,
+    "in7:out:0": 0,
+    "out0:in:0": 104
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "104/8",
+    "node#17": "104/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 132
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:in:3": 0,
+    "dut:in:4": 0,
+    "dut:in:5": 0,
+    "dut:in:6": 0,
+    "dut:in:7": 1,
+    "dut:out:0": 132,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "in3:out:0": 0,
+    "in4:out:0": 0,
+    "in5:out:0": 0,
+    "in6:out:0": 0,
+    "in7:out:0": 1,
+    "out0:in:0": 132
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "132/8",
+    "node#17": "132/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 52
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:in:3": 0,
+    "dut:in:4": 1,
+    "dut:in:5": 1,
+    "dut:in:6": 0,
+    "dut:in:7": 0,
+    "dut:out:0": 52,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "in3:out:0": 0,
+    "in4:out:0": 1,
+    "in5:out:0": 1,
+    "in6:out:0": 0,
+    "in7:out:0": 0,
+    "out0:in:0": 52
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "52/8",
+    "node#17": "52/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 236
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:in:3": 1,
+    "dut:in:4": 0,
+    "dut:in:5": 1,
+    "dut:in:6": 1,
+    "dut:in:7": 1,
+    "dut:out:0": 236,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "in3:out:0": 1,
+    "in4:out:0": 0,
+    "in5:out:0": 1,
+    "in6:out:0": 1,
+    "in7:out:0": 1,
+    "out0:in:0": 236
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "236/8",
+    "node#17": "236/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 66
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:in:3": 0,
+    "dut:in:4": 0,
+    "dut:in:5": 0,
+    "dut:in:6": 1,
+    "dut:in:7": 0,
+    "dut:out:0": 66,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "in3:out:0": 0,
+    "in4:out:0": 0,
+    "in5:out:0": 0,
+    "in6:out:0": 1,
+    "in7:out:0": 0,
+    "out0:in:0": 66
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "66/8",
+    "node#17": "66/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 178
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:in:3": 0,
+    "dut:in:4": 1,
+    "dut:in:5": 1,
+    "dut:in:6": 0,
+    "dut:in:7": 1,
+    "dut:out:0": 178,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "in3:out:0": 0,
+    "in4:out:0": 1,
+    "in5:out:0": 1,
+    "in6:out:0": 0,
+    "in7:out:0": 1,
+    "out0:in:0": 178
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "178/8",
+    "node#17": "178/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 26
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:in:3": 1,
+    "dut:in:4": 1,
+    "dut:in:5": 0,
+    "dut:in:6": 0,
+    "dut:in:7": 0,
+    "dut:out:0": 26,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "in3:out:0": 1,
+    "in4:out:0": 1,
+    "in5:out:0": 0,
+    "in6:out:0": 0,
+    "in7:out:0": 0,
+    "out0:in:0": 26
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "26/8",
+    "node#17": "26/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 198
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:in:3": 0,
+    "dut:in:4": 0,
+    "dut:in:5": 0,
+    "dut:in:6": 1,
+    "dut:in:7": 1,
+    "dut:out:0": 198,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "in3:out:0": 0,
+    "in4:out:0": 0,
+    "in5:out:0": 0,
+    "in6:out:0": 1,
+    "in7:out:0": 1,
+    "out0:in:0": 198
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "198/8",
+    "node#17": "198/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 118
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:in:3": 0,
+    "dut:in:4": 1,
+    "dut:in:5": 1,
+    "dut:in:6": 1,
+    "dut:in:7": 0,
+    "dut:out:0": 118,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "in3:out:0": 0,
+    "in4:out:0": 1,
+    "in5:out:0": 1,
+    "in6:out:0": 1,
+    "in7:out:0": 0,
+    "out0:in:0": 118
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "118/8",
+    "node#17": "118/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 158
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:in:3": 1,
+    "dut:in:4": 1,
+    "dut:in:5": 0,
+    "dut:in:6": 0,
+    "dut:in:7": 1,
+    "dut:out:0": 158,
+    "in0:out:0": 0,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "in3:out:0": 1,
+    "in4:out:0": 1,
+    "in5:out:0": 0,
+    "in6:out:0": 0,
+    "in7:out:0": 1,
+    "out0:in:0": 158
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "158/8",
+    "node#17": "158/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 33
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:in:3": 0,
+    "dut:in:4": 0,
+    "dut:in:5": 1,
+    "dut:in:6": 0,
+    "dut:in:7": 0,
+    "dut:out:0": 33,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "in3:out:0": 0,
+    "in4:out:0": 0,
+    "in5:out:0": 1,
+    "in6:out:0": 0,
+    "in7:out:0": 0,
+    "out0:in:0": 33
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "33/8",
+    "node#17": "33/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 241
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:in:3": 0,
+    "dut:in:4": 1,
+    "dut:in:5": 1,
+    "dut:in:6": 1,
+    "dut:in:7": 1,
+    "dut:out:0": 241,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "in3:out:0": 0,
+    "in4:out:0": 1,
+    "in5:out:0": 1,
+    "in6:out:0": 1,
+    "in7:out:0": 1,
+    "out0:in:0": 241
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "241/8",
+    "node#17": "241/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 89
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 0,
+    "dut:in:3": 1,
+    "dut:in:4": 1,
+    "dut:in:5": 0,
+    "dut:in:6": 1,
+    "dut:in:7": 0,
+    "dut:out:0": 89,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 0,
+    "in3:out:0": 1,
+    "in4:out:0": 1,
+    "in5:out:0": 0,
+    "in6:out:0": 1,
+    "in7:out:0": 0,
+    "out0:in:0": 89
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "89/8",
+    "node#17": "89/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 165
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:in:3": 0,
+    "dut:in:4": 0,
+    "dut:in:5": 1,
+    "dut:in:6": 0,
+    "dut:in:7": 1,
+    "dut:out:0": 165,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "in3:out:0": 0,
+    "in4:out:0": 0,
+    "in5:out:0": 1,
+    "in6:out:0": 0,
+    "in7:out:0": 1,
+    "out0:in:0": 165
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "165/8",
+    "node#17": "165/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 13
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:in:3": 1,
+    "dut:in:4": 0,
+    "dut:in:5": 0,
+    "dut:in:6": 0,
+    "dut:in:7": 0,
+    "dut:out:0": 13,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "in3:out:0": 1,
+    "in4:out:0": 0,
+    "in5:out:0": 0,
+    "in6:out:0": 0,
+    "in7:out:0": 0,
+    "out0:in:0": 13
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "13/8",
+    "node#17": "13/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 221
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 0,
+    "dut:in:2": 1,
+    "dut:in:3": 1,
+    "dut:in:4": 1,
+    "dut:in:5": 0,
+    "dut:in:6": 1,
+    "dut:in:7": 1,
+    "dut:out:0": 221,
+    "in0:out:0": 1,
+    "in1:out:0": 0,
+    "in2:out:0": 1,
+    "in3:out:0": 1,
+    "in4:out:0": 1,
+    "in5:out:0": 0,
+    "in6:out:0": 1,
+    "in7:out:0": 1,
+    "out0:in:0": 221
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "221/8",
+    "node#17": "221/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 99
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:in:3": 0,
+    "dut:in:4": 0,
+    "dut:in:5": 1,
+    "dut:in:6": 1,
+    "dut:in:7": 0,
+    "dut:out:0": 99,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "in3:out:0": 0,
+    "in4:out:0": 0,
+    "in5:out:0": 1,
+    "in6:out:0": 1,
+    "in7:out:0": 0,
+    "out0:in:0": 99
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "99/8",
+    "node#17": "99/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 139
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:in:3": 1,
+    "dut:in:4": 0,
+    "dut:in:5": 0,
+    "dut:in:6": 0,
+    "dut:in:7": 1,
+    "dut:out:0": 139,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "in3:out:0": 1,
+    "in4:out:0": 0,
+    "in5:out:0": 0,
+    "in6:out:0": 0,
+    "in7:out:0": 1,
+    "out0:in:0": 139
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "139/8",
+    "node#17": "139/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 59
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 0,
+    "dut:in:3": 1,
+    "dut:in:4": 1,
+    "dut:in:5": 1,
+    "dut:in:6": 0,
+    "dut:in:7": 0,
+    "dut:out:0": 59,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 0,
+    "in3:out:0": 1,
+    "in4:out:0": 1,
+    "in5:out:0": 1,
+    "in6:out:0": 0,
+    "in7:out:0": 0,
+    "out0:in:0": 59
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "59/8",
+    "node#17": "59/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 231
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:in:3": 0,
+    "dut:in:4": 0,
+    "dut:in:5": 1,
+    "dut:in:6": 1,
+    "dut:in:7": 1,
+    "dut:out:0": 231,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "in3:out:0": 0,
+    "in4:out:0": 0,
+    "in5:out:0": 1,
+    "in6:out:0": 1,
+    "in7:out:0": 1,
+    "out0:in:0": 231
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "231/8",
+    "node#17": "231/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 79
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:in:3": 1,
+    "dut:in:4": 0,
+    "dut:in:5": 0,
+    "dut:in:6": 1,
+    "dut:in:7": 0,
+    "dut:out:0": 79,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "in3:out:0": 1,
+    "in4:out:0": 0,
+    "in5:out:0": 0,
+    "in6:out:0": 1,
+    "in7:out:0": 0,
+    "out0:in:0": 79
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1",
+    "node#11": "0/1",
+    "node#12": "1/1",
+    "node#13": "1/1",
+    "node#14": "0/1",
+    "node#15": "0/1",
+    "node#16": "79/8",
+    "node#17": "79/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 191
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:in:2": 1,
+    "dut:in:3": 1,
+    "dut:in:4": 1,
+    "dut:in:5": 1,
+    "dut:in:6": 0,
+    "dut:in:7": 1,
+    "dut:out:0": 191,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "in2:out:0": 1,
+    "in3:out:0": 1,
+    "in4:out:0": 1,
+    "in5:out:0": 1,
+    "in6:out:0": 0,
+    "in7:out:0": 1,
+    "out0:in:0": 191
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1",
+    "node#11": "1/1",
+    "node#12": "0/1",
+    "node#13": "0/1",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "191/8",
+    "node#17": "191/8"
+   }
+  }
+ ],
+ "tristate-contention": [
+  {
+   "outputs": {
+    "bus": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "aVal:out:0": 1,
+    "aEn:out:0": 0,
+    "bVal:out:0": 0,
+    "bEn:out:0": 0,
+    "triA:in:0": 1,
+    "triA:in:1": 0,
+    "triA:out:0": null,
+    "triB:in:0": 0,
+    "triB:in:1": 0,
+    "triB:out:0": null,
+    "bus:in:0": null
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "Z/1",
+    "node#9": "Z/1",
+    "node#10": "Z/1"
+   }
+  },
+  {
+   "outputs": {
+    "bus": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "aVal:out:0": 1,
+    "aEn:out:0": 0,
+    "bVal:out:0": 0,
+    "bEn:out:0": 1,
+    "triA:in:0": 1,
+    "triA:in:1": 0,
+    "triA:out:0": null,
+    "triB:in:0": 0,
+    "triB:in:1": 1,
+    "triB:out:0": 0,
+    "bus:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "bus": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "aVal:out:0": 1,
+    "aEn:out:0": 1,
+    "bVal:out:0": 0,
+    "bEn:out:0": 0,
+    "triA:in:0": 1,
+    "triA:in:1": 1,
+    "triA:out:0": 1,
+    "triB:in:0": 0,
+    "triB:in:1": 0,
+    "triB:out:0": null,
+    "bus:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "bus": null
+   },
+   "contentionNets": [
+    "node#10+node#8+node#9"
+   ],
+   "errorSegments": [
+    "seg#4",
+    "seg#5"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "aVal:out:0": 1,
+    "aEn:out:0": 1,
+    "bVal:out:0": 0,
+    "bEn:out:0": 1,
+    "triA:in:0": 1,
+    "triA:in:1": 1,
+    "triA:out:0": 1,
+    "triB:in:0": 0,
+    "triB:in:1": 1,
+    "triB:out:0": 0,
+    "bus:in:0": null
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "Z/1",
+    "node#9": "Z/1",
+    "node#10": "Z/1"
+   }
+  }
+ ],
+ "tristate-unwired-enable": [
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "tri:in:0": 1,
+    "tri:in:1": null,
+    "tri:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "Z/1",
+    "node#3": "Z/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "tri:in:0": 0,
+    "tri:in:1": null,
+    "tri:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "Z/1",
+    "node#3": "Z/1"
+   }
+  }
+ ],
+ "width-mismatch": [
+  {
+   "outputs": {
+    "narrow": null,
+    "wide": null
+   },
+   "contentionNets": [
+    "node#0+node#1+node#2"
+   ],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 0,
+    "narrow:in:0": null,
+    "wide:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/8",
+    "node#1": "Z/8",
+    "node#2": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "narrow": null,
+    "wide": null
+   },
+   "contentionNets": [
+    "node#0+node#1+node#2"
+   ],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 1,
+    "narrow:in:0": null,
+    "wide:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/8",
+    "node#1": "Z/8",
+    "node#2": "Z/8"
+   }
+  }
+ ],
+ "width-mismatch-reversed": [
+  {
+   "outputs": {
+    "wide": null,
+    "narrow": null
+   },
+   "contentionNets": [
+    "node#0+node#1+node#2"
+   ],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 200,
+    "wide:in:0": null,
+    "narrow:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/8",
+    "node#1": "Z/8",
+    "node#2": "Z/8"
+   }
+  }
+ ],
+ "multi-driver": [
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [
+    "node#0+node#1+node#2"
+   ],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "a:out:0": 0,
+    "c:out:0": 0,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/1",
+    "node#1": "Z/1",
+    "node#2": "Z/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [
+    "node#0+node#1+node#2"
+   ],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "a:out:0": 0,
+    "c:out:0": 1,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/1",
+    "node#1": "Z/1",
+    "node#2": "Z/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [
+    "node#0+node#1+node#2"
+   ],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "a:out:0": 1,
+    "c:out:0": 1,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/1",
+    "node#1": "Z/1",
+    "node#2": "Z/1"
+   }
+  }
+ ],
+ "unconnected-inputs": [
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": null,
+    "dut:in:1": null,
+    "dut:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1"
+   }
+  }
+ ],
+ "feedback-ring": [
+  {
+   "outputs": {
+    "probe": null
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#1",
+    "seg#2",
+    "seg#3"
+   ],
+   "shortCircuitGates": [
+    "n0",
+    "n1",
+    "n2"
+   ],
+   "pins": {
+    "n0:in:0": null,
+    "n0:out:0": null,
+    "n1:in:0": null,
+    "n1:out:0": null,
+    "n2:in:0": null,
+    "n2:out:0": null,
+    "probe:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/1",
+    "node#1": "Z/1",
+    "node#2": "Z/1",
+    "node#3": "Z/1",
+    "node#4": "Z/1",
+    "node#5": "Z/1",
+    "node#6": "Z/1"
+   }
+  },
+  {
+   "outputs": {
+    "probe": null
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#1",
+    "seg#2",
+    "seg#3"
+   ],
+   "shortCircuitGates": [
+    "n0",
+    "n1",
+    "n2"
+   ],
+   "pins": {
+    "n0:in:0": null,
+    "n0:out:0": null,
+    "n1:in:0": null,
+    "n1:out:0": null,
+    "n2:in:0": null,
+    "n2:out:0": null,
+    "probe:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/1",
+    "node#1": "Z/1",
+    "node#2": "Z/1",
+    "node#3": "Z/1",
+    "node#4": "Z/1",
+    "node#5": "Z/1",
+    "node#6": "Z/1"
+   }
+  }
+ ],
+ "self-loop": [
+  {
+   "outputs": {
+    "probe": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [
+    "inv"
+   ],
+   "pins": {
+    "inv:in:0": 1,
+    "inv:out:0": 1,
+    "probe:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "probe": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [
+    "inv"
+   ],
+   "pins": {
+    "inv:in:0": 1,
+    "inv:out:0": 1,
+    "probe:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1"
+   }
+  }
+ ],
+ "cycle-plus-tristate": [
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#3",
+    "seg#4",
+    "seg#5"
+   ],
+   "shortCircuitGates": [
+    "ringA",
+    "ringB"
+   ],
+   "pins": {
+    "ringA:in:0": null,
+    "ringA:out:0": null,
+    "ringB:in:0": null,
+    "ringB:out:0": null,
+    "value:out:0": 1,
+    "enable:out:0": 0,
+    "tri:in:0": 1,
+    "tri:in:1": 0,
+    "tri:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "Z/1",
+    "node#1": "Z/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "Z/1",
+    "node#7": "Z/1",
+    "node#8": "Z/1",
+    "node#9": "Z/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#3",
+    "seg#4",
+    "seg#5"
+   ],
+   "shortCircuitGates": [
+    "ringA",
+    "ringB"
+   ],
+   "pins": {
+    "ringA:in:0": 1,
+    "ringA:out:0": null,
+    "ringB:in:0": null,
+    "ringB:out:0": null,
+    "value:out:0": 1,
+    "enable:out:0": 1,
+    "tri:in:0": 1,
+    "tri:in:1": 1,
+    "tri:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "Z/1",
+    "node#1": "Z/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "1/1",
+    "node#9": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#3",
+    "seg#4",
+    "seg#5"
+   ],
+   "shortCircuitGates": [
+    "ringA",
+    "ringB"
+   ],
+   "pins": {
+    "ringA:in:0": 0,
+    "ringA:out:0": null,
+    "ringB:in:0": null,
+    "ringB:out:0": null,
+    "value:out:0": 0,
+    "enable:out:0": 1,
+    "tri:in:0": 0,
+    "tri:in:1": 1,
+    "tri:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "Z/1",
+    "node#1": "Z/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "0/1",
+    "node#9": "0/1"
+   }
+  }
+ ],
+ "delay-chain": [
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 1,
+    "d0:in:0": 1,
+    "d0:out:0": 0,
+    "d1:in:0": 0,
+    "d1:out:0": 0,
+    "d2:in:0": 0,
+    "d2:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 0,
+    "d0:in:0": 0,
+    "d0:out:0": 1,
+    "d1:in:0": 1,
+    "d1:out:0": 0,
+    "d2:in:0": 0,
+    "d2:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 0,
+    "d0:in:0": 0,
+    "d0:out:0": 0,
+    "d1:in:0": 0,
+    "d1:out:0": 1,
+    "d2:in:0": 1,
+    "d2:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 1,
+    "d0:in:0": 1,
+    "d0:out:0": 0,
+    "d1:in:0": 0,
+    "d1:out:0": 0,
+    "d2:in:0": 0,
+    "d2:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 1,
+    "d0:in:0": 1,
+    "d0:out:0": 1,
+    "d1:in:0": 1,
+    "d1:out:0": 0,
+    "d2:in:0": 0,
+    "d2:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 1,
+    "d0:in:0": 1,
+    "d0:out:0": 1,
+    "d1:in:0": 1,
+    "d1:out:0": 1,
+    "d2:in:0": 1,
+    "d2:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 0,
+    "d0:in:0": 0,
+    "d0:out:0": 1,
+    "d1:in:0": 1,
+    "d1:out:0": 1,
+    "d2:in:0": 1,
+    "d2:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 1,
+    "d0:in:0": 1,
+    "d0:out:0": 0,
+    "d1:in:0": 0,
+    "d1:out:0": 1,
+    "d2:in:0": 1,
+    "d2:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 0,
+    "d0:in:0": 0,
+    "d0:out:0": 1,
+    "d1:in:0": 1,
+    "d1:out:0": 0,
+    "d2:in:0": 0,
+    "d2:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 0,
+    "d0:in:0": 0,
+    "d0:out:0": 0,
+    "d1:in:0": 0,
+    "d1:out:0": 1,
+    "d2:in:0": 1,
+    "d2:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 1,
+    "d0:in:0": 1,
+    "d0:out:0": 0,
+    "d1:in:0": 0,
+    "d1:out:0": 0,
+    "d2:in:0": 0,
+    "d2:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "src:out:0": 0,
+    "d0:in:0": 0,
+    "d0:out:0": 1,
+    "d1:in:0": 1,
+    "d1:out:0": 0,
+    "d2:in:0": 0,
+    "d2:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  }
+ ],
+ "rs-latch-seq": [
+  {
+   "outputs": {
+    "q": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 0,
+    "r:out:0": 0,
+    "latch:in:0": 0,
+    "latch:in:1": 0,
+    "latch:out:0": 0,
+    "q:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 1,
+    "r:out:0": 0,
+    "latch:in:0": 1,
+    "latch:in:1": 0,
+    "latch:out:0": 0,
+    "q:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 0,
+    "r:out:0": 0,
+    "latch:in:0": 0,
+    "latch:in:1": 0,
+    "latch:out:0": 1,
+    "q:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 0,
+    "r:out:0": 1,
+    "latch:in:0": 0,
+    "latch:in:1": 1,
+    "latch:out:0": 1,
+    "q:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 0,
+    "r:out:0": 0,
+    "latch:in:0": 0,
+    "latch:in:1": 0,
+    "latch:out:0": 0,
+    "q:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 1,
+    "r:out:0": 1,
+    "latch:in:0": 1,
+    "latch:in:1": 1,
+    "latch:out:0": 0,
+    "q:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 0,
+    "r:out:0": 0,
+    "latch:in:0": 0,
+    "latch:in:1": 0,
+    "latch:out:0": 0,
+    "q:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 1,
+    "r:out:0": 0,
+    "latch:in:0": 1,
+    "latch:in:1": 0,
+    "latch:out:0": 0,
+    "q:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 1,
+    "r:out:0": 1,
+    "latch:in:0": 1,
+    "latch:in:1": 1,
+    "latch:out:0": 1,
+    "q:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 0,
+    "r:out:0": 1,
+    "latch:in:0": 0,
+    "latch:in:1": 1,
+    "latch:out:0": 1,
+    "q:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 0,
+    "r:out:0": 0,
+    "latch:in:0": 0,
+    "latch:in:1": 0,
+    "latch:out:0": 0,
+    "q:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "q": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "s:out:0": 1,
+    "r:out:0": 0,
+    "latch:in:0": 1,
+    "latch:in:1": 0,
+    "latch:out:0": 0,
+    "q:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  }
+ ],
+ "mem1-seq": [
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 1,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 0,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 0,
+    "mem:in:0": 1,
+    "mem:in:1": 0,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 1,
+    "mem:in:0": 0,
+    "mem:in:1": 1,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 0,
+    "mem:in:0": 1,
+    "mem:in:1": 0,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 1,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 0,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 0,
+    "mem:in:0": 1,
+    "mem:in:1": 0,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 1,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 0,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 1,
+    "mem:in:0": 0,
+    "mem:in:1": 1,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 0,
+    "mem:in:0": 1,
+    "mem:in:1": 0,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 0,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  }
+ ],
+ "mem8-seq": [
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 1,
+    "mem:in:0": 0,
+    "mem:in:1": 1,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 0,
+    "mem:in:0": 1,
+    "mem:in:1": 0,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 0,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 42,
+    "write:out:0": 1,
+    "mem:in:0": 42,
+    "mem:in:1": 1,
+    "mem:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "42/8",
+    "node#1": "42/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 42
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 43,
+    "write:out:0": 0,
+    "mem:in:0": 43,
+    "mem:in:1": 0,
+    "mem:out:0": 42,
+    "sink:in:0": 42
+   },
+   "nodes": {
+    "node#0": "43/8",
+    "node#1": "43/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "42/8",
+    "node#5": "42/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 42
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 255,
+    "write:out:0": 1,
+    "mem:in:0": 255,
+    "mem:in:1": 1,
+    "mem:out:0": 42,
+    "sink:in:0": 42
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "42/8",
+    "node#5": "42/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 0,
+    "mem:out:0": 255,
+    "sink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 255,
+    "write:out:0": 0,
+    "mem:in:0": 255,
+    "mem:in:1": 0,
+    "mem:out:0": 255,
+    "sink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 128,
+    "write:out:0": 1,
+    "mem:in:0": 128,
+    "mem:in:1": 1,
+    "mem:out:0": 255,
+    "sink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 129,
+    "write:out:0": 0,
+    "mem:in:0": 129,
+    "mem:in:1": 0,
+    "mem:out:0": 128,
+    "sink:in:0": 128
+   },
+   "nodes": {
+    "node#0": "129/8",
+    "node#1": "129/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 7,
+    "write:out:0": 1,
+    "mem:in:0": 7,
+    "mem:in:1": 1,
+    "mem:out:0": 128,
+    "sink:in:0": 128
+   },
+   "nodes": {
+    "node#0": "7/8",
+    "node#1": "7/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 7
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 8,
+    "write:out:0": 0,
+    "mem:in:0": 8,
+    "mem:in:1": 0,
+    "mem:out:0": 7,
+    "sink:in:0": 7
+   },
+   "nodes": {
+    "node#0": "8/8",
+    "node#1": "8/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "7/8",
+    "node#5": "7/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 7
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 7,
+    "write:out:0": 0,
+    "mem:in:0": 7,
+    "mem:in:1": 0,
+    "mem:out:0": 7,
+    "sink:in:0": 7
+   },
+   "nodes": {
+    "node#0": "7/8",
+    "node#1": "7/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "7/8",
+    "node#5": "7/8"
+   }
+  }
+ ],
+ "counter-seq": [
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 2
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 2,
+    "sink:in:0": 2
+   },
+   "nodes": {
+    "node#0": "2/8",
+    "node#1": "2/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 3
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 3,
+    "sink:in:0": 3
+   },
+   "nodes": {
+    "node#0": "3/8",
+    "node#1": "3/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 4
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 4,
+    "sink:in:0": 4
+   },
+   "nodes": {
+    "node#0": "4/8",
+    "node#1": "4/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 5
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 5,
+    "sink:in:0": 5
+   },
+   "nodes": {
+    "node#0": "5/8",
+    "node#1": "5/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 6
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 6,
+    "sink:in:0": 6
+   },
+   "nodes": {
+    "node#0": "6/8",
+    "node#1": "6/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 7
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 7,
+    "sink:in:0": 7
+   },
+   "nodes": {
+    "node#0": "7/8",
+    "node#1": "7/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 8
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 8,
+    "sink:in:0": 8
+   },
+   "nodes": {
+    "node#0": "8/8",
+    "node#1": "8/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 9
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 9,
+    "sink:in:0": 9
+   },
+   "nodes": {
+    "node#0": "9/8",
+    "node#1": "9/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 10
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 10,
+    "sink:in:0": 10
+   },
+   "nodes": {
+    "node#0": "10/8",
+    "node#1": "10/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 11
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "ctr:out:0": 11,
+    "sink:in:0": 11
+   },
+   "nodes": {
+    "node#0": "11/8",
+    "node#1": "11/8"
+   }
+  }
+ ],
+ "counter-reset-seq": [
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 7,
+    "override:out:0": 1,
+    "ctr:in:0": 7,
+    "ctr:in:1": 1,
+    "ctr:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "7/8",
+    "node#1": "7/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 7
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 0,
+    "ctr:in:0": 0,
+    "ctr:in:1": 0,
+    "ctr:out:0": 7,
+    "sink:in:0": 7
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "7/8",
+    "node#5": "7/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 8
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 0,
+    "ctr:in:0": 0,
+    "ctr:in:1": 0,
+    "ctr:out:0": 8,
+    "sink:in:0": 8
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "8/8",
+    "node#5": "8/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 9
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 200,
+    "override:out:0": 1,
+    "ctr:in:0": 200,
+    "ctr:in:1": 1,
+    "ctr:out:0": 9,
+    "sink:in:0": 9
+   },
+   "nodes": {
+    "node#0": "200/8",
+    "node#1": "200/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "9/8",
+    "node#5": "9/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 200
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 0,
+    "ctr:in:0": 0,
+    "ctr:in:1": 0,
+    "ctr:out:0": 200,
+    "sink:in:0": 200
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "200/8",
+    "node#5": "200/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 201
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 0,
+    "ctr:in:0": 0,
+    "ctr:in:1": 0,
+    "ctr:out:0": 201,
+    "sink:in:0": 201
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "201/8",
+    "node#5": "201/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 202
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 255,
+    "override:out:0": 1,
+    "ctr:in:0": 255,
+    "ctr:in:1": 1,
+    "ctr:out:0": 202,
+    "sink:in:0": 202
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "202/8",
+    "node#5": "202/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 0,
+    "ctr:in:0": 0,
+    "ctr:in:1": 0,
+    "ctr:out:0": 255,
+    "sink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 0,
+    "ctr:in:0": 0,
+    "ctr:in:1": 0,
+    "ctr:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 1,
+    "ctr:in:0": 0,
+    "ctr:in:1": 1,
+    "ctr:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/8",
+    "node#5": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 0,
+    "ctr:in:0": 0,
+    "ctr:in:1": 0,
+    "ctr:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "override:out:0": 0,
+    "ctr:in:0": 0,
+    "ctr:in:1": 0,
+    "ctr:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/8",
+    "node#5": "1/8"
+   }
+  }
+ ],
+ "switch-io": [
+  {
+   "outputs": {
+    "swOut": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "inEn:out:0": 0,
+    "outEn:out:0": 0,
+    "sw:in:0": 0,
+    "sw:out:0": null,
+    "inv:in:0": null,
+    "inv:out:0": 1,
+    "swOut:in:0": 1,
+    "swOut:in:1": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "Z/1",
+    "node#3": "Z/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "swOut": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "inEn:out:0": 0,
+    "outEn:out:0": 1,
+    "sw:in:0": 0,
+    "sw:out:0": null,
+    "inv:in:0": null,
+    "inv:out:0": 1,
+    "swOut:in:0": 1,
+    "swOut:in:1": 1
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "Z/1",
+    "node#3": "Z/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "swOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "inEn:out:0": 1,
+    "outEn:out:0": 0,
+    "sw:in:0": 1,
+    "sw:out:0": 1,
+    "inv:in:0": 1,
+    "inv:out:0": 0,
+    "swOut:in:0": 0,
+    "swOut:in:1": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "swOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "inEn:out:0": 1,
+    "outEn:out:0": 1,
+    "sw:in:0": 1,
+    "sw:out:0": 1,
+    "inv:in:0": 1,
+    "inv:out:0": 0,
+    "swOut:in:0": 0,
+    "swOut:in:1": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  }
+ ],
+ "constants-and-level": [
+  {
+   "outputs": {
+    "s1": 1,
+    "s8": 200,
+    "s16": 40000,
+    "sl": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "c1:out:0": 1,
+    "c8:out:0": 200,
+    "c16:out:0": 40000,
+    "lvl:in:0": null,
+    "lvl:out:0": 0,
+    "s1:in:0": 1,
+    "s8:in:0": 200,
+    "s16:in:0": 40000,
+    "sl:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "200/8",
+    "node#3": "200/8",
+    "node#4": "40000/16",
+    "node#5": "40000/16",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "s1": 1,
+    "s8": 200,
+    "s16": 40000,
+    "sl": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "c1:out:0": 1,
+    "c8:out:0": 200,
+    "c16:out:0": 40000,
+    "lvl:in:0": null,
+    "lvl:out:0": 1,
+    "s1:in:0": 1,
+    "s8:in:0": 200,
+    "s16:in:0": 40000,
+    "sl:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "200/8",
+    "node#3": "200/8",
+    "node#4": "40000/16",
+    "node#5": "40000/16",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  }
+ ],
+ "nested-component": [
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 1,
+    "instance:in:0": 1,
+    "instance:in:1": 1,
+    "instance:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "instance:in:0": 0,
+    "instance:in:1": 0,
+    "instance:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "instance:in:0": 0,
+    "instance:in:1": 0,
+    "instance:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 1,
+    "instance:in:0": 0,
+    "instance:in:1": 1,
+    "instance:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 0,
+    "instance:in:0": 1,
+    "instance:in:1": 0,
+    "instance:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 1,
+    "instance:in:0": 1,
+    "instance:in:1": 1,
+    "instance:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 0,
+    "instance:in:0": 0,
+    "instance:in:1": 0,
+    "instance:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 1,
+    "write:out:0": 0,
+    "instance:in:0": 1,
+    "instance:in:1": 0,
+    "instance:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1"
+   }
+  }
+ ],
+ "wide-adder": [
+  {
+   "outputs": {
+    "sum0": 0,
+    "sum1": 0,
+    "sum2": 0,
+    "sum3": 0,
+    "sum4": 0,
+    "sum5": 0,
+    "sum6": 0,
+    "sum7": 0,
+    "carryOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": []
+  },
+  {
+   "outputs": {
+    "sum0": 0,
+    "sum1": 1,
+    "sum2": 1,
+    "sum3": 1,
+    "sum4": 1,
+    "sum5": 1,
+    "sum6": 1,
+    "sum7": 1,
+    "carryOut": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": []
+  },
+  {
+   "outputs": {
+    "sum0": 255,
+    "sum1": 255,
+    "sum2": 255,
+    "sum3": 255,
+    "sum4": 255,
+    "sum5": 255,
+    "sum6": 255,
+    "sum7": 255,
+    "carryOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": []
+  },
+  {
+   "outputs": {
+    "sum0": 254,
+    "sum1": 255,
+    "sum2": 255,
+    "sum3": 255,
+    "sum4": 255,
+    "sum5": 255,
+    "sum6": 255,
+    "sum7": 255,
+    "carryOut": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": []
+  }
+ ],
+ "@level-map": [
+  {
+   "outputs": {},
+   "contentionNets": [
+    "none"
+   ],
+   "errorSegments": [
+    "0"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "not:in:0": 1,
+    "not:out:0": 1,
+    "and:in:0": 1,
+    "and:out:0": 1,
+    "or:in:0": 1,
+    "or:out:0": 1,
+    "always-on:in:0": 1,
+    "always-on:out:0": 0,
+    "xor:in:0": null,
+    "xor:out:0": 0,
+    "xnor:in:0": 1,
+    "xnor:out:0": 0,
+    "3bit-or:in:0": 1,
+    "3bit-or:out:0": 0,
+    "3bit-and:in:0": null,
+    "3bit-and:out:0": 0,
+    "8bit-not:in:0": 0,
+    "8bit-not:out:0": 0,
+    "8bit-or:in:0": null,
+    "8bit-or:out:0": 0,
+    "2bit-adder:in:0": 0,
+    "2bit-adder:out:0": 0,
+    "3bit-adder:in:0": 0,
+    "3bit-adder:out:0": 0,
+    "switch:in:0": 1,
+    "switch:out:0": 0,
+    "1bit-decoder:in:0": 0,
+    "1bit-decoder:out:0": 0,
+    "3bit-decoder:in:0": 0,
+    "3bit-decoder:out:0": 0,
+    "8bit-negative:in:0": 0,
+    "8bit-negative:out:0": 0,
+    "delay:in:0": 1,
+    "delay:out:0": 0,
+    "rs-latch:in:0": 0,
+    "rs-latch:out:0": 0,
+    "8bit-memory:in:0": 0,
+    "8bit-memory:out:0": 0,
+    "8bit-counter:in:0": 0,
+    "8bit-counter:out:0": 0,
+    "8bit-counter-reset:in:0": 0,
+    "8bit-counter-reset:out:0": 0,
+    "wire:in:0": null,
+    "wire:out:0": 1,
+    "nand:in:0": 1,
+    "nand:out:0": 1,
+    "sandbox:in:0": null,
+    "sandbox:out:0": 1,
+    "gate_723:in:0": 0,
+    "gate_723:in:1": 0,
+    "gate_723:out:0": 0,
+    "gate_923:in:0": 0,
+    "gate_923:out:0": 0,
+    "gate_923:out:1": 0,
+    "gate_923:out:2": 0,
+    "gate_923:out:3": 0,
+    "gate_923:out:4": 0,
+    "gate_923:out:5": 0,
+    "gate_923:out:6": 0,
+    "gate_923:out:7": 0,
+    "gate_948:in:0": null,
+    "gate_948:in:1": 0,
+    "gate_948:in:2": null,
+    "gate_948:in:3": 0,
+    "gate_948:in:4": null,
+    "gate_948:in:5": 0,
+    "gate_948:in:6": null,
+    "gate_948:in:7": null,
+    "gate_948:out:0": 0,
+    "gate_981:in:0": 0,
+    "gate_981:in:1": 0,
+    "gate_981:out:0": 0,
+    "8bit-constant:in:0": 0,
+    "8bit-constant:out:0": 0,
+    "8bit-adder:in:0": 0,
+    "8bit-adder:out:0": 0,
+    "8bit-eqzero:in:0": 0,
+    "8bit-eqzero:out:0": 0,
+    "8bit-subtractor:in:0": 0,
+    "8bit-subtractor:out:0": 0,
+    "gate_1851:in:0": 0,
+    "gate_1851:in:1": 0,
+    "gate_1851:out:0": 0,
+    "gate_1879:in:0": 0,
+    "gate_1879:in:1": 0,
+    "gate_1879:out:0": 0,
+    "gate_1907:in:0": 0,
+    "gate_1907:in:1": 0,
+    "gate_1907:out:0": 0,
+    "gate_7226:in:0": 1,
+    "gate_7226:in:1": 1,
+    "gate_7226:out:0": 1,
+    "gate_20821:in:0": 0,
+    "gate_20821:in:1": 0,
+    "gate_20821:out:0": 0,
+    "8bit-mux:in:0": 0,
+    "8bit-mux:out:0": 0,
+    "gate_28407:in:0": 0,
+    "gate_28407:in:1": 1,
+    "gate_28407:out:0": 0,
+    "gate_37006:in:0": 0,
+    "gate_37006:in:1": 0,
+    "gate_37006:out:0": 0,
+    "parity:in:0": 0,
+    "parity:out:0": 0,
+    "1bit-memory:in:0": 0,
+    "1bit-memory:out:0": 0
+   }
+  }
+ ]
+}

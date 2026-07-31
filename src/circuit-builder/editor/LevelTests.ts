@@ -1,6 +1,5 @@
 import type { Editor } from './Editor.ts';
 import type { GateId } from './types.ts';
-import { pinRefKey } from './types.ts';
 import type { Level, QueueCommandResult, TestResult } from '../levels/levelTypes.ts';
 import type { TestCommand } from '../testing/dslParser.ts';
 import { isInputGate, isOutputGate, isSequentialGate } from '../simulation/gateTypes.ts';
@@ -253,13 +252,13 @@ export class LevelTests {
     for (const [label, gateId] of this.inputMap) {
       const gate = circuit.gates.get(gateId);
       if (!gate || !gate.type.endsWith('-sw')) continue;
-      const enable = circuit.simState.get(pinRefKey({ gateId, kind: 'input', index: 0 })) ?? 0;
+      const enable = circuit.getPinValue(gateId, 'input', 0) ?? 0;
       if (enable) activeInputs.add(label);
     }
     for (const [label, gateId] of this.outputMap) {
       const gate = circuit.gates.get(gateId);
       if (!gate || !gate.type.endsWith('-sw')) continue;
-      const enable = circuit.simState.get(pinRefKey({ gateId, kind: 'input', index: 1 })) ?? 0;
+      const enable = circuit.getPinValue(gateId, 'input', 1) ?? 0;
       if (enable) activeOutputs.add(label);
     }
 

@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sim:snapshot": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --snapshot",
+    "sim:check": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --check",
+    "sim:scene": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --scene",
+    "sim:bench": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --bench"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",
