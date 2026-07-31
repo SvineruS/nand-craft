@@ -518,30 +518,31 @@ export class MoveWireNodeCommand implements Command {
   }
 }
 
-export class ChangeGateStateCommand implements Command {
-  readonly description = 'Change gate state';
+/** Set the output value of constant gates. */
+export class ChangeGateValueCommand implements Command {
+  readonly description = 'Change gate value';
   private state: EditorState;
   private gateIds: GateId[];
-  private newValue: unknown;
-  private oldValues: unknown[];
+  private newValue: number | undefined;
+  private oldValues: (number | undefined)[];
 
-  constructor(state: EditorState, gateIds: GateId[], newValue: unknown) {
+  constructor(state: EditorState, gateIds: GateId[], newValue: number | undefined) {
     this.state = state;
     this.gateIds = gateIds;
     this.newValue = newValue;
-    this.oldValues = gateIds.map(id => state.circuit.getGate(id).state);
+    this.oldValues = gateIds.map(id => state.circuit.getGate(id).value);
   }
 
   execute(): void {
     for (const id of this.gateIds) {
-      this.state.circuit.getGate(id).state = this.newValue;
+      this.state.circuit.getGate(id).value = this.newValue;
     }
     this.state.valueDirty = true;
   }
 
   undo(): void {
     for (let i = 0; i < this.gateIds.length; i++) {
-      this.state.circuit.getGate(this.gateIds[i]).state = this.oldValues[i];
+      this.state.circuit.getGate(this.gateIds[i]).value = this.oldValues[i];
     }
     this.state.valueDirty = true;
   }

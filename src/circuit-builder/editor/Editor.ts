@@ -109,10 +109,10 @@ export class Editor {
   /** Tick the live circuit with given input values. Updates pins, detects errors. */
   applyInputs(inputs: Map<GateId, number>, resetDelay = false): void {
     if (resetDelay) {
-      // Only reset sequential gate state (delay, latch, memory, counter).
-      // Constants use gate.state for user-set values — don't touch those.
+      // Registers only (delay, latch, memory, counter) — gate.value holds the player's
+      // constants and must survive.
       for (const gate of this.state.circuit.gates.values()) {
-        if (isSequentialGate(gate.type)) gate.state = undefined;
+        if (isSequentialGate(gate.type)) gate.register = undefined;
       }
     }
     this.getCircuit().tick(inputs);

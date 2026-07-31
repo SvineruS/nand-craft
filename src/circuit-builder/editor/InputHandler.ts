@@ -381,10 +381,7 @@ export class InputHandler {
       if (isConstantGate(gate.type)) {
         const bitWidth = getPinBitWidth(gate.type, 'output', 0);
         const mask = ((1 << bitWidth) >>> 0) - 1;
-        const currentValue = (gate.state as number) ?? 0;
-        let newValue = ((currentValue + 1) & mask) >>> 0;
-        if (newValue > mask) newValue = 0;
-        gate.state = newValue;
+        gate.value = (((gate.value ?? 0) + 1) & mask) >>> 0;
         state.valueDirty = true;
         return;
       }

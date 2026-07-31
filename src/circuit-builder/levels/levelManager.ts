@@ -1,6 +1,6 @@
 import { Editor } from '../editor/Editor.ts';
 import type { EditorState } from '../editor/EditorState.ts';
-import { createEditorState } from '../editor/EditorState.ts';
+import { createEditorState, type LevelNodeStatus } from '../editor/EditorState.ts';
 import type { GateId, LevelId } from '../editor/types.ts';
 import { gateCenter } from '../editor/utils/geometry.ts';
 import type { Circuit } from '../simulation/circuit.ts';
@@ -47,22 +47,23 @@ export function loadLevel(index: number): void {
 export function buildLevelMap(): void {
   const prevCamera = levelMapState?.camera;
 
-  const { circuit, levelGateMap: levelGateMap_ } = buildLevelMapCircuit(LEVELS, solvedLevelIds.value);
+  const map = buildLevelMapCircuit(LEVELS, solvedLevelIds.value);
   const state = createEditorState();
-  state.circuit = circuit;
+  state.circuit = map.circuit;
+  state.gateStatuses = map.gateStatuses;
   state.circuitDirty = false;
 
   if (prevCamera) state.camera = prevCamera;
 
   // Add component nodes below levels
-  addComponentNodes(circuit);
+  addComponentNodes(map.circuit, map.gateStatuses);
 
   levelMapState = state;
-  levelGateMap = levelGateMap_;
+  levelGateMap = map.levelGateMap;
 }
 
 /** Add saved component gates to the level map for display. */
-function addComponentNodes(circuit: Circuit): void {
+function addComponentNodes(circuit: Circuit, gateStatuses: Map<GateId, LevelNodeStatus>): void {
   const components = getAllComponents();
   if (components.length === 0) return;
 
@@ -85,8 +86,8 @@ function addComponentNodes(circuit: Circuit): void {
       pos: { x: startX + i * 160, y: startY },
       rotation: 0,
       label: comp.name,
-      state: 'available', // Always accessible
     });
+    gateStatuses.set(gateId, 'available'); // Always accessible
   }
 }
 
@@ -106,13 +107,15 @@ export function getLevelGateMap(): LevelGateMap {
 export function buildLevelMapEditable(): void {
   if (hasEditor()) getEditor().save();
 
-  const { circuit } = buildLevelMapCircuit(LEVELS, solvedLevelIds.value, true);
-  const editor = Editor.create(circuit);
+  const map = buildLevelMapCircuit(LEVELS, solvedLevelIds.value, true);
+  const editor = Editor.create(map.circuit);
 
-  const points: Vec2[] = [...circuit.gates.values()].map(g => gateCenter(g));
+  const points: Vec2[] = [...map.circuit.gates.values()].map(g => gateCenter(g));
   const center = Vec2.avg(points);
-  editor.getState().camera.pos = center;
-  editor.getState().circuitDirty = false;
+  const state = editor.getState();
+  state.camera.pos = center;
+  state.gateStatuses = map.gateStatuses;
+  state.circuitDirty = false;
 
   setEditor(editor);
 }
@@ -122,7 +125,7 @@ export function exportLevelMap(): void {
   const circuit = getEditor().getCircuit();
 
   // Strip runtime fields from gates so export matches the clean format
-  const STRIP_FIELDS = new Set(['state', 'canRemove', 'canMove', 'inputValues', 'outputValues', 'label']);
+  const STRIP_FIELDS = new Set(['value', 'register', 'canRemove', 'canMove', 'label']);
   const data = {
     version: 1,
     gates: [...circuit.gates.entries()].map(([id, g]) => {

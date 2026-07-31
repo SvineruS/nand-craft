@@ -9,6 +9,15 @@ export class Circuit {
   wireNodes = new Map<WireNodeId, WireNode>();
   wireSegments = new Map<WireSegmentId, WireSegment>();
 
+  /**
+   * Inner circuit per component gate, created on first evaluation and reused after.
+   *
+   * Runtime only, and deliberately not on the Gate: a Circuit carries its own compiled
+   * program and typed arrays, which used to end up in the save file when gates were
+   * serialized. Keyed by gate id so instances survive a topology rebuild.
+   */
+  componentInstances = new Map<GateId, Circuit>();
+
   /** Pin values indexed by the compiled program's slots. Sized by buildCircuit(). */
   simState: SimulationState = new Int32Array(0);
   /** Per-net display values, reused across ticks. Sized by buildCircuit(). */
@@ -55,12 +64,26 @@ export class Circuit {
 
   /** Rebuild structural analysis. Called automatically by tick() if invalidated. */
   buildCircuit(circuit: Circuit): BuildResult {
+    this.pruneComponentInstances();
     this.cachedBuild = build(circuit);
     const { program } = this.cachedBuild;
     this.simState = new Int32Array(program.slotCount);
     this.netValues = new Int32Array(program.netCount);
     this.contentionSeen = new Uint8Array(program.netCount);
     return this.cachedBuild;
+  }
+
+  /**
+   * Drop inner circuits whose component gate is gone, so deleting components does not
+   * leak their instances for the life of the editor. Gate ids are never reused, so an
+   * absent id can never come back — except by undoing the deletion, which rebuilds the
+   * instance from the component definition with its registers cleared.
+   */
+  private pruneComponentInstances(): void {
+    if (this.componentInstances.size === 0) return;
+    for (const gateId of this.componentInstances.keys()) {
+      if (!this.gates.has(gateId)) this.componentInstances.delete(gateId);
+    }
   }
 
   /** Invalidate cached build — call when circuit topology changes. */

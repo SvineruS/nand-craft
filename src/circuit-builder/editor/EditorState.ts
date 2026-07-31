@@ -16,6 +16,13 @@ export type InteractionMode =
   | { kind: 'wiring'; start: WireEndpoint }
   | { kind: 'pasting'; cursor: Vec2 | null };
 
+/**
+ * Display status of a level-map node. Lives on EditorState rather than on the Gate: the
+ * level map borrows the circuit editor to draw itself, but a gate has no business knowing
+ * about level progression.
+ */
+export type LevelNodeStatus = 'locked' | 'available' | 'solved';
+
 export type SelectionItem =
   | { type: 'gate'; id: GateId }
   | { type: 'wireNode'; id: WireNodeId }
@@ -32,7 +39,8 @@ export interface ClipboardGate {
   type: GateType;
   delta: Vec2;
   rotation: Rotation;
-  state?: unknown;
+  /** Constant gates only — the player's chosen value travels with the copy. */
+  value?: number;
 }
 export interface ClipboardNode {
   delta: Vec2;
@@ -62,6 +70,8 @@ export interface EditorState {
   dropPreview: { type: PlaceableType; pos: Vec2 } | null;
   clipboard: ClipboardData | null;
   wireColor: string;
+  /** Set only by the level map; null in the circuit editor. */
+  gateStatuses: Map<GateId, LevelNodeStatus> | null;
   renderDirty: boolean;
   circuitDirty: boolean;
   valueDirty: boolean;
@@ -86,6 +96,7 @@ export function createEditorState(): EditorState {
     dropPreview: null,
     clipboard: sharedClipboard,
     wireColor: WIRE_COLORS[0],
+    gateStatuses: null,
     renderDirty: true,
     circuitDirty: true,
     valueDirty: false,

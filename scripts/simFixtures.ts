@@ -48,7 +48,8 @@ class Builder {
   private nodeCount = 0;
   private segmentCount = 0;
 
-  gate(type: GateType, label: string, state?: unknown): GateId {
+  /** `value` seeds a constant gate's output; sequential gates start with no register. */
+  gate(type: GateType, label: string, value?: number): GateId {
     const id = generateId('g') as GateId;
     const slot = this.gateCount++;
     this.circuit.gates.set(id, {
@@ -59,7 +60,7 @@ class Builder {
         y: Math.floor(slot / GATES_PER_ROW) * GATE_SPACING,
       },
       rotation: 0,
-      state,
+      value,
       label,
     });
     this.gateLabels.set(id, label);

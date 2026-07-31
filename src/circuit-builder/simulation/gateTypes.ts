@@ -5,7 +5,17 @@ export interface Gate {
   type: GateType;
   pos: Vec2;
   rotation: Rotation;
-  state?: unknown;
+  /**
+   * User-set output value. Constant gates only — see isConstantGate.
+   * Persisted, because the player chose it.
+   */
+  value?: number;
+  /**
+   * Register contents. Sequential gates only — see isSequentialGate. undefined means
+   * "not yet clocked", which reads as 0. Persisted, so a memory keeps its contents
+   * across a reload.
+   */
+  register?: number;
   label?: string;
   canRemove?: boolean;
   canMove?: boolean;

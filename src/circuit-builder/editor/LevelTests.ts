@@ -196,9 +196,9 @@ export class LevelTests {
       }
     }
 
-    // Reset only sequential gate state, not constants
+    // Reset registers only, not the player's constants
     for (const gate of this.editor.getState().circuit.gates.values()) {
-      if (isSequentialGate(gate.type)) gate.state = undefined;
+      if (isSequentialGate(gate.type)) gate.register = undefined;
     }
 
     if (this.queueCommandIndex < this.queueResults.length) {

@@ -13,6 +13,7 @@ import { isLevelUnlocked } from '../persistence/storage.ts';
 import type { Gate } from "../editor/gates.ts";
 
 import type { Level } from "./levelTypes.ts";
+import type { LevelNodeStatus } from '../editor/EditorState.ts';
 import { GRID_SIZE } from "../editor/consts.ts";
 import { getPinPositions } from "../editor/utils/geometry.ts";
 import { Vec2 } from "../editor/utils/vec2.ts";
@@ -22,7 +23,14 @@ import { LEVEL_MAP_CIRCUIT } from './levelMapData.ts';
 /** Map from LevelId to the GateId representing it on the level map. */
 export type LevelGateMap = Map<LevelId, GateId>;
 
-function levelStatus(level: Level, solvedIds: Set<LevelId>): 'locked' | 'available' | 'solved' {
+/** Everything the level-map screen needs: the drawable circuit plus its overlays. */
+export interface LevelMapCircuit {
+  circuit: Circuit;
+  levelGateMap: LevelGateMap;
+  gateStatuses: Map<GateId, LevelNodeStatus>;
+}
+
+function levelStatus(level: Level, solvedIds: Set<LevelId>): LevelNodeStatus {
   if (solvedIds.has(level.id)) return 'solved';
   if (isLevelUnlocked(level, solvedIds)) return 'available';
   return 'locked';
@@ -37,10 +45,10 @@ export function buildLevelMapCircuit(
   levels: Level[],
   solvedIds: Set<LevelId>,
   editable = false,
-): { circuit: Circuit; levelGateMap: LevelGateMap } {
+): LevelMapCircuit {
   if (LEVEL_MAP_CIRCUIT) {
     const result = loadSavedLevelMap(LEVEL_MAP_CIRCUIT, levels, solvedIds, editable);
-    addMissingLevels(result.circuit, result.levelGateMap, levels, solvedIds, editable);
+    addMissingLevels(result, levels, solvedIds, editable);
     return result;
   }
   return generateLevelMapCircuit(levels, solvedIds, editable);
@@ -52,9 +60,10 @@ function loadSavedLevelMap(
   levels: Level[],
   solvedIds: Set<LevelId>,
   editable: boolean,
-): { circuit: Circuit; levelGateMap: LevelGateMap } {
+): LevelMapCircuit {
   const circuit = deserializeCircuit(json);
   const levelGateMap: LevelGateMap = new Map();
+  const gateStatuses = new Map<GateId, LevelNodeStatus>();
 
   // Build level ID → Level lookup
   const idToLevel = new Map<string, Level>();
@@ -67,7 +76,7 @@ function loadSavedLevelMap(
     const level = idToLevel.get(gate.id as string);
     if (!level) continue;
     const status = levelStatus(level, solvedIds);
-    gate.state = status;
+    gateStatuses.set(gate.id, status);
     // Use level name as label unless manually overridden
     if (!gate.label) gate.label = level.name;
     gate.canMove = editable;
@@ -76,17 +85,17 @@ function loadSavedLevelMap(
   }
 
   circuit.tick(outputPinsMap);
-  return { circuit, levelGateMap };
+  return { circuit, levelGateMap, gateStatuses };
 }
 
 /** Add level gates for any levels not found in the saved map. */
 function addMissingLevels(
-  circuit: Circuit,
-  levelGateMap: LevelGateMap,
+  map: LevelMapCircuit,
   levels: Level[],
   solvedIds: Set<LevelId>,
   editable: boolean,
 ): void {
+  const { circuit, levelGateMap, gateStatuses } = map;
   // Find max x position of existing gates to place new ones to the right
   let maxX = 0;
   for (const gate of circuit.gates.values()) {
@@ -107,12 +116,12 @@ function addMissingLevels(
       pos: { x: maxX, y: 0 },
       rotation: 0,
       label: level.name,
-      state: status,
       canRemove: false,
       canMove: editable,
     };
     circuit.gates.set(gateId, gate);
     levelGateMap.set(level.id, gateId);
+    gateStatuses.set(gateId, status);
   }
 }
 
@@ -121,9 +130,10 @@ function generateLevelMapCircuit(
   levels: Level[],
   solvedIds: Set<LevelId>,
   editable: boolean,
-): { circuit: Circuit; levelGateMap: LevelGateMap } {
+): LevelMapCircuit {
   const circuit = new Circuit();
   const levelGateMap: LevelGateMap = new Map();
+  const gateStatuses = new Map<GateId, LevelNodeStatus>();
 
   const outputPinsMap = new Map<GateId, number>();
 
@@ -141,12 +151,12 @@ function generateLevelMapCircuit(
       pos,
       rotation: 0,
       label: level.name,
-      state: status,
       canRemove: false,
       canMove: editable,
     };
     circuit.gates.set(gateId, gate);
     levelGateMap.set(level.id, gateId);
+    gateStatuses.set(gateId, status);
   }
 
   // Create one wire node per pin (reused across all wires touching that pin)
@@ -187,7 +197,7 @@ function generateLevelMapCircuit(
   }
 
   circuit.tick(outputPinsMap);
-  return { circuit, levelGateMap };
+  return { circuit, levelGateMap, gateStatuses };
 }
 
 /** Find which LevelId a gate belongs to, given the reverse map. */
