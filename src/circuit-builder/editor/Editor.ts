@@ -18,21 +18,11 @@ import { saveCircuit } from "../persistence/storage.ts";
 export class Editor {
   private state: EditorState;
   private history: CommandHistory;
-  readonly level: Level;
+  /** null when editing something that is not a level: a component, or the level map. */
+  readonly level: Level | null;
   readonly tests: LevelTests;
 
-  private static readonly EMPTY_LEVEL: Level = {
-    id: '' as any,
-    name: '',
-    description: '',
-    inputs: [],
-    outputs: [],
-    test: { name: '', description: '' },
-    prerequisites: [],
-    mapPosition: { x: 0, y: 0 },
-  };
-
-  private constructor(circuit: Circuit, level: Level) {
+  private constructor(circuit: Circuit, level: Level | null) {
     this.state = createEditorState();
     this.history = new CommandHistory();
     this.level = level;
@@ -47,13 +37,14 @@ export class Editor {
     return new Editor(circuit, level);
   }
 
-  /** Create an editor without a level (e.g. level map editor). */
+  /** Create an editor without a level (component editor, level map editor). */
   static create(circuit: Circuit): Editor {
-    return new Editor(circuit, Editor.EMPTY_LEVEL);
+    return new Editor(circuit, null);
   }
 
   /** Reset to the level's default circuit, discarding user changes. */
   resetLevel(): void {
+    if (!this.level) return;
     this.history = new CommandHistory();
     this.state.circuit = buildLevelCircuit(this.level);
     this.state.selection = [];
@@ -119,9 +110,12 @@ export class Editor {
     this.state.renderDirty = true;
   }
 
-  /** Persist the circuit. Returns null on success, or a message describing the failure. */
+  /**
+   * Persist the circuit. Returns null on success, or a message describing the failure.
+   * Circuits without a level (components, the level map) are saved by their own screens.
+   */
   save(): string | null {
-    if (!this.level.id) return null; // No level ID = level map editor, skip save
+    if (!this.level) return null;
     return saveCircuit(this.level.id, this.getCircuit());
   }
 }

@@ -12,7 +12,10 @@
 import './localStorageShim.ts';
 import { createEditorState } from '../src/circuit-builder/editor/EditorState.ts';
 import { Circuit } from '../src/circuit-builder/simulation/circuit.ts';
-import { pinRefKey, type GateId, type WireNodeId, type WireSegmentId } from '../src/circuit-builder/editor/types.ts';
+import {
+  generateId, pinRefKey,
+  type GateId, type PinRef, type WireNodeId, type WireSegmentId,
+} from '../src/circuit-builder/editor/types.ts';
 import {
   AddGateCommand, AddWireNodeCommand, AddWireSegmentCommand, CommandHistory,
   MoveGatesCommand, MoveWireNodeCommand, RemoveGateCommand, RemoveWireNodeCommand,
@@ -21,6 +24,8 @@ import {
 import { buildScene } from '../src/circuit-builder/editor/render/buildScene.ts';
 import { emptyDragPreview } from '../src/circuit-builder/editor/EditorState.ts';
 import { getPinPositions } from '../src/circuit-builder/editor/utils/geometry.ts';
+import { QueueTestRunner, type TestGateLabels } from '../src/circuit-builder/editor/QueueTestRunner.ts';
+import type { TestCommand } from '../src/circuit-builder/testing/dslParser.ts';
 import type { GateType } from '../src/circuit-builder/simulation/gateTypes.ts';
 
 // Deterministic PRNG so a failure is reproducible.
@@ -307,3 +312,83 @@ function expectEqual(label: string, previewed: string, committed: string): void 
 }
 
 console.log('drag preview equivalence OK');
+
+// ---------------------------------------------------------------------------
+// Queue test runner
+//
+// The sequential engine is driven by the circuit's enable pins, not by a fixed schedule,
+// so it needs a real handshake circuit to exercise. This builds an echo: a switch input
+// feeding a switch output, both permanently enabled, then runs write/read pairs through it.
+// ---------------------------------------------------------------------------
+
+function check(label: string, ok: boolean, detail = ''): void {
+  if (!ok) throw new Error(`${label} FAILED${detail ? ': ' + detail : ''}`);
+  console.log('ok   ' + label);
+}
+
+function buildEchoCircuit(): { circuit: Circuit; labels: TestGateLabels } {
+  const circuit = new Circuit();
+  const mk = (type: GateType, label: string, x: number) => {
+    const id = generateId('q') as GateId;
+    circuit.addGate({ id, type, pos: { x, y: 0 }, rotation: 0, label });
+    return id;
+  };
+  const wire = (from: PinRef, to: PinRef) => {
+    const a = generateId('qn') as WireNodeId;
+    const b = generateId('qn') as WireNodeId;
+    circuit.addWireNode({ id: a, pos: { x: 0, y: 0 }, pin: from });
+    circuit.addWireNode({ id: b, pos: { x: 0, y: 0 }, pin: to });
+    circuit.addWireSegment({ id: generateId('qs') as WireSegmentId, from: a, to: b });
+  };
+
+  const input = mk('input-sw', 'A', 0);
+  const output = mk('output-sw', 'B', 200);
+  const one = mk('constant', 'one', 100);
+  circuit.getGate(one).value = 1;
+
+  wire({ gateId: input, kind: 'output', index: 0 }, { gateId: output, kind: 'input', index: 0 });
+  // Enables held high, so every tick is a valid handshake window
+  wire({ gateId: one, kind: 'output', index: 0 }, { gateId: input, kind: 'input', index: 0 });
+  wire({ gateId: one, kind: 'output', index: 0 }, { gateId: output, kind: 'input', index: 1 });
+
+  return {
+    circuit,
+    labels: { inputs: new Map([['A', input]]), outputs: new Map([['B', output]]) },
+  };
+}
+
+function runQueue(commands: TestCommand[], maxTicks = 50): QueueTestRunner {
+  const { circuit, labels } = buildEchoCircuit();
+  const runner = new QueueTestRunner(labels);
+  runner.start(circuit, commands, []);
+  for (let i = 0; i < maxTicks && !runner.tick(circuit); i++) { /* keep ticking */ }
+  return runner;
+}
+
+{
+  const w = (label: string, value: number): TestCommand => ({ type: 'write', label, value });
+  const r = (label: string, value: number): TestCommand => ({ type: 'read', label, value });
+
+  const passing = runQueue([w('A', 1), r('B', 1), w('A', 0), r('B', 0)]);
+  check('queue run completes', passing.done);
+  check('queue run passes', !passing.failed,
+    passing.results.filter(x => x.status === 'failed').map(x => x.error).join('; '));
+  check('every command passed', passing.results.every(x => x.status === 'passed'),
+    passing.results.map(x => x.status).join(','));
+
+  const failing = runQueue([w('A', 1), r('B', 0)]);
+  check('wrong expected value fails', failing.failed);
+  check('failure records the actual value',
+    failing.results[1].actual === 1 && (failing.results[1].error ?? '').includes('got 1'),
+    JSON.stringify(failing.results[1]));
+
+  const missing = runQueue([w('nope', 1)]);
+  check('unknown label fails', missing.failed);
+  check('unknown label is named', (missing.results[0].error ?? '').includes('nope'),
+    missing.results[0].error);
+
+  const grouped = runQueue([w('A', 1), r('B', 1)]);
+  check('results carry case boundaries', grouped.results.every(x => x.caseStart === false));
+}
+
+console.log('queue test runner OK');

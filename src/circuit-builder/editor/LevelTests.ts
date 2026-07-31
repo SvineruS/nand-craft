@@ -1,39 +1,116 @@
 import type { Editor } from './Editor.ts';
 import type { GateId } from './types.ts';
-import type { Level, QueueCommandResult, TestResult } from '../levels/levelTypes.ts';
+import type { Level, QueueCommandResult, TestCase, TestResult } from '../levels/levelTypes.ts';
 import type { TestCommand } from '../testing/dslParser.ts';
-import { isInputGate, isOutputGate, isSequentialGate } from '../simulation/gateTypes.ts';
+import { isInputGate, isOutputGate } from '../simulation/gateTypes.ts';
+import { type CaseBoundary, QueueTestRunner } from './QueueTestRunner.ts';
 
 export type TestMode = 'table' | 'queue';
 
+/** Table mode steps one case per interval; queue mode ticks at roughly frame rate. */
+const TABLE_STEP_MS = 120;
+const QUEUE_TICK_MS = 16;
+
+/**
+ * The test definition currently in force: the level's cases, or whatever the test editor
+ * last applied.
+ *
+ * This used to be read and written straight through `editor.level.test.cases`, which meant
+ * the test editor mutated the imported level definition — a module-level object shared by
+ * every editor for the rest of the session, including the level-less component editor.
+ */
+export interface TestSuite {
+  cases: TestCase[];
+  inputNames: string[];
+  outputNames: string[];
+}
+
+/**
+ * Test execution for the open circuit.
+ *
+ * Table mode lives here: apply a case's inputs, tick, compare outputs. Queue mode — the
+ * handshake-driven sequential engine — lives in QueueTestRunner, which this delegates to;
+ * the two share only the label maps.
+ */
 export class LevelTests {
-  readonly level: Level;
+  readonly level: Level | null;
+  suite: TestSuite;
+  mode: TestMode = 'table';
+
   private editor: Editor;
   private inputMap: Map<string, GateId>;
   private outputMap: Map<string, GateId>;
   private runAllInterval: ReturnType<typeof setInterval> | null = null;
+  private queue: QueueTestRunner;
 
   caseIndex = -1;
   results: TestResult[] = [];
   tickCount = 0;
 
-  // Queue mode state
-  mode: TestMode = 'table';
-  queueCommands: TestCommand[] = [];
-  queueResults: QueueCommandResult[] = [];
-  queueCommandIndex = -1;
-  private inputQueues = new Map<GateId, number[]>();
-
-  constructor(editor: Editor, level: Level) {
+  constructor(editor: Editor, level: Level | null) {
     this.editor = editor;
     this.level = level;
+    this.suite = suiteFromLevel(level);
     this.inputMap = buildLabelMap(editor, 'input');
     this.outputMap = buildLabelMap(editor, 'output');
+    this.queue = new QueueTestRunner({ inputs: this.inputMap, outputs: this.outputMap });
     this.applyInputs(0);
   }
 
+  // --- Queue mode, delegated to QueueTestRunner ---
+
+  get queueCommands(): TestCommand[] { return this.queue.commands; }
+  get queueResults(): QueueCommandResult[] { return this.queue.results; }
+  get queueCommandIndex(): number { return this.queue.commandIndex; }
+  get queueDone(): boolean { return this.queue.done; }
+  get queueFailed(): boolean { return this.queue.failed; }
+
+  /** Start queue test execution with the given commands. */
+  startQueue(commands: TestCommand[], caseBoundaries?: CaseBoundary[]): void {
+    this.cancelRunAll();
+    this.mode = 'queue';
+    this.queue.start(this.editor.getCircuit(), commands, caseBoundaries);
+    this.tickCount = 0;
+  }
+
+  /** Execute one tick of queue test. Returns true if done (all commands processed or failed). */
+  tickQueue(): boolean {
+    const done = this.queue.tick(this.editor.getCircuit());
+    this.tickCount = this.queue.tickCount;
+    this.editor.getState().renderDirty = true;
+    return done;
+  }
+
+  /** Run queue tests with animated ticking. Calls onComplete when all pass. */
+  runQueueAnimated(onTick: () => void, onComplete?: () => void): void {
+    this.cancelRunAll();
+    // Re-init if done or not started
+    if (this.queueCommandIndex < 0 || this.queueDone || this.queueFailed) {
+      this.startQueue(this.queueCommands);
+    }
+
+    this.runAllInterval = setInterval(() => {
+      const done = this.tickQueue();
+      onTick();
+      if (done) {
+        this.cancelRunAll();
+        if (this.allPassed()) onComplete?.();
+      }
+    }, QUEUE_TICK_MS);
+  }
+
+  /**
+   * Replace the test definition (used by the test editor) and restart execution against
+   * the circuit's current labels.
+   */
+  setSuite(suite: TestSuite): void {
+    this.suite = suite;
+    this.mode = 'table';
+    this.rebuild();
+  }
+
   get caseCount(): number {
-    return this.level?.test.cases?.length ?? 0;
+    return this.suite.cases.length;
   }
 
   /** Re-tick with current test case inputs (no delay reset). */
@@ -50,7 +127,7 @@ export class LevelTests {
 
   private buildInputs(index: number): Map<GateId, number> {
     const inputs = new Map<GateId, number>();
-    const testCase = this.level.test.cases?.[index];
+    const testCase = this.suite.cases[index];
     if (!testCase) return inputs;
     for (const [name, gateId] of this.inputMap) {
       if (name in testCase.inputs) {
@@ -62,7 +139,7 @@ export class LevelTests {
 
   /** Apply a test case by index and evaluate outputs. Returns the result. */
   runCase(index: number, resetDelay = false): TestResult {
-    const testCase = this.level.test.cases?.[index];
+    const testCase = this.suite.cases[index];
     if (!testCase) {
       return { passed: false, caseIndex: index, message: 'Case not found' };
     }
@@ -98,19 +175,7 @@ export class LevelTests {
     this.cancelRunAll();
     this.caseIndex = -1;
     this.results = [];
-    this.tickCount = 0;
-    // Reset queue execution state but keep queueCommands and boundaries
-    const boundaryMap = new Map(this.caseBoundaries.map(b => [b.index, b.name]));
-    this.queueResults = this.queueCommands.map((cmd, i) => ({
-      type: cmd.type as 'write' | 'read',
-      label: cmd.label,
-      expected: cmd.value,
-      status: 'pending' as const,
-      caseStart: boundaryMap.has(i),
-      caseName: boundaryMap.get(i),
-    }));
-    this.queueCommandIndex = -1;
-    this.inputQueues.clear();
+    this.queue.reset();
 
     this.applyInputs(0);
     this.tickCount = 0; // Reset after applyInputs (which increments it)
@@ -155,184 +220,7 @@ export class LevelTests {
       if (!result || !result.passed || this.caseIndex >= this.caseCount - 1) {
         stopping = true;
       }
-    }, 120);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Queue mode
-  // ---------------------------------------------------------------------------
-
-  private caseBoundaries: { index: number; name?: string }[] = [];
-
-  /** Start queue test execution with the given commands. */
-  startQueue(commands: TestCommand[], caseBoundaries?: { index: number; name?: string }[]): void {
-    this.cancelRunAll();
-    this.mode = 'queue';
-    this.queueCommands = commands;
-    // Only update boundaries if explicitly provided, otherwise keep existing
-    if (caseBoundaries !== undefined) this.caseBoundaries = caseBoundaries;
-
-    const boundaryMap = new Map(this.caseBoundaries.map(b => [b.index, b.name]));
-    this.queueResults = commands.map((cmd, i) => ({
-      type: cmd.type as 'write' | 'read',
-      label: cmd.label,
-      expected: cmd.value,
-      status: 'pending' as const,
-      caseStart: boundaryMap.has(i),
-      caseName: boundaryMap.get(i),
-    }));
-    this.queueCommandIndex = 0;
-    this.tickCount = 0;
-    this.inputQueues.clear();
-
-
-    // Pre-queue all write values
-    for (const cmd of commands) {
-      if (cmd.type === 'write') {
-        const gateId = this.inputMap.get(cmd.label);
-        if (!gateId) continue;
-        if (!this.inputQueues.has(gateId)) this.inputQueues.set(gateId, []);
-        this.inputQueues.get(gateId)!.push(cmd.value);
-      }
-    }
-
-    // Reset registers only, not the player's constants
-    for (const gate of this.editor.getState().circuit.gates.values()) {
-      if (isSequentialGate(gate.type)) gate.register = undefined;
-    }
-
-    if (this.queueCommandIndex < this.queueResults.length) {
-      this.queueResults[this.queueCommandIndex].status = 'running';
-    }
-  }
-
-  /** Run queue tests with animated ticking. Calls onComplete when all pass. */
-  runQueueAnimated(onTick: () => void, onComplete?: () => void): void {
-    this.cancelRunAll();
-    // Re-init if done or not started
-    if (this.queueCommandIndex < 0 || this.queueDone || this.queueFailed) {
-      this.startQueue(this.queueCommands);
-    }
-
-    this.runAllInterval = setInterval(() => {
-      const done = this.tickQueue();
-      onTick();
-      if (done) {
-        this.cancelRunAll();
-        if (this.allPassed()) onComplete?.();
-      }
-    }, 16); // ~60fps for smooth animation
-  }
-
-  /** Execute one tick of queue test. Returns true if done (all commands processed or failed). */
-  /** Execute one tick of queue test. Returns true if done (all commands processed or failed). */
-  tickQueue(): boolean {
-    if (this.queueCommandIndex < 0 || this.queueCommandIndex >= this.queueCommands.length) {
-      return true;
-    }
-
-    const circuit = this.editor.getState().circuit;
-
-    // Build inputs: only output value when it's at the front of the queue.
-    const inputs = new Map<GateId, number>();
-    for (const [gateId, queue] of this.inputQueues) {
-      if (queue.length > 0) {
-        inputs.set(gateId, queue[0]);
-      }
-    }
-
-    // Tick the circuit
-    circuit.tick(inputs);
-    this.tickCount++;
-    this.editor.getState().renderDirty = true;
-
-    // Collect which gates have enable asserted this tick
-    const activeInputs = new Set<string>();  // labels of input-sw gates with enable=1
-    const activeOutputs = new Set<string>(); // labels of output-sw gates with enable=1
-    for (const [label, gateId] of this.inputMap) {
-      const gate = circuit.gates.get(gateId);
-      if (!gate || !gate.type.endsWith('-sw')) continue;
-      const enable = circuit.getPinValue(gateId, 'input', 0) ?? 0;
-      if (enable) activeInputs.add(label);
-    }
-    for (const [label, gateId] of this.outputMap) {
-      const gate = circuit.gates.get(gateId);
-      if (!gate || !gate.type.endsWith('-sw')) continue;
-      const enable = circuit.getPinValue(gateId, 'input', 1) ?? 0;
-      if (enable) activeOutputs.add(label);
-    }
-
-    // Try to satisfy as many consecutive pending commands as possible in this tick
-    const satisfiedInputs = new Set<string>();
-    const satisfiedOutputs = new Set<string>();
-    let advanced = false;
-
-    while (this.queueCommandIndex < this.queueCommands.length) {
-      const cmd = this.queueCommands[this.queueCommandIndex];
-
-      if (cmd.type === 'write') {
-        const gateId = this.inputMap.get(cmd.label);
-        if (!gateId) {
-          this.queueResults[this.queueCommandIndex].status = 'failed';
-          this.queueResults[this.queueCommandIndex].error = `No input gate "${cmd.label}"`;
-          return true;
-        }
-        if (!activeInputs.has(cmd.label)) break; // Not ready yet
-        if (satisfiedInputs.has(cmd.label)) break; // Already consumed this gate this tick
-
-        // Value consumed — dequeue
-        const queue = this.inputQueues.get(gateId);
-        if (queue && queue.length > 0) queue.shift();
-        satisfiedInputs.add(cmd.label);
-        this.queueResults[this.queueCommandIndex].status = 'passed';
-
-      } else if (cmd.type === 'read') {
-        const gateId = this.outputMap.get(cmd.label);
-        if (!gateId) {
-          this.queueResults[this.queueCommandIndex].status = 'failed';
-          this.queueResults[this.queueCommandIndex].error = `No output gate "${cmd.label}"`;
-          return true;
-        }
-        if (!activeOutputs.has(cmd.label)) break; // Not ready yet
-        if (satisfiedOutputs.has(cmd.label)) break; // Already read this gate this tick
-
-        const actual = circuit.tickResult.outputs.get(gateId) ?? null;
-        this.queueResults[this.queueCommandIndex].actual = actual;
-        if (actual !== cmd.value) {
-          this.queueResults[this.queueCommandIndex].status = 'failed';
-          this.queueResults[this.queueCommandIndex].error = `expected ${cmd.value}, got ${actual ?? 'null'}`;
-          return true;
-        }
-        satisfiedOutputs.add(cmd.label);
-        this.queueResults[this.queueCommandIndex].status = 'passed';
-      }
-
-      this.queueCommandIndex++;
-      advanced = true;
-
-      // Mark next command as running
-      if (this.queueCommandIndex < this.queueResults.length) {
-        this.queueResults[this.queueCommandIndex].status = 'running';
-      }
-    }
-
-    // Check if all done
-    if (this.queueCommandIndex >= this.queueCommands.length) return true;
-
-    // If nothing advanced, mark current as running
-    if (!advanced && this.queueResults[this.queueCommandIndex].status === 'pending') {
-      this.queueResults[this.queueCommandIndex].status = 'running';
-    }
-
-    return false;
-  }
-
-  get queueDone(): boolean {
-    return this.queueCommandIndex >= this.queueCommands.length;
-  }
-
-  get queueFailed(): boolean {
-    return this.queueResults.some(r => r.status === 'failed');
+    }, TABLE_STEP_MS);
   }
 
   // ---------------------------------------------------------------------------
@@ -343,6 +231,7 @@ export class LevelTests {
   rebuild(): void {
     this.inputMap = buildLabelMap(this.editor, 'input');
     this.outputMap = buildLabelMap(this.editor, 'output');
+    this.queue.setLabels({ inputs: this.inputMap, outputs: this.outputMap });
     this.reset();
   }
 
@@ -369,6 +258,14 @@ export class LevelTests {
     if (this.mode === 'queue') return this.queueDone;
     return this.caseCount > 0 && this.caseIndex >= this.caseCount - 1;
   }
+}
+
+function suiteFromLevel(level: Level | null): TestSuite {
+  return {
+    cases: level?.test.cases ? [...level.test.cases] : [],
+    inputNames: level?.inputs.map(i => i.name) ?? [],
+    outputNames: level?.outputs.map(o => o.name) ?? [],
+  };
 }
 
 function buildLabelMap(editor: Editor, type: 'input' | 'output'): Map<string, GateId> {

@@ -17,7 +17,7 @@ interface TestPanelProps {
 export function TestPanel({ onReset, onStep, onRunAll, onPause, onExecuteCommand }: TestPanelProps) {
   stateVersion.value; // subscribe to updates
   const editor = useEditor();
-  const { level, results, queueResults } = editor.tests;
+  const { suite, results, queueResults } = editor.tests;
   const isQueue = editor.tests.mode === 'queue';
   const warning = getWarning(editor)
 
@@ -32,8 +32,8 @@ export function TestPanel({ onReset, onStep, onRunAll, onPause, onExecuteCommand
       summaryText = `${passCount}/${total}`;
       summaryColor = failCount > 0 ? 'var(--fail)' : (passCount === total ? 'var(--pass)' : 'var(--text-dim2)');
     }
-  } else if (level && level.test.cases && level.test.cases.length > 0) {
-    const cases = level.test.cases;
+  } else if (suite.cases.length > 0) {
+    const cases = suite.cases;
     if (results.length > 0) {
       const passCount = results.filter(r => r.passed).length;
       const tested = results.length;

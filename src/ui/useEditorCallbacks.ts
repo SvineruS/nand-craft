@@ -13,6 +13,7 @@ export function useEditorCallbacks() {
   const onLevelComplete = useCallback(() => setShowLevelComplete(true), []);
 
   const handleLevelComplete = useCallback(() => {
+    if (!editor.level) return; // component / level-map editors have nothing to mark solved
     markLevelSolved(editor.level.id);
     solvedLevelIds.value = getSolvedLevelIds();
     onLevelComplete();

@@ -5,7 +5,8 @@ export function LevelDialog() {
   const { level } = useEditor();
   const visible = levelDialogVisible.value;
 
-  if (!visible) return null;
+  // Nothing to introduce when the editor is not on a level (component / level map).
+  if (!visible || !level) return null;
 
   return (
     <div class="level-dialog-overlay">

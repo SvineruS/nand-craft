@@ -195,9 +195,7 @@ export function TestEditorDialog() {
         idx += c.commands.length;
       }
       // Clear old table test data so summary doesn't show stale counts
-      editor.level.test.cases = [];
-      editor.level.inputs = [];
-      editor.level.outputs = [];
+      editor.tests.suite = { cases: [], inputNames: [], outputNames: [] };
       editor.tests.mode = 'queue';
       editor.tests.startQueue(allCommands, caseBoundaries);
       notifyStateChange();
@@ -233,11 +231,7 @@ export function TestEditorDialog() {
       outputNames = [...outSet];
     }
 
-    editor.tests.mode = 'table';
-    editor.level.inputs = inputNames.map(name => ({ name }));
-    editor.level.outputs = outputNames.map(name => ({ name }));
-    editor.level.test.cases = cases;
-    editor.tests.rebuild();
+    editor.tests.setSuite({ cases, inputNames, outputNames });
     notifyStateChange();
   };
 

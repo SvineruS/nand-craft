@@ -14,15 +14,11 @@ function rowBg(passed?: boolean, isCurrent?: boolean): string {
 export function TruthTable() {
   stateVersion.value; // subscribe to updates
   const { tests } = useEditor();
-  const { level, results, caseIndex } = tests;
+  const { suite, results, caseIndex } = tests;
 
-  if (!level.test.cases || level.test.cases.length === 0) {
-    return null;
-  }
+  if (suite.cases.length === 0) return null;
 
-  const cases = level.test.cases;
-  const inputNames = level.inputs.map(i => i.name);
-  const outputNames = level.outputs.map(o => o.name);
+  const { cases, inputNames, outputNames } = suite;
 
   return (
     <div class="test-panel-table-wrap">

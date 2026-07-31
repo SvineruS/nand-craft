@@ -13,7 +13,7 @@ export function LevelCompleteDialog({ onLevelMap, onClose }: LevelCompleteDialog
       <div class="level-dialog-card">
         <h2 class="level-dialog-title">Level Complete!</h2>
         <p class="level-dialog-desc">
-          You solved <strong>{level.name}</strong>. All test cases passed.
+          You solved <strong>{level?.name ?? 'this circuit'}</strong>. All test cases passed.
         </p>
 
         <div class="level-dialog-btn-row">
