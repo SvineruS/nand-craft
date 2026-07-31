@@ -16,10 +16,10 @@ const level: Level = {
     { name: 'C' },
   ],
   predefinedGates: [
-    { type: 'input', pos: { x: 2, y: 2 }, label: 'A', canRemove: false },
-    { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false },
-    { type: 'output', pos: { x: 19, y: 2 }, label: 'S', canRemove: false },
-    { type: 'output', pos: { x: 19, y: 5 }, label: 'C', canRemove: false },
+    { type: 'input', pos: { x: -10, y: -3 }, label: 'A', canRemove: false },
+    { type: 'input', pos: { x: -10, y: 0 }, label: 'B', canRemove: false },
+    { type: 'output', pos: { x: 7, y: -3 }, label: 'S', canRemove: false },
+    { type: 'output', pos: { x: 7, y: 0 }, label: 'C', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor'] },
   test: {

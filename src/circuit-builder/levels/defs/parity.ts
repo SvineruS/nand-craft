@@ -15,11 +15,11 @@ const level: Level = {
   ],
   outputs: [{ name: 'Out' }],
   predefinedGates: [
-    { type: 'input', pos: { x: 2, y: 2 }, label: 'A', canRemove: false },
-    { type: 'input', pos: { x: 2, y: 5 }, label: 'B', canRemove: false },
-    { type: 'input', pos: { x: 2, y: 8 }, label: 'C', canRemove: false },
-    { type: 'input', pos: { x: 2, y: 11 }, label: 'D', canRemove: false },
-    { type: 'output', pos: { x: 20, y: 6 }, label: 'Out', canRemove: false },
+    { type: 'input', pos: { x: -10, y: -6 }, label: 'A', canRemove: false },
+    { type: 'input', pos: { x: -10, y: -3 }, label: 'B', canRemove: false },
+    { type: 'input', pos: { x: -10, y: 0 }, label: 'C', canRemove: false },
+    { type: 'input', pos: { x: -10, y: 3 }, label: 'D', canRemove: false },
+    { type: 'output', pos: { x: 8, y: -2 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['xor'] },
   test: {

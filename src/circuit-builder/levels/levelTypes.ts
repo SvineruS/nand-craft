@@ -2,6 +2,7 @@
 import type { LevelId, Vec2 } from "../editor/types.ts";
 import type { Gate } from "../editor/gates.ts";
 import type { GateType } from "../simulation/gateTypes.ts";
+import type { MapSize } from "../editor/utils/mapBounds.ts";
 
 export interface TestDefinition {
   name: string;
@@ -36,7 +37,12 @@ export interface QueueCommandResult {
   caseName?: string;
 }
 
-/** Gate spec in a level definition — same fields as Gate minus runtime-only ones (id, pins). */
+/**
+ * Gate spec in a level definition — same fields as Gate minus runtime-only ones (id, pins).
+ *
+ * `pos` is in grid cells and centred on the origin, which is the middle of the map: lay a
+ * level out around (0, 0) so it stays centred whatever the map size is.
+ */
 export type LevelGate =
   Pick<Gate, 'type' | 'pos'> &
   Partial<Pick<Gate, 'rotation' | 'label' | 'canRemove' | 'canMove'>>;
@@ -61,6 +67,8 @@ export interface Level {
   gateConstraints?: GateConstraints;
   prerequisites: LevelId[];
   mapPosition: Vec2;
+  /** Buildable area for this level, in world units. Defaults to DEFAULT_MAP_SIZE. */
+  mapSize?: MapSize;
   /** Allow user to edit tests via the test editor. */
   customTests?: boolean;
   /** Progressive hints the player can reveal by hovering. */

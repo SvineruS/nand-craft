@@ -8,6 +8,7 @@ import { Vec2 } from './utils/vec2.ts';
 import type { Level } from "../levels/levelTypes.ts";
 import { LevelTests } from "./LevelTests.ts";
 import { GRID_SIZE } from "./consts.ts";
+import type { MapSize } from "./utils/mapBounds.ts";
 import { Circuit } from "../simulation/circuit.ts";
 import { saveCircuit } from "../persistence/storage.ts";
 
@@ -22,8 +23,8 @@ export class Editor {
   readonly level: Level | null;
   readonly tests: LevelTests;
 
-  private constructor(circuit: Circuit, level: Level | null) {
-    this.state = createEditorState();
+  private constructor(circuit: Circuit, level: Level | null, mapSize?: MapSize) {
+    this.state = createEditorState(mapSize);
     this.history = new CommandHistory();
     this.level = level;
     this.state.circuit = circuit;
@@ -34,12 +35,13 @@ export class Editor {
   /** Create an editor for a level, using a saved circuit or building from the level definition. */
   static loadLevel(level: Level, savedCircuit?: Circuit): Editor {
     const circuit = savedCircuit ?? buildLevelCircuit(level);
-    return new Editor(circuit, level);
+    // A level can ask for a smaller (or larger) world than the default.
+    return new Editor(circuit, level, level.mapSize);
   }
 
   /** Create an editor without a level (component editor, level map editor). */
-  static create(circuit: Circuit): Editor {
-    return new Editor(circuit, null);
+  static create(circuit: Circuit, mapSize?: MapSize): Editor {
+    return new Editor(circuit, null, mapSize);
   }
 
   /** Reset to the level's default circuit, discarding user changes. */

@@ -17,6 +17,7 @@ import {
 } from '../../ui/editorStore.ts';
 import { Vec2 } from "../editor/utils/vec2.ts";
 import { hitTestGate_ } from "../editor/utils/hitTests.ts";
+import { LEVEL_MAP_SIZE } from "../editor/utils/mapBounds.ts";
 import { getAllComponents } from '../components/componentRegistry.ts';
 
 // ---------------------------------------------------------------------------
@@ -46,7 +47,7 @@ export function buildLevelMap(): void {
   const prevCamera = levelMapState?.camera;
 
   const map = buildLevelMapCircuit(LEVELS, solvedLevelIds.value);
-  const state = createEditorState();
+  const state = createEditorState(LEVEL_MAP_SIZE);
   state.circuit = map.circuit;
   state.gateStatuses = map.gateStatuses;
   state.circuitDirty = false;
@@ -105,7 +106,7 @@ export function getLevelGateMap(): LevelGateMap {
 /** Build a level-less Editor over the level map, centred on the map, for editing it. */
 export function createLevelMapEditor(): Editor {
   const map = buildLevelMapCircuit(LEVELS, solvedLevelIds.value, true);
-  const editor = Editor.create(map.circuit);
+  const editor = Editor.create(map.circuit, LEVEL_MAP_SIZE);
 
   const points: Vec2[] = [...map.circuit.gates.values()].map(g => gateCenter(g));
   const state = editor.getState();

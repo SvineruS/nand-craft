@@ -28,10 +28,14 @@ import {
   rectContainsGate,
   snapGateCenter
 } from "./utils/hitTests.ts";
-import { copySelection, pasteClipboard } from './clipboard.ts';
+import { clampPasteCenter, copySelection, pasteClipboard } from './clipboard.ts';
 import { CanvasInput, type PointerEvent, type DragDropEvent } from '../../engine/input.ts';
 import { KeyMap } from '../../engine/keymap.ts';
-import { WIRE_COLORS } from "./consts.ts";
+import { GRID_SIZE, WIRE_COLORS } from "./consts.ts";
+import {
+  clampCamera, clampGatePos, clampGroupOffset, clampPoint, type MapRect,
+} from './utils/mapBounds.ts';
+import { getGateDims } from './utils/geometry.ts';
 
 const MIN_WIRE_DRAG = 5;
 
@@ -114,6 +118,7 @@ export class InputHandler {
         }
         return false;
       },
+      clampCamera: (camera, viewport) => clampCamera(camera, getState().mapSize, viewport),
       onCameraChange: () => { getState().renderDirty = true; },
     });
   }
@@ -178,8 +183,7 @@ export class InputHandler {
     const state = this.getState();
     if (state.mode.kind !== 'stamping') throw new Error('Drag without stamping mode');
     const { gateType } = state.mode;
-    const def = getGateDefinition(gateType);
-    state.dropPreview = { type: gateType, pos: snapGateCenter(e.world, def.width, def.height) };
+    state.dropPreview = { type: gateType, pos: placementPos(state, gateType, e.world) };
     state.renderDirty = true;
   }
 
@@ -187,8 +191,7 @@ export class InputHandler {
     if (!e.dataTransfer) return;
     const state = this.getState();
     const gateType = e.dataTransfer.getData('text/plain') as PlaceableType;
-    const def = getGateDefinition(gateType);
-    const cmd = new AddGateCommand(state, gateType, snapGateCenter(e.world, def.width, def.height));
+    const cmd = new AddGateCommand(state, gateType, placementPos(state, gateType, e.world));
     this.getHistory().execute(cmd);
     trackRecentGate(state, gateType);
     state.dropPreview = null;
@@ -344,8 +347,7 @@ export class InputHandler {
   private handleStampClick(state: EditorState, world: Vec2): void {
     if (state.mode.kind !== 'stamping') return;
     const { gateType } = state.mode;
-    const def = getGateDefinition(gateType);
-    const cmd = new AddGateCommand(state, gateType, snapGateCenter(world, def.width, def.height));
+    const cmd = new AddGateCommand(state, gateType, placementPos(state, gateType, world));
     this.getHistory().execute(cmd);
     trackRecentGate(state, gateType);
   }
@@ -422,7 +424,7 @@ export class InputHandler {
   private handleEmptyMouseDown(state: EditorState, world: Vec2, isDblClick: boolean, e: PointerEvent): void {
     if (isDblClick) {
       // Double-click empty → create wire node and start wiring from it
-      const snapPos = Vec2.snap(world);
+      const snapPos = clampPoint(Vec2.snap(world), state.mapSize);
       const cmd = new AddWireNodeCommand(state, snapPos);
       this.getHistory().execute(cmd);
       const newNodeId = cmd.getNodeId();
@@ -450,12 +452,12 @@ export class InputHandler {
 
     // Stamp/paste preview
     if (state.mode.kind === 'stamping') {
-      const def = getGateDefinition(state.mode.gateType);
-      state.dropPreview = { type: state.mode.gateType, pos: snapGateCenter(world, def.width, def.height) };
+      const { gateType } = state.mode;
+      state.dropPreview = { type: gateType, pos: placementPos(state, gateType, world) };
       state.hoveredGate = hitTestGate(world, state);
       state.renderDirty = true;
     } else if (state.mode.kind === 'pasting') {
-      state.mode = { kind: 'pasting', cursor: Vec2.snap(world) };
+      state.mode = { kind: 'pasting', cursor: clampPasteCenter(state, Vec2.snap(world)) };
       state.renderDirty = true;
     }
 
@@ -464,7 +466,7 @@ export class InputHandler {
       const { nodeId, startPos, detachPin } = this.drag;
       state.dragPreview = {
         ...emptyDragPreview(),
-        offset: Vec2.sub(Vec2.snap(world), startPos),
+        offset: Vec2.sub(clampPoint(Vec2.snap(world), state.mapSize), startPos),
         nodeIds: [nodeId],
         detachedNodeIds: detachPin ? [nodeId] : [],
       };
@@ -477,7 +479,7 @@ export class InputHandler {
     if (this.drag.kind === 'splitNode') {
       state.dragPreview = {
         ...emptyDragPreview(),
-        split: { segmentId: this.drag.segmentId, pos: Vec2.snap(world) },
+        split: { segmentId: this.drag.segmentId, pos: clampPoint(Vec2.snap(world), state.mapSize) },
       };
       state.hoveredEndpoint = hitTestEndpoint(world, state);
       state.renderDirty = true;
@@ -494,8 +496,10 @@ export class InputHandler {
     // Gate + selected node dragging (snapped to grid)
     if (this.drag.kind === 'gates') {
       const { gateIds, nodeIds, disconnected, startWorld } = this.drag;
+      const wanted = Vec2.snap(Vec2.sub(world, startWorld));
       state.dragPreview = {
-        offset: Vec2.snap(Vec2.sub(world, startWorld)),
+        // The group is held inside the map as one body, so the layout survives the clamp.
+        offset: clampGroupOffset(wanted, draggedBounds(state, gateIds, nodeIds), state.mapSize),
         gateIds,
         nodeIds,
         // A disconnect drag leaves the wires where they are, so the anchored nodes
@@ -653,7 +657,7 @@ export class InputHandler {
         const fromNode = this.ensureWireNode(state, wireStart);
         if (fromNode) this.addSegmentIfNew(state, fromNode, midId, wireColor);
       } else {
-        const snapPos = Vec2.snap(world);
+        const snapPos = clampPoint(Vec2.snap(world), state.mapSize);
         const snappedTarget = hitTestEndpoint(snapPos, state);
         if (snappedTarget) {
           // Snapped position lands on a pin/node — connect to it
@@ -977,6 +981,40 @@ export class InputHandler {
     state.renderDirty = true;
   }
 
+}
+
+/** Where a gate of this type lands if placed at `world`: snapped, then held inside the map. */
+function placementPos(state: EditorState, gateType: PlaceableType, world: Vec2): Vec2 {
+  const def = getGateDefinition(gateType);
+  const snapped = snapGateCenter(world, def.width, def.height);
+  const dims = { w: def.width * GRID_SIZE, h: def.height * GRID_SIZE };
+  return clampGatePos(snapped, dims, state.mapSize);
+}
+
+/** World bounds of everything a gate drag carries, used to clamp the drag offset. */
+function draggedBounds(
+  state: EditorState,
+  gateIds: readonly GateId[],
+  nodeIds: readonly WireNodeId[],
+): MapRect {
+  const bounds = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+  const grow = (x1: number, y1: number, x2: number, y2: number) => {
+    bounds.left = Math.min(bounds.left, x1);
+    bounds.top = Math.min(bounds.top, y1);
+    bounds.right = Math.max(bounds.right, x2);
+    bounds.bottom = Math.max(bounds.bottom, y2);
+  };
+
+  for (const id of gateIds) {
+    const gate = state.circuit.getGate(id);
+    const { w, h } = getGateDims(gate);
+    grow(gate.pos.x, gate.pos.y, gate.pos.x + w, gate.pos.y + h);
+  }
+  for (const id of nodeIds) {
+    const node = state.circuit.wireNodes.get(id);
+    if (node) grow(node.pos.x, node.pos.y, node.pos.x, node.pos.y);
+  }
+  return bounds;
 }
 
 const MAX_RECENT = 10;

@@ -18,9 +18,9 @@ const level: Level = {
   ],
   outputs: [{ name: 'Q' }],
   predefinedGates: [
-    { type: 'input', pos: { x: 2, y: 2 }, label: 'S', canRemove: false },
-    { type: 'input', pos: { x: 2, y: 7 }, label: 'R', canRemove: false },
-    { type: 'output', pos: { x: 23, y: 3 }, label: 'Q', canRemove: false },
+    { type: 'input', pos: { x: -12, y: -4 }, label: 'S', canRemove: false },
+    { type: 'input', pos: { x: -12, y: 1 }, label: 'R', canRemove: false },
+    { type: 'output', pos: { x: 9, y: -3 }, label: 'Q', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'nor', 'delay', 'tristate', 'mux'] },
   test: {

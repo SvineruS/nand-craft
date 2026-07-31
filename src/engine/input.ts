@@ -57,6 +57,8 @@ export interface CanvasInputHandlers {
 export interface CanvasInputOptions {
   getCamera(): Camera;
   onCameraChange?(): void;
+  /** Runs after every pan and zoom, so the camera can be held over a bounded world. */
+  clampCamera?(camera: Camera, viewportSize: Vec2): void;
   shouldPan?(e: PointerEvent): boolean;
   zoomMin?: number;
   zoomMax?: number;
@@ -72,6 +74,7 @@ export class CanvasInput {
   private handlers: CanvasInputHandlers;
   private getCamera: () => Camera;
   private onCameraChange?: () => void;
+  private clampCamera?: (camera: Camera, viewportSize: Vec2) => void;
   private shouldPan: (e: PointerEvent) => boolean;
   private zoomMin: number;
   private zoomMax: number;
@@ -89,6 +92,7 @@ export class CanvasInput {
     this.handlers = handlers;
     this.getCamera = opts.getCamera;
     this.onCameraChange = opts.onCameraChange;
+    this.clampCamera = opts.clampCamera;
     this.shouldPan = opts.shouldPan ?? ((e) => e.button === 1);
     this.zoomMin = opts.zoomMin ?? 0.25;
     this.zoomMax = opts.zoomMax ?? 4;
@@ -136,6 +140,7 @@ export class CanvasInput {
       const current = { x: e.offsetX, y: e.offsetY };
       applyPan(this.getCamera(), { x: current.x - this.panLast.x, y: current.y - this.panLast.y });
       this.panLast = current;
+      this.clampToWorld();
       this.onCameraChange?.();
       return;
     }
@@ -159,6 +164,7 @@ export class CanvasInput {
       this.canvas.clientWidth, this.canvas.clientHeight,
       this.zoomMin, this.zoomMax,
     );
+    this.clampToWorld();
     this.onCameraChange?.();
     this.handlers.onWheel?.({
       world: this.toWorld(screen), screen, raw: e, deltaY: e.deltaY,
@@ -195,6 +201,13 @@ export class CanvasInput {
   };
 
   // --- Helpers ---
+
+  private clampToWorld(): void {
+    this.clampCamera?.(this.getCamera(), {
+      x: this.canvas.clientWidth,
+      y: this.canvas.clientHeight,
+    });
+  }
 
   toWorld(screen: Vec2): Vec2 {
     const cam = this.getCamera();

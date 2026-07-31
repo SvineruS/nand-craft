@@ -5,6 +5,7 @@ import type { WireEndpoint } from './utils/geometry.ts';
 import type { Camera } from '../../engine/camera.ts';
 import type { GateType } from "./gates.ts";
 import { WIRE_COLORS } from "./consts.ts";
+import { DEFAULT_MAP_SIZE, type MapSize } from "./utils/mapBounds.ts";
 
 export type { Camera };
 
@@ -89,6 +90,8 @@ export function emptyDragPreview(): DragPreview {
 export interface EditorState {
   circuit: Circuit;
   camera: Camera;
+  /** Buildable area. Gates are clamped into it and the camera can't stray far past it. */
+  mapSize: MapSize;
   selection: SelectionItem[];
   hoveredGate: GateId | null;
   hoveredEndpoint: WireEndpoint | null;
@@ -115,10 +118,11 @@ let sharedClipboard: ClipboardData | null = null;
 export function getSharedClipboard(): ClipboardData | null { return sharedClipboard; }
 export function setSharedClipboard(data: ClipboardData | null): void { sharedClipboard = data; }
 
-export function createEditorState(): EditorState {
+export function createEditorState(mapSize: MapSize = DEFAULT_MAP_SIZE): EditorState {
   return {
     circuit: new Circuit(),
     camera: { pos: { x: 0, y: 0 }, zoom: 1 },
+    mapSize,
     selection: [],
     hoveredGate: null,
     hoveredEndpoint: null,

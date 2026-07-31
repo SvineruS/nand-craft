@@ -9,9 +9,9 @@ const level: Level = {
   inputs: [{ name: 'A' }, { name: 'B' }],
   outputs: [{ name: 'Out' }],
   predefinedGates: [
-    { type: 'input', pos: { x: 2, y: 3 }, label: 'A' },
-    { type: 'input', pos: { x: 2, y: 7 }, label: 'B' },
-    { type: 'output', pos: { x: 20, y: 5 }, label: 'Out' },
+    { type: 'input', pos: { x: -10, y: -3 }, label: 'A' },
+    { type: 'input', pos: { x: -10, y: 1 }, label: 'B' },
+    { type: 'output', pos: { x: 8, y: -1 }, label: 'Out' },
   ],
   test: {
     name: 'Sandbox',

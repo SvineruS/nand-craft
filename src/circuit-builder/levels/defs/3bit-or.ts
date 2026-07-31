@@ -14,10 +14,10 @@ const level: Level = {
   ],
   outputs: [{ name: 'Out' }],
   predefinedGates: [
-    { type: 'input', pos: { x: 2, y: 1 }, label: 'A', canRemove: false },
-    { type: 'input', pos: { x: 2, y: 4 }, label: 'B', canRemove: false },
-    { type: 'input', pos: { x: 2, y: 7 }, label: 'C', canRemove: false },
-    { type: 'output', pos: { x: 19, y: 4 }, label: 'Out', canRemove: false },
+    { type: 'input', pos: { x: -10, y: -4 }, label: 'A', canRemove: false },
+    { type: 'input', pos: { x: -10, y: -1 }, label: 'B', canRemove: false },
+    { type: 'input', pos: { x: -10, y: 2 }, label: 'C', canRemove: false },
+    { type: 'output', pos: { x: 7, y: -1 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'or'] },
   test: {

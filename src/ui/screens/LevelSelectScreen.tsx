@@ -6,6 +6,7 @@ import { notifyStateChange, solvedLevelIds } from '../editorStore.ts';
 import { navigateTo } from '../screenManager.ts';
 import { openComponentEditor, editComponent } from '../componentNav.ts';
 import { hitTestGate_ } from '../../circuit-builder/editor/utils/hitTests.ts';
+import { clampCamera } from '../../circuit-builder/editor/utils/mapBounds.ts';
 import type { ComponentId } from '../../circuit-builder/editor/types.ts';
 import {
   buildLevelMap,
@@ -52,6 +53,7 @@ export function LevelSelectScreen() {
       },
     }, {
       getCamera: () => mapState.current!.camera,
+      clampCamera: (camera, viewport) => clampCamera(camera, mapState.current!.mapSize, viewport),
       onCameraChange() { mapState.current!.renderDirty = true; },
       shouldPan: (e) => e.button === 1,
     }),

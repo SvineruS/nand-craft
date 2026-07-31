@@ -10,8 +10,8 @@ const level: Level = {
   inputs: [{ name: 'A' }],
   outputs: [{ name: 'Out' }],
   predefinedGates: [
-    { type: 'input-8bit', pos: { x: 2, y: 5 }, label: 'A', canRemove: false },
-    { type: 'output-8bit', pos: { x: 35, y: 5 }, label: 'Out', canRemove: false },
+    { type: 'input-8bit', pos: { x: -18, y: -1 }, label: 'A', canRemove: false },
+    { type: 'output-8bit', pos: { x: 15, y: -1 }, label: 'Out', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', '8bit-not', '8bit-adder', '2bit-adder', '3bit-adder', 'constant', 'constant-8bit', 'splitter', 'joiner'] },
   test: {

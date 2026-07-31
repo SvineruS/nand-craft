@@ -1,5 +1,7 @@
 import type { PinRef, WireNodeId } from './types.ts';
-import type { ClipboardGate, ClipboardNode, ClipboardWire, EditorState } from './EditorState.ts';
+import type {
+  ClipboardData, ClipboardGate, ClipboardNode, ClipboardWire, EditorState,
+} from './EditorState.ts';
 import { setSharedClipboard } from './EditorState.ts';
 import { getSelectedIds } from './EditorState.ts';
 import { getGateDefinition } from './gates.ts';
@@ -13,6 +15,7 @@ import { gateCenter, gateGridOffset } from './utils/geometry.ts';
 import { snapGateCenter } from './utils/hitTests.ts';
 import { Vec2 } from './utils/vec2.ts';
 import { GRID_SIZE } from "./consts.ts";
+import { clampGroupOffset, type MapRect } from './utils/mapBounds.ts';
 
 export function copySelection(state: EditorState): void {
   const selectedGateIds = getSelectedIds(state, 'gate');
@@ -90,11 +93,23 @@ export function copySelection(state: EditorState): void {
   setSharedClipboard(state.clipboard); // Persist across level switches
 }
 
+/**
+ * Paste anchor pulled back so the whole clipboard lands inside the map.
+ *
+ * The paste preview and the paste itself both go through this, so what you see under the
+ * cursor is what gets created.
+ */
+export function clampPasteCenter(state: EditorState, center: Vec2): Vec2 {
+  const clip = state.clipboard;
+  if (!clip) return center;
+  return clampGroupOffset(center, clipboardBounds(clip), state.mapSize);
+}
+
 export function pasteClipboard(state: EditorState, pos: Vec2, history: CommandHistory): void {
   const clip = state.clipboard;
   if (!clip) return;
 
-  const center = Vec2.snap(pos);
+  const center = clampPasteCenter(state, Vec2.snap(pos));
   history.beginBatch('Paste');
 
   // Create gates and collect new gate IDs for pin reconstruction
@@ -145,4 +160,27 @@ export function pasteClipboard(state: EditorState, pos: Vec2, history: CommandHi
 
   history.endBatch();
   state.renderDirty = true;
+}
+
+/** Extent of the clipboard's contents, relative to the paste anchor. */
+function clipboardBounds(clip: ClipboardData): MapRect {
+  const bounds = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+  const grow = (x1: number, y1: number, x2: number, y2: number) => {
+    bounds.left = Math.min(bounds.left, x1);
+    bounds.top = Math.min(bounds.top, y1);
+    bounds.right = Math.max(bounds.right, x2);
+    bounds.bottom = Math.max(bounds.bottom, y2);
+  };
+
+  for (const cg of clip.gates) {
+    // Deltas point at gate centres, so half the body sticks out either side.
+    const def = getGateDefinition(cg.type);
+    const halfW = def.width * GRID_SIZE / 2;
+    const halfH = def.height * GRID_SIZE / 2;
+    grow(cg.delta.x - halfW, cg.delta.y - halfH, cg.delta.x + halfW, cg.delta.y + halfH);
+  }
+  for (const cn of clip.nodes) {
+    grow(cn.delta.x, cn.delta.y, cn.delta.x, cn.delta.y);
+  }
+  return bounds;
 }

@@ -1,5 +1,6 @@
 import {
   COLORS, GRID_DOT_RADIUS, GRID_SIZE, MAJOR_GRID_DOT_RADIUS, MAJOR_GRID_EVERY,
+  OUTSIDE_MAP_PATTERN_ALPHA,
 } from '../consts.ts';
 
 /**
@@ -55,12 +56,55 @@ export function isOrnamentPatternId(value: string): value is OrnamentPatternId {
   return ORNAMENT_PATTERNS.some(p => p.id === value);
 }
 
+export interface BackgroundDrawOptions {
+  style: BackgroundStyle;
+  /** World rect currently on screen. */
+  viewport: PatternBounds;
+  /** Buildable area. Outside it the pattern is dimmed and veiled. */
+  map: PatternBounds;
+  /** Passed so line work keeps a constant on-screen thickness at any zoom. */
+  zoom: number;
+}
+
 /**
- * Paint both background layers over `bounds`, in world space — the caller has already
- * applied the camera transform. `zoom` is passed so line work can keep a constant
- * on-screen thickness instead of turning into slabs when you zoom in.
+ * Paint the background in world space — the caller has already applied the camera
+ * transform. Inside the map the pattern is drawn at full strength; outside it is veiled
+ * and faded, so the buildable area reads as the place where things belong.
  */
 export function drawBackground(
+  ctx: CanvasRenderingContext2D,
+  { style, viewport, map, zoom }: BackgroundDrawOptions,
+): void {
+  const inside = intersect(viewport, map);
+  const reachesOutside = viewport.left < map.left || viewport.top < map.top
+    || viewport.right > map.right || viewport.bottom > map.bottom;
+
+  if (reachesOutside) {
+    ctx.save();
+    clipOutside(ctx, viewport, map);
+    ctx.fillStyle = COLORS.outsideMap;
+    ctx.fillRect(
+      viewport.left, viewport.top,
+      viewport.right - viewport.left, viewport.bottom - viewport.top,
+    );
+    ctx.globalAlpha = OUTSIDE_MAP_PATTERN_ALPHA;
+    drawLayers(ctx, style, viewport, zoom);
+    ctx.restore();
+  }
+
+  if (!isEmpty(inside)) {
+    ctx.save();
+    clipTo(ctx, inside);
+    drawLayers(ctx, style, inside, zoom);
+    ctx.restore();
+
+    ctx.strokeStyle = COLORS.mapBorder;
+    ctx.lineWidth = 2 / zoom;
+    ctx.strokeRect(map.left, map.top, map.right - map.left, map.bottom - map.top);
+  }
+}
+
+function drawLayers(
   ctx: CanvasRenderingContext2D,
   style: BackgroundStyle,
   bounds: PatternBounds,
@@ -72,8 +116,11 @@ export function drawBackground(
 
 const MAJOR_STEP = GRID_SIZE * MAJOR_GRID_EVERY;
 const CROSS_ARM = 2.5;
-/** Ornaments sit behind the grid, so they are drawn faint enough to read as texture. */
-const ORNAMENT_ALPHA = 0.55;
+/**
+ * Ornaments sit behind the grid, fainter than it even inside the map — they are texture,
+ * and the grid is information.
+ */
+const ORNAMENT_ALPHA = 0.4;
 const WAVE_AMPLITUDE = GRID_SIZE;
 /**
  * Hexagon half-extents. A *regular* hexagon can't have both its width and its row pitch on
@@ -159,7 +206,9 @@ function drawOrnament(
   if (ornament === 'none') return;
 
   ctx.save();
-  ctx.globalAlpha = ORNAMENT_ALPHA;
+  // Multiplied, not assigned: the caller may already have dimmed the whole layer for the
+  // area outside the map, and that dimming has to survive.
+  ctx.globalAlpha *= ORNAMENT_ALPHA;
   ctx.strokeStyle = COLORS.ornament;
   ctx.lineWidth = 1 / zoom;
   ctx.beginPath();
@@ -285,7 +334,41 @@ function fillChecker(ctx: CanvasRenderingContext2D, bounds: PatternBounds): void
   }
 }
 
-// --- Helpers ---
+// --- Region helpers ---
+
+function intersect(a: PatternBounds, b: PatternBounds): PatternBounds {
+  return {
+    left: Math.max(a.left, b.left),
+    top: Math.max(a.top, b.top),
+    right: Math.min(a.right, b.right),
+    bottom: Math.min(a.bottom, b.bottom),
+  };
+}
+
+function isEmpty(rect: PatternBounds): boolean {
+  return rect.right <= rect.left || rect.bottom <= rect.top;
+}
+
+function clipTo(ctx: CanvasRenderingContext2D, rect: PatternBounds): void {
+  ctx.beginPath();
+  ctx.rect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+  ctx.clip();
+}
+
+/** Clip to the viewport minus the map: two rects, wound as a hole by the even-odd rule. */
+function clipOutside(
+  ctx: CanvasRenderingContext2D,
+  viewport: PatternBounds,
+  map: PatternBounds,
+): void {
+  ctx.beginPath();
+  ctx.rect(viewport.left, viewport.top,
+    viewport.right - viewport.left, viewport.bottom - viewport.top);
+  ctx.rect(map.left, map.top, map.right - map.left, map.bottom - map.top);
+  ctx.clip('evenodd');
+}
+
+// --- Lattice helpers ---
 
 /** First grid line at or before `worldCoord`. */
 function firstLine(worldCoord: number): number {

@@ -1,5 +1,6 @@
 import type { Vec2 } from '../utils/vec2.ts';
 import type { GateType } from '../../simulation/gateTypes.ts';
+import type { MapRect } from '../utils/mapBounds.ts';
 
 export interface RenderWireSegment {
   from: Vec2;
@@ -66,6 +67,8 @@ export interface RenderPastePreview {
 }
 
 export interface RenderScene {
+  /** Buildable area. The painter dims the background outside it and outlines the edge. */
+  map: MapRect;
   wireSegments: RenderWireSegment[];
   wireNodes: RenderWireNode[];
   gates: RenderGate[];

@@ -7,6 +7,7 @@ import type { GateId, PinRef, WireNode, WireNodeId, WireSegment, WireSegmentId }
 import { isComponentType } from '../../components/componentRegistry.ts';
 import { gateCenter, gateGridOffset, getGateDims, getPinPositions } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
+import { mapRectOf } from '../utils/mapBounds.ts';
 import { COLORS, GRID_SIZE, WIRE_COLORS, WIRE_LABEL_MIN_LENGTH, WIRE_LABEL_SPACING } from '../consts.ts';
 
 /**
@@ -42,6 +43,7 @@ export function buildScene(
   const lens = previewLens(state);
 
   return {
+    map: mapRectOf(state.mapSize),
     wireSegments: buildWireSegments(state, bounds, lens),
     wireNodes: buildWireNodes(state, bounds, lens),
     gates: buildGates(state, bounds, lens),

@@ -17,11 +17,11 @@ const level: Level = {
     { name: 'Cout' },
   ],
   predefinedGates: [
-    { type: 'input', pos: { x: 2, y: 0 }, label: 'Cin', canRemove: false },
-    { type: 'input-8bit', pos: { x: 2, y: 4 }, label: 'A', canRemove: false },
-    { type: 'input-8bit', pos: { x: 2, y: 8 }, label: 'B', canRemove: false },
-    { type: 'output-8bit', pos: { x: 40, y: 3 }, label: 'S', canRemove: false },
-    { type: 'output', pos: { x: 40, y: 7 }, label: 'Cout', canRemove: false },
+    { type: 'input', pos: { x: -20, y: -5 }, label: 'Cin', canRemove: false },
+    { type: 'input-8bit', pos: { x: -20, y: -1 }, label: 'A', canRemove: false },
+    { type: 'input-8bit', pos: { x: -20, y: 3 }, label: 'B', canRemove: false },
+    { type: 'output-8bit', pos: { x: 18, y: -2 }, label: 'S', canRemove: false },
+    { type: 'output', pos: { x: 18, y: 2 }, label: 'Cout', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'xor', '2bit-adder', '3bit-adder', 'splitter', 'joiner', 'constant'] },
   test: {

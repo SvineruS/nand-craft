@@ -8,6 +8,7 @@ import { COLORS, GRID_SIZE, WIRE_DASH_SIZE } from "../consts.ts";
 import {
   type BackgroundStyle, DEFAULT_BACKGROUND_STYLE, drawBackground,
 } from './backgroundPattern.ts';
+import type { MapRect } from '../utils/mapBounds.ts';
 import type {
   RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin,
   RenderErrorSegment, RenderSelectionItem, RenderPastePreview,
@@ -51,7 +52,7 @@ export class Renderer {
     );
     ctx.scale(camera.zoom, camera.zoom);
 
-    this.drawBackground(camera);
+    this.drawBackground(camera, scene.map);
     this.drawWireSegments(scene.wireSegments);
     this.drawWireNodes(scene.wireNodes);
     this.drawGates(scene.gates);
@@ -199,8 +200,13 @@ export class Renderer {
     }
   }
 
-  private drawBackground(camera: Camera): void {
-    drawBackground(this.ctx, this.backgroundStyle, this.viewport(camera), camera.zoom);
+  private drawBackground(camera: Camera, map: MapRect): void {
+    drawBackground(this.ctx, {
+      style: this.backgroundStyle,
+      viewport: this.viewport(camera),
+      map,
+      zoom: camera.zoom,
+    });
   }
 
   private drawWireSegments(segments: RenderWireSegment[]): void {

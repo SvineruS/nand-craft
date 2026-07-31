@@ -80,12 +80,14 @@ function PatternOption({ label, style, selected }: PatternOptionProps) {
     ctx.fillRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
 
     ctx.scale(PREVIEW_ZOOM, PREVIEW_ZOOM);
-    drawBackground(ctx, style, {
+    const bounds = {
       left: 0,
       top: 0,
       right: PREVIEW_WIDTH / PREVIEW_ZOOM,
       bottom: PREVIEW_HEIGHT / PREVIEW_ZOOM,
-    }, PREVIEW_ZOOM);
+    };
+    // The preview is all "inside the map" — the dimmed-outside look isn't what's on offer here.
+    drawBackground(ctx, { style, viewport: bounds, map: bounds, zoom: PREVIEW_ZOOM });
   }, [style.grid, style.ornament]);
 
   return (
