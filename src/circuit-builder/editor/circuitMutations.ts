@@ -1,9 +1,9 @@
 /**
- * Pure mutation primitives for Circuit. Single source of truth for Map edits.
+ * Mutation primitives for Circuit, plus the undo records the Command classes replay.
  *
- * Callers (Command classes, drag helpers) own EditorState, history, and
- * circuitDirty flag management — these functions only touch circuit.wireNodes
- * and circuit.wireSegments.
+ * Circuit owns the maps and their adjacency indexes; this module composes its methods
+ * into the compound edits the editor needs (remove-with-cascade, restore-what-was-
+ * removed). Callers own EditorState, history, and circuitDirty flag management.
  */
 import type { Circuit } from '../simulation/circuit.ts';
 import {
@@ -29,9 +29,10 @@ export function addWireNode(circuit: Circuit, pos: Vec2, pin?: PinRef): WireNode
 }
 
 export function addWireNodeWithId(circuit: Circuit, id: WireNodeId, pos: Vec2, pin?: PinRef): void {
-  const node: WireNode = { id, pos: V.copy(pos) };
-  if (pin) node.pin = pin;
-  circuit.wireNodes.set(id, node);
+  const node: WireNode = pin
+    ? { id, pos: V.copy(pos), pin }
+    : { id, pos: V.copy(pos) };
+  circuit.addWireNode(node);
 }
 
 export function addWireSegment(
@@ -48,7 +49,7 @@ export function addWireSegmentWithId(
   const seg: WireSegment = { id, from, to };
   if (color) seg.color = color;
   if (label) seg.label = label;
-  circuit.wireSegments.set(id, seg);
+  circuit.addWireSegment(seg);
 }
 
 // ---------------------------------------------------------------------------
@@ -69,15 +70,14 @@ export function removeWireNode(circuit: Circuit, nodeId: WireNodeId): RemovedNod
 
   const segments: WireSegment[] = [];
   const neighborIds = new Set<WireNodeId>();
-  for (const seg of circuit.wireSegments.values()) {
-    if (seg.from === nodeId || seg.to === nodeId) {
-      segments.push({ ...seg });
-      const other = seg.from === nodeId ? seg.to : seg.from;
-      if (other !== nodeId) neighborIds.add(other);
-    }
+  for (const segId of circuit.segmentsOf(nodeId)) {
+    const seg = circuit.getWireSegment(segId);
+    segments.push({ ...seg });
+    const other = seg.from === nodeId ? seg.to : seg.from;
+    if (other !== nodeId) neighborIds.add(other);
   }
-  for (const seg of segments) circuit.wireSegments.delete(seg.id);
-  circuit.wireNodes.delete(nodeId);
+  for (const seg of segments) circuit.removeWireSegment(seg.id);
+  circuit.removeWireNode(nodeId);
 
   const orphans = cleanupOrphanNodes(circuit, neighborIds);
   return { node: nodeCopy, segments, orphans };
@@ -95,7 +95,7 @@ export function removeWireSegment(
   const seg = circuit.wireSegments.get(segId);
   if (!seg) return null;
   const segCopy: WireSegment = { ...seg };
-  circuit.wireSegments.delete(segId);
+  circuit.removeWireSegment(segId);
   const orphans = cleanOrphans ? cleanupOrphanNodes(circuit, [seg.from, seg.to]) : [];
   return { segment: segCopy, orphans };
 }
@@ -116,11 +116,7 @@ export function setWireNodePos(circuit: Circuit, nodeId: WireNodeId, pos: Vec2):
 export function setWireNodePin(
   circuit: Circuit, nodeId: WireNodeId, pin: PinRef | undefined,
 ): PinRef | undefined {
-  const node = circuit.getWireNode(nodeId);
-  const old = node.pin;
-  if (pin) node.pin = pin;
-  else node.pin = undefined;
-  return old;
+  return circuit.setWireNodePin(nodeId, pin);
 }
 
 // ---------------------------------------------------------------------------
@@ -130,18 +126,18 @@ export function setWireNodePin(
 /** Re-insert a previously removed node + its segments + its orphaned neighbors. */
 export function restoreRemovedNode(circuit: Circuit, removed: RemovedNode): void {
   for (const orphan of removed.orphans) {
-    circuit.wireNodes.set(orphan.id, { ...orphan, pos: V.copy(orphan.pos) });
+    circuit.addWireNode({ ...orphan, pos: V.copy(orphan.pos) });
   }
-  circuit.wireNodes.set(removed.node.id, { ...removed.node, pos: V.copy(removed.node.pos) });
+  circuit.addWireNode({ ...removed.node, pos: V.copy(removed.node.pos) });
   for (const seg of removed.segments) {
-    circuit.wireSegments.set(seg.id, { ...seg });
+    circuit.addWireSegment({ ...seg });
   }
 }
 
 /** Re-insert a previously removed segment + its orphaned endpoint nodes. */
 export function restoreRemovedSegment(circuit: Circuit, removed: RemovedSegment): void {
   for (const orphan of removed.orphans) {
-    circuit.wireNodes.set(orphan.id, { ...orphan, pos: V.copy(orphan.pos) });
+    circuit.addWireNode({ ...orphan, pos: V.copy(orphan.pos) });
   }
-  circuit.wireSegments.set(removed.segment.id, { ...removed.segment });
+  circuit.addWireSegment({ ...removed.segment });
 }

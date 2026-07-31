@@ -86,13 +86,13 @@ export function deserializeCircuit(data: SerializedCircuit): Circuit {
   const circuit = new Circuit();
 
   for (const [id, gate] of data.gates) {
-    circuit.gates.set(id as GateId, deserializeGate(id as GateId, gate));
+    circuit.addGate(deserializeGate(id as GateId, gate));
   }
   for (const [id, node] of data.wireNodes) {
-    circuit.wireNodes.set(id as WireNodeId, { id: id as WireNodeId, ...node });
+    circuit.addWireNode({ ...node, id: id as WireNodeId });
   }
   for (const [id, seg] of data.wireSegments) {
-    circuit.wireSegments.set(id as WireSegmentId, { id: id as WireSegmentId, ...seg });
+    circuit.addWireSegment({ ...seg, id: id as WireSegmentId });
   }
 
   // Ensure ID counter is past the highest used ID (use max to never decrease it,

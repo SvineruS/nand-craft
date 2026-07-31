@@ -5,11 +5,7 @@ import type { EditorState, PlaceableType } from './EditorState.ts';
 import { getSelectedIds } from './EditorState.ts';
 import type { Renderer } from './render/Renderer.ts';
 import { rotateBy, type WireEndpoint } from './utils/geometry.ts';
-import {
-  findNodeForPin,
-  getAnchoredNodeIds,
-  pinRefsEqual,
-} from './utils/geometry.ts';
+import { findNodeForPin, getAnchoredNodeIds } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
 import { getGateDefinition, getPinBitWidth } from './gates.ts';
 import { isConstantGate } from '../simulation/gateTypes.ts';
@@ -624,10 +620,10 @@ export class InputHandler {
     const targetNode = state.circuit.getWireNode(targetNodeId);
     this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, targetNode.pos, detachPin));
     // Repoint segments: remove old, add new (skip self-loops and duplicates)
-    const segments = [...state.circuit.wireSegments.values()];
+    const segments = [...state.circuit.segmentsOf(nodeId)]
+      .map(id => state.circuit.getWireSegment(id));
     const seen = new Set<string>();
     for (const seg of segments) {
-      if (seg.from !== nodeId && seg.to !== nodeId) continue;
       const newFrom = seg.from === nodeId ? targetNodeId : seg.from;
       const newTo = seg.to === nodeId ? targetNodeId : seg.to;
       this.getHistory().execute(new RemoveWireSegmentCommand(state, seg.id, false));
@@ -858,27 +854,22 @@ export class InputHandler {
 
   /** Detach all wire nodes anchored to pins of the given gates. Returns detached mappings for undo. */
   private detachPinNodes(state: EditorState, gateIds: GateId[]): { nodeId: WireNodeId; pin: PinRef }[] {
-    const gateIdSet = new Set<string>(gateIds as string[]);
     const detached: { nodeId: WireNodeId; pin: PinRef }[] = [];
-    for (const node of state.circuit.wireNodes.values()) {
-      if (node.pin && gateIdSet.has(node.pin.gateId as string)) {
-        detached.push({ nodeId: node.id, pin: node.pin });
-        node.pin = undefined;
-      }
+    for (const nodeId of state.circuit.anchoredNodesOf(gateIds)) {
+      const pin = state.circuit.getWireNode(nodeId).pin;
+      if (!pin) continue;
+      detached.push({ nodeId, pin });
+      state.circuit.setWireNodePin(nodeId, undefined);
     }
     // Pin values live in simState, recomputed on next tick
     return detached;
   }
 
+  /** The node on this pin, but only if a wire actually reaches it. */
   private findAnchoredNode(pin: PinRef, state: EditorState): WireNodeId | null {
-    for (const node of state.circuit.wireNodes.values()) {
-      if (node.pin && pinRefsEqual(node.pin, pin)) {
-        for (const seg of state.circuit.wireSegments.values()) {
-          if (seg.from === node.id || seg.to === node.id) return node.id;
-        }
-      }
-    }
-    return null;
+    const nodeId = state.circuit.findNodeForPin(pin);
+    if (nodeId === null) return null;
+    return state.circuit.degreeOf(nodeId) > 0 ? nodeId : null;
   }
 
   // ---------------------------------------------------------------------------
@@ -899,9 +890,9 @@ export class InputHandler {
 
   /** Check if a segment already exists between two nodes (either direction). */
   private segmentExists(state: EditorState, a: WireNodeId, b: WireNodeId): boolean {
-    for (const seg of state.circuit.wireSegments.values()) {
-      if ((seg.from === a && seg.to === b) || (seg.from === b && seg.to === a))
-        return true;
+    for (const segId of state.circuit.segmentsOf(a)) {
+      const seg = state.circuit.getWireSegment(segId);
+      if (seg.from === b || seg.to === b) return true;
     }
     return false;
   }
@@ -940,13 +931,12 @@ export class InputHandler {
     if (node.pin) return false; // only free nodes
 
     // Find connected segments
+    if (state.circuit.degreeOf(nodeId) !== 2) return false;
     const connected: { segId: WireSegmentId; otherId: WireNodeId }[] = [];
-    for (const seg of state.circuit.wireSegments.values()) {
-      if (seg.from === nodeId) connected.push({ segId: seg.id, otherId: seg.to });
-      else if (seg.to === nodeId) connected.push({ segId: seg.id, otherId: seg.from });
+    for (const segId of state.circuit.segmentsOf(nodeId)) {
+      const seg = state.circuit.getWireSegment(segId);
+      connected.push({ segId, otherId: seg.from === nodeId ? seg.to : seg.from });
     }
-
-    if (connected.length !== 2) return false;
 
     // Preserve color and label from the segments
     const seg0 = state.circuit.getWireSegment(connected[0].segId);
@@ -969,35 +959,22 @@ export class InputHandler {
 
   /** Flood-fill from selected segments to find all connected segments. */
   private getConnectedSegments(state: EditorState, startSegIds: WireSegmentId[]): WireSegmentId[] {
-    // Build node→segments adjacency
-    const nodeToSegs = new Map<string, WireSegmentId[]>();
-    for (const seg of state.circuit.wireSegments.values()) {
-      const fromKey = seg.from as string;
-      const toKey = seg.to as string;
-      if (!nodeToSegs.has(fromKey)) nodeToSegs.set(fromKey, []);
-      if (!nodeToSegs.has(toKey)) nodeToSegs.set(toKey, []);
-      nodeToSegs.get(fromKey)!.push(seg.id);
-      nodeToSegs.get(toKey)!.push(seg.id);
-    }
-
-    const visited = new Set<string>();
+    const { circuit } = state;
+    const visited = new Set<WireSegmentId>(startSegIds);
     const queue = [...startSegIds];
-    for (const id of queue) visited.add(id as string);
 
     while (queue.length > 0) {
-      const segId = queue.pop()!;
-      const seg = state.circuit.getWireSegment(segId);
-      for (const nodeKey of [seg.from as string, seg.to as string]) {
-        for (const neighborId of nodeToSegs.get(nodeKey) ?? []) {
-          if (!visited.has(neighborId as string)) {
-            visited.add(neighborId as string);
-            queue.push(neighborId);
-          }
+      const seg = circuit.getWireSegment(queue.pop()!);
+      for (const nodeId of [seg.from, seg.to]) {
+        for (const neighborId of circuit.segmentsOf(nodeId)) {
+          if (visited.has(neighborId)) continue;
+          visited.add(neighborId);
+          queue.push(neighborId);
         }
       }
     }
 
-    return [...visited] as WireSegmentId[];
+    return [...visited];
   }
 
   // ---------------------------------------------------------------------------

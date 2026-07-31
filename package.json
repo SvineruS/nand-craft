@@ -11,7 +11,8 @@
     "sim:snapshot": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --snapshot",
     "sim:check": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --check",
     "sim:scene": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --scene",
-    "sim:bench": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --bench"
+    "sim:bench": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --bench",
+    "check:invariants": "node --import ./scripts/viteRawLoader.ts scripts/checkInvariants.ts"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",

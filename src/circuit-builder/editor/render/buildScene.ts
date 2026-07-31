@@ -3,7 +3,7 @@ import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, Render
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
 import { type Gate, isConstantGate, isInputGate } from '../../simulation/gateTypes.ts';
 import type { Circuit } from '../../simulation/circuit.ts';
-import type { PinRef } from '../types.ts';
+import type { PinRef, WireNodeId } from '../types.ts';
 import { isComponentType } from '../../components/componentRegistry.ts';
 import { gateCenter, gateGridOffset, getGateDims, getPinPositions } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
@@ -145,21 +145,8 @@ function buildWireNodes(state: EditorState, bounds: Viewport | null): RenderWire
   const { circuit } = state;
   const result: RenderWireNode[] = [];
 
-  // Count segments per node + find first connected segment color
-  const segmentCount = new Map<string, number>();
-  const nodeColor = new Map<string, string>();
-  for (const seg of circuit.wireSegments.values()) {
-    segmentCount.set(seg.from, (segmentCount.get(seg.from) ?? 0) + 1);
-    segmentCount.set(seg.to, (segmentCount.get(seg.to) ?? 0) + 1);
-    if (seg.color) {
-      if (!nodeColor.has(seg.from)) nodeColor.set(seg.from, seg.color);
-      if (!nodeColor.has(seg.to)) nodeColor.set(seg.to, seg.color);
-    }
-  }
-
   for (const node of circuit.wireNodes.values()) {
-    const count = segmentCount.get(node.id) ?? 0;
-    if (count === 0 && !node.pin) continue;
+    if (circuit.degreeOf(node.id) === 0 && !node.pin) continue;
     if (!pointVisible(bounds, node.pos)) continue;
 
     let nodePinValue: number | null = null;
@@ -172,7 +159,7 @@ function buildWireNodes(state: EditorState, bounds: Viewport | null): RenderWire
       }
     }
     const value = nodePinValue ?? circuit.getNetValue(node.id);
-    const customColor = nodeColor.get(node.id);
+    const customColor = firstSegmentColor(circuit, node.id);
     const isHovered = state.hoveredEndpoint?.kind === 'node' && state.hoveredEndpoint.nodeId === node.id;
 
     const radius = isHovered ? 7 : 5;
@@ -189,6 +176,15 @@ function buildWireNodes(state: EditorState, bounds: Viewport | null): RenderWire
   }
 
   return result;
+}
+
+/** Colour of the first coloured segment on this node, so the node matches its wire. */
+function firstSegmentColor(circuit: Circuit, nodeId: WireNodeId): string | undefined {
+  for (const segId of circuit.segmentsOf(nodeId)) {
+    const color = circuit.getWireSegment(segId).color;
+    if (color) return color;
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------

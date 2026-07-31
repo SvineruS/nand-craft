@@ -52,7 +52,7 @@ class Builder {
   gate(type: GateType, label: string, value?: number): GateId {
     const id = generateId('g') as GateId;
     const slot = this.gateCount++;
-    this.circuit.gates.set(id, {
+    this.circuit.addGate({
       id,
       type,
       pos: {
@@ -72,13 +72,13 @@ class Builder {
     const nodeIds: WireNodeId[] = [];
     for (const ref of refs) {
       const nodeId = generateId('n') as WireNodeId;
-      this.circuit.wireNodes.set(nodeId, { id: nodeId, pos: { x: 0, y: 0 }, pin: ref });
+      this.circuit.addWireNode({ id: nodeId, pos: { x: 0, y: 0 }, pin: ref });
       this.nodeNames.set(nodeId, `node#${this.nodeCount++}`);
       nodeIds.push(nodeId);
     }
     for (let i = 1; i < nodeIds.length; i++) {
       const segmentId = generateId('s') as WireSegmentId;
-      this.circuit.wireSegments.set(segmentId, {
+      this.circuit.addWireSegment({
         id: segmentId,
         from: nodeIds[i - 1],
         to: nodeIds[i],

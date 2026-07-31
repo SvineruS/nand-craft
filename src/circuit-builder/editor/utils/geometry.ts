@@ -179,21 +179,15 @@ export type WireEndpoint =
   | { kind: 'node'; nodeId: WireNodeId; pos: Vec2 };
 
 export function findNodeForPin(circuit: Circuit, pin: PinRef): WireNodeId | null {
-  for (const node of circuit.wireNodes.values()) {
-    if (node.pin && pinRefsEqual(node.pin, pin))
-      return node.id;
-  }
-  return null;
+  return circuit.findNodeForPin(pin);
 }
 
 /** Sync anchored wire-node positions to their gate's current pin positions. */
 export function updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
   for (const [pinRef, pos] of iteratePinPositions(gate)) {
-    for (const node of circuit.wireNodes.values()) {
-      // Copy: pin positions come from a shared cache and must not be aliased into nodes.
-      if (node.pin && pinRefsEqual(node.pin, pinRef))
-        node.pos = Vec2.copy(pos);
-    }
+    const nodeId = circuit.findNodeForPin(pinRef);
+    // Copy: pin positions come from a shared cache and must not be aliased into nodes.
+    if (nodeId) circuit.getWireNode(nodeId).pos = Vec2.copy(pos);
   }
 }
 
@@ -214,7 +208,7 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
         if (node.pin) continue;
         if (Vec2.near(node.pos, pos, 2)) {
           result.push({ nodeId: node.id, pin: pinRef, prevPos: Vec2.copy(node.pos) });
-          node.pin = pinRef;
+          circuit.setWireNodePin(node.id, pinRef);
           node.pos = Vec2.copy(pos);
           break;
         }
@@ -228,9 +222,8 @@ export function reconnectPinNodes(circuit: Circuit, gateIds: GateId[]): Reconnec
 /** Undo reconnectPinNodes: clear pin and restore original positions. */
 export function undoReconnectPinNodes(circuit: Circuit, reconnected: ReconnectedNode[]): void {
   for (const r of reconnected) {
-    const node = circuit.getWireNode(r.nodeId);
-    node.pin = undefined;
-    node.pos = Vec2.copy(r.prevPos);
+    circuit.setWireNodePin(r.nodeId, undefined);
+    circuit.getWireNode(r.nodeId).pos = Vec2.copy(r.prevPos);
   }
 }
 
@@ -269,14 +262,7 @@ export function rotateGroup(
 }
 
 export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
-  const gateIdSet = new Set<string>(gateIds as string[]);
-  const result: WireNodeId[] = [];
-  for (const node of circuit.wireNodes.values()) {
-    if (node.pin && gateIdSet.has(node.pin.gateId as string)) {
-      result.push(node.id);
-    }
-  }
-  return result;
+  return circuit.anchoredNodesOf(gateIds);
 }
 
 /** Remove wire nodes that have no remaining segments and aren't anchored to a pin. */
@@ -285,16 +271,9 @@ export function cleanupOrphanNodes(circuit: Circuit, nodeIds: Iterable<WireNodeI
   for (const nid of nodeIds) {
     const node = circuit.wireNodes.get(nid);
     if (!node || node.pin) continue;
-    let hasSegments = false;
-    for (const s of circuit.wireSegments.values()) {
-      if (s.from === nid || s.to === nid) {
-        hasSegments = true;
-        break;
-      }
-    }
-    if (!hasSegments) {
+    if (circuit.degreeOf(nid) === 0) {
       removed.push({ ...node, pos: Vec2.copy(node.pos) });
-      circuit.wireNodes.delete(nid);
+      circuit.removeWireNode(nid);
     }
   }
   return removed;

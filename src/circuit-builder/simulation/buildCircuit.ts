@@ -160,16 +160,6 @@ function buildNets(circuit: Circuit): Map<NetId, Net> {
     uf.union(segment.from, segment.to);
   }
 
-  const nodeToSegments = new Map<WireNodeId, WireSegmentId[]>();
-  for (const segment of circuit.wireSegments.values()) {
-    for (const nid of [segment.from, segment.to]) {
-      if (!nodeToSegments.has(nid)) {
-        nodeToSegments.set(nid, []);
-      }
-      nodeToSegments.get(nid)!.push(segment.id);
-    }
-  }
-
   const nets = new Map<NetId, Net>();
   const groups = uf.groups();
   // Net ids are rebuilt from scratch on every topology change and never persisted, so
@@ -180,10 +170,7 @@ function buildNets(circuit: Circuit): Map<NetId, Net> {
     const netId = `net_${nextNetIndex++}` as NetId;
     const segmentIdSet = new Set<WireSegmentId>();
     for (const nid of nodeIds) {
-      const segs = nodeToSegments.get(nid);
-      if (segs) {
-        for (const sid of segs) segmentIdSet.add(sid);
-      }
+      for (const sid of circuit.segmentsOf(nid)) segmentIdSet.add(sid);
     }
     nets.set(netId, { id: netId, nodeIds, segmentIds: [...segmentIdSet] });
   }

@@ -119,7 +119,7 @@ function addMissingLevels(
       canRemove: false,
       canMove: editable,
     };
-    circuit.gates.set(gateId, gate);
+    circuit.addGate(gate);
     levelGateMap.set(level.id, gateId);
     gateStatuses.set(gateId, status);
   }
@@ -154,7 +154,7 @@ function generateLevelMapCircuit(
       canRemove: false,
       canMove: editable,
     };
-    circuit.gates.set(gateId, gate);
+    circuit.addGate(gate);
     levelGateMap.set(level.id, gateId);
     gateStatuses.set(gateId, status);
   }
@@ -168,7 +168,7 @@ function generateLevelMapCircuit(
       nodeId = generateId('wn') as WireNodeId;
       const positions = getPinPositions(gate);
       const pos = pin.kind === 'input' ? positions.inputs[pin.index] : positions.outputs[pin.index];
-      circuit.wireNodes.set(nodeId, { id: nodeId, pos, pin });
+      circuit.addWireNode({ id: nodeId, pos, pin });
       pinNodeMap.set(key, nodeId);
     }
     return nodeId;
@@ -192,7 +192,7 @@ function generateLevelMapCircuit(
 
       const segId = generateId('ws') as WireSegmentId;
       const seg: WireSegment = { id: segId, from: fromNodeId, to: toNodeId };
-      circuit.wireSegments.set(segId, seg);
+      circuit.addWireSegment(seg);
     }
   }
 

@@ -80,7 +80,7 @@ function addComponentNodes(circuit: Circuit, gateStatuses: Map<GateId, LevelNode
     const comp = components[i];
     // Use component ID as gate ID so we can identify clicks
     const gateId = ('cmp:' + comp.id) as GateId;
-    circuit.gates.set(gateId, {
+    circuit.addGate({
       id: gateId,
       type: 'level', // Reuse level gate type for display
       pos: { x: startX + i * 160, y: startY },
