@@ -29,11 +29,10 @@ function LevelMapEditor() {
 
   const containerRef = useCanvasEditor({
     getState: () => editor.getState(),
-    createInput: (canvas, renderer) => new InputHandler(
+    createInput: (canvas) => new InputHandler(
       canvas,
       () => editor.getState(),
       () => editor.getHistory(),
-      renderer,
     ),
     onCircuitDirty: () => { editor.onCircuitChanged(); notifyStateChange(); },
     onStateChanged: () => notifyStateChange(),

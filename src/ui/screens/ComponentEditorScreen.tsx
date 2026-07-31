@@ -38,11 +38,10 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
 
   const containerRef = useCanvasEditor({
     getState: () => editor.getState(),
-    createInput: (canvas, renderer) => new InputHandler(
+    createInput: (canvas) => new InputHandler(
       canvas,
       () => editor.getState(),
       () => editor.getHistory(),
-      renderer,
     ),
     onCircuitDirty: () => { editor.onCircuitChanged(); notifyStateChange(); },
     onValueDirty: () => { editor.retick(); notifyStateChange(); },

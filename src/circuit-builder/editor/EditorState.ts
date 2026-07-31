@@ -92,6 +92,8 @@ export interface EditorState {
   selection: SelectionItem[];
   hoveredGate: GateId | null;
   hoveredEndpoint: WireEndpoint | null;
+  /** Cursor position in world space. Input writes it; the scene builder reads it. */
+  mouseWorld: Vec2;
   mode: InteractionMode;
   selectionRect: { pos: Vec2; w: number; h: number } | null;
   dropPreview: { type: PlaceableType; pos: Vec2 } | null;
@@ -120,6 +122,7 @@ export function createEditorState(): EditorState {
     selection: [],
     hoveredGate: null,
     hoveredEndpoint: null,
+    mouseWorld: { x: 0, y: 0 },
     mode: { kind: 'normal' },
     selectionRect: null,
     dropPreview: null,

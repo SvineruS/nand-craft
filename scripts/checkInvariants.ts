@@ -216,20 +216,20 @@ function expectEqual(label: string, previewed: string, committed: string): void 
 {
   const offset = { x: 40, y: -20 };
   const a = freshScene();
-  const before = positionsOf(buildScene(a.state, { x: 0, y: 0 }));
+  const before = positionsOf(buildScene(a.state));
   a.state.dragPreview = { ...emptyDragPreview(), gateIds: [a.gateA], offset };
-  const previewed = positionsOf(buildScene(a.state, { x: 0, y: 0 }));
+  const previewed = positionsOf(buildScene(a.state));
   if (previewed === before) throw new Error('gate drag: preview changed nothing');
   // ...and the circuit itself must be untouched while dragging
   a.state.dragPreview = null;
-  if (positionsOf(buildScene(a.state, { x: 0, y: 0 })) !== before) {
+  if (positionsOf(buildScene(a.state)) !== before) {
     throw new Error('gate drag: preview mutated the circuit');
   }
 
   const b = freshScene();
   b.history.execute(new MoveGatesCommand(b.state, [b.gateA], offset, [], false));
   b.state.circuit.tick(new Map());
-  expectEqual('gate drag preview == MoveGatesCommand', previewed, positionsOf(buildScene(b.state, { x: 0, y: 0 })));
+  expectEqual('gate drag preview == MoveGatesCommand', previewed, positionsOf(buildScene(b.state)));
 }
 
 // 2. Wire node drag — a free node moved to an absolute snapped position.
@@ -244,12 +244,12 @@ function expectEqual(label: string, previewed: string, committed: string): void 
   const start = a.state.circuit.getWireNode(free.getNodeId()).pos;
   a.state.dragPreview = { ...emptyDragPreview(), nodeIds: [free.getNodeId()],
     offset: { x: target.x - start.x, y: target.y - start.y } };
-  const previewed = positionsOf(buildScene(a.state, { x: 0, y: 0 }));
+  const previewed = positionsOf(buildScene(a.state));
 
   a.state.dragPreview = null;
   a.history.execute(new MoveWireNodeCommand(a.state, free.getNodeId(), target));
   a.state.circuit.tick(new Map());
-  expectEqual('node drag preview == MoveWireNodeCommand', previewed, positionsOf(buildScene(a.state, { x: 0, y: 0 })));
+  expectEqual('node drag preview == MoveWireNodeCommand', previewed, positionsOf(buildScene(a.state)));
 }
 
 // 3. Split drag — one segment shown as two halves through the dragged point.
@@ -257,8 +257,8 @@ function expectEqual(label: string, previewed: string, committed: string): void 
   const a = freshScene();
   const splitAt = { x: 220, y: 160 };
   a.state.dragPreview = { ...emptyDragPreview(), split: { segmentId: a.segment, pos: splitAt } };
-  const preview = buildScene(a.state, { x: 0, y: 0 });
-  const base = buildScene(freshScene().state, { x: 0, y: 0 });
+  const preview = buildScene(a.state);
+  const base = buildScene(freshScene().state);
   if (preview.wireSegments.length !== base.wireSegments.length + 1) {
     throw new Error(`split preview: expected ${base.wireSegments.length + 1} segments, got ${preview.wireSegments.length}`);
   }
@@ -279,7 +279,7 @@ function expectEqual(label: string, previewed: string, committed: string): void 
   b.history.execute(new AddWireSegmentCommand(b.state, mid.getNodeId(), to));
   b.history.endBatch();
   b.state.circuit.tick(new Map());
-  expectEqual('split drag preview == committed split', previewed, positionsOf(buildScene(b.state, { x: 0, y: 0 })));
+  expectEqual('split drag preview == committed split', previewed, positionsOf(buildScene(b.state)));
 }
 
 // 4. Disconnect drag — the gate moves, its wires and their nodes stay behind.
@@ -288,12 +288,12 @@ function expectEqual(label: string, previewed: string, committed: string): void 
   const a = freshScene();
   a.state.dragPreview = { ...emptyDragPreview(), gateIds: [a.gateA], offset,
     detachedNodeIds: a.state.circuit.anchoredNodesOf([a.gateA]) };
-  const previewed = positionsOf(buildScene(a.state, { x: 0, y: 0 }));
+  const previewed = positionsOf(buildScene(a.state));
 
   const b = freshScene();
   b.history.execute(new MoveGatesCommand(b.state, [b.gateA], offset, [], true));
   b.state.circuit.tick(new Map());
-  const committed = positionsOf(buildScene(b.state, { x: 0, y: 0 }));
+  const committed = positionsOf(buildScene(b.state));
   expectEqual('disconnect drag preview == MoveGatesCommand(disconnected)', previewed, committed);
 
   if (b.state.circuit.getWireNode(b.nodeA).pin !== undefined) {

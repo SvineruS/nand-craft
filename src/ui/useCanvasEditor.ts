@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { RefObject } from 'preact';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import { Renderer } from '../circuit-builder/editor/render/Renderer.ts';
+import { EditorFrameLoop } from '../circuit-builder/editor/render/EditorFrameLoop.ts';
 
 /** Anything with a DOM listener lifecycle — InputHandler and CanvasInput both qualify. */
 export interface AttachableInput {
@@ -12,7 +13,7 @@ export interface AttachableInput {
 export interface CanvasEditorOptions {
   getState: () => EditorState;
   /** Builds the input layer for this canvas. Omit for a display-only surface. */
-  createInput?: (canvas: HTMLCanvasElement, renderer: Renderer) => AttachableInput;
+  createInput?: (canvas: HTMLCanvasElement) => AttachableInput;
   /** Topology changed: rebuild derived state, then re-render. */
   onCircuitDirty?: () => void;
   /** Values changed but topology did not: re-tick only. */
@@ -46,14 +47,15 @@ export function useCanvasEditor(options: CanvasEditorOptions): RefObject<HTMLDiv
     container.appendChild(canvas);
 
     const renderer = new Renderer(canvas);
-    renderer.startLoop(
-      () => latest.current.getState(),
-      () => latest.current.onCircuitDirty?.(),
-      () => latest.current.onValueDirty?.(),
-      () => latest.current.onStateChanged?.(),
-    );
+    const loop = new EditorFrameLoop(renderer, {
+      getState: () => latest.current.getState(),
+      onCircuitDirty: () => latest.current.onCircuitDirty?.(),
+      onValueDirty: () => latest.current.onValueDirty?.(),
+      onStateChanged: () => latest.current.onStateChanged?.(),
+    });
+    loop.start();
 
-    const input = latest.current.createInput?.(canvas, renderer);
+    const input = latest.current.createInput?.(canvas);
     input?.attach();
 
     // Mark dirty so the first frame renders
@@ -64,7 +66,7 @@ export function useCanvasEditor(options: CanvasEditorOptions): RefObject<HTMLDiv
 
     return () => {
       latest.current.onTeardown?.();
-      renderer.stopLoop();
+      loop.stop();
       input?.detach();
       window.removeEventListener('resize', onResize);
       container.removeChild(canvas);

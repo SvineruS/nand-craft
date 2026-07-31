@@ -1,7 +1,6 @@
 import type { GateId, PinRef, Vec2 as Vec2Type, WireNodeId, WireSegmentId } from './types.ts';
 import type { EditorState, PlaceableType } from './EditorState.ts';
 import { emptyDragPreview, getSelectedIds } from './EditorState.ts';
-import type { Renderer } from './render/Renderer.ts';
 import { rotateBy, type WireEndpoint } from './utils/geometry.ts';
 import { findNodeForPin, getAnchoredNodeIds } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
@@ -78,7 +77,6 @@ export class InputHandler {
   private keys: KeyMap;
   private getState: () => EditorState;
   private getHistory: () => CommandHistory;
-  private renderer: Renderer;
 
   private drag: DragState = { kind: 'none' };
   private wireStartWorld: Vec2 = { x: 0, y: 0 };
@@ -91,11 +89,9 @@ export class InputHandler {
     canvas: HTMLCanvasElement,
     getState: () => EditorState,
     getHistory: () => CommandHistory,
-    renderer: Renderer,
   ) {
     this.getState = getState;
     this.getHistory = getHistory;
-    this.renderer = renderer;
 
     this.keys = new KeyMap();
     this.setupKeyBindings();
@@ -450,7 +446,7 @@ export class InputHandler {
   private handleMouseMove(e: PointerEvent): void {
     const state = this.getState();
     const world = e.world;
-    this.renderer.setMouseWorld(world);
+    state.mouseWorld = world;
 
     // Stamp/paste preview
     if (state.mode.kind === 'stamping') {
@@ -759,8 +755,7 @@ export class InputHandler {
       state.renderDirty = true;
       return;
     }
-    const mw = this.renderer.getMouseWorld();
-    const segHit = hitTestWireSegment(mw, state);
+    const segHit = hitTestWireSegment(state.mouseWorld, state);
     if (segHit) {
       const seg = state.circuit.getWireSegment(segHit);
       state.wireColor = seg.color ?? WIRE_COLORS[0];

@@ -225,7 +225,7 @@ async function checkScenes(baseline: Snapshot): Promise<string[]> {
 
     const state = createEditorState();
     state.circuit = instance.circuit;
-    const scene = buildScene(state, { x: 0, y: 0 });
+    const scene = buildScene(state);
 
     const ticks = baseline[fixture.name];
     const finalTick = ticks?.[ticks.length - 1];

@@ -30,7 +30,6 @@ const CULL_MARGIN = 2 * GRID_SIZE;
 
 export function buildScene(
   state: EditorState,
-  mouseWorld: Vec2,
   viewport: Viewport | null = null,
 ): RenderScene {
   const bounds = viewport && {
@@ -50,7 +49,7 @@ export function buildScene(
     errorSegments: buildErrorSegments(state, bounds, lens),
     selection: buildSelection(state, lens),
     selectionRect: state.selectionRect,
-    wireInProgress: buildWireInProgress(state, mouseWorld),
+    wireInProgress: buildWireInProgress(state),
     dropPreview: buildDropPreview(state),
     pastePreview: buildPastePreview(state),
   };
@@ -468,10 +467,10 @@ function buildSelection(state: EditorState, lens: PreviewLens | null): RenderSel
 // Previews
 // ---------------------------------------------------------------------------
 
-function buildWireInProgress(state: EditorState, mouseWorld: Vec2): RenderScene['wireInProgress'] {
+function buildWireInProgress(state: EditorState): RenderScene['wireInProgress'] {
   if (state.mode.kind !== 'wiring') return null;
   const from = state.mode.start.pos;
-  const to = Vec2.snap(mouseWorld);
+  const to = Vec2.snap(state.mouseWorld);
   const color = state.wireColor === WIRE_COLORS[0] ? COLORS.wireDefault : state.wireColor;
   return { from, to, color };
 }
