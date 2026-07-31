@@ -4,7 +4,8 @@ import type { RefObject } from 'preact';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import { Renderer } from '../circuit-builder/editor/render/Renderer.ts';
 import { EditorFrameLoop } from '../circuit-builder/editor/render/EditorFrameLoop.ts';
-import { backgroundStyle } from './editorStore.ts';
+import { backgroundGrid } from './editorStore.ts';
+import { randomOrnament } from '../circuit-builder/editor/render/backgroundPattern.ts';
 
 /** Anything with a DOM listener lifecycle — InputHandler and CanvasInput both qualify. */
 export interface AttachableInput {
@@ -35,6 +36,8 @@ export interface CanvasEditorOptions {
  */
 export function useCanvasEditor(options: CanvasEditorOptions): RefObject<HTMLDivElement> {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Rolled once per canvas rather than per render, so the pattern doesn't change under you.
+  const ornament = useRef(randomOrnament());
 
   // The effect runs once, but the callbacks it invokes are re-created on every render, so
   // it reaches them through a ref rather than capturing the first ones.
@@ -57,9 +60,9 @@ export function useCanvasEditor(options: CanvasEditorOptions): RefObject<HTMLDiv
     });
     loop.start();
 
-    // Runs once immediately, then again whenever the setting changes.
+    // Runs once immediately, then again whenever the grid setting changes.
     const stopWatchingBackground = effect(() => {
-      renderer.setBackgroundStyle(backgroundStyle.value);
+      renderer.setBackgroundStyle({ grid: backgroundGrid.value, ornament: ornament.current });
       latest.current.getState().renderDirty = true;
     });
 

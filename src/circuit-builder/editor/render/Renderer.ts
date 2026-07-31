@@ -6,7 +6,7 @@ import { routeCorner, Vec2 } from '../utils/vec2.ts';
 import { screenToWorld as stw, worldToScreen as wts } from '../../../engine/camera.ts';
 import { COLORS, GRID_SIZE, WIRE_DASH_SIZE } from "../consts.ts";
 import {
-  type BackgroundStyle, DEFAULT_BACKGROUND_STYLE, drawBackground,
+  type BackgroundStyle, DEFAULT_GRID_PATTERN, drawBackground,
 } from './backgroundPattern.ts';
 import type { MapRect } from '../utils/mapBounds.ts';
 import type {
@@ -26,7 +26,8 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private wireAnimProgress = 0;
   private dpr = 1;
-  private backgroundStyle: BackgroundStyle = DEFAULT_BACKGROUND_STYLE;
+  // Replaced by the owning screen as soon as it knows what it is showing.
+  private backgroundStyle: BackgroundStyle = { grid: DEFAULT_GRID_PATTERN, ornament: 'none' };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;

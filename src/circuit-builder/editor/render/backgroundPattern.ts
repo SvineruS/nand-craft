@@ -14,31 +14,29 @@ import {
  * Both layers tile on GRID_SIZE multiples, so an ornament lines up with the grid instead of
  * drifting against it.
  */
-export type GridPatternId = 'dots' | 'crosses' | 'lines' | 'plain';
-export type OrnamentPatternId = 'none' | 'waves' | 'hexagons' | 'triangles' | 'scales' | 'checker';
+export type GridPatternId = 'dots' | 'crosses' | 'plain';
+export type OrnamentPatternId = 'none' | 'waves' | 'hexagons' | 'triangles' | 'scales';
 
 export interface BackgroundStyle {
   grid: GridPatternId;
   ornament: OrnamentPatternId;
 }
 
-export const DEFAULT_BACKGROUND_STYLE: BackgroundStyle = { grid: 'crosses', ornament: 'none' };
+export const DEFAULT_GRID_PATTERN: GridPatternId = 'crosses';
 
 export const GRID_PATTERNS: { id: GridPatternId; label: string }[] = [
   { id: 'dots', label: 'Dots' },
   { id: 'crosses', label: 'Crosses' },
-  { id: 'lines', label: 'Lines' },
   { id: 'plain', label: 'None' },
 ];
 
-export const ORNAMENT_PATTERNS: { id: OrnamentPatternId; label: string }[] = [
-  { id: 'none', label: 'None' },
-  { id: 'waves', label: 'Waves' },
-  { id: 'hexagons', label: 'Hexagons' },
-  { id: 'triangles', label: 'Triangles' },
-  { id: 'scales', label: 'Scales' },
-  { id: 'checker', label: 'Checker' },
-];
+/** The ornaments a canvas can come up with. Not offered as a setting — one is picked at random. */
+const ORNAMENTS: OrnamentPatternId[] = ['waves', 'hexagons', 'triangles', 'scales'];
+
+/** Pick an ornament at random. Called once per canvas, so it holds still while you build. */
+export function randomOrnament(): OrnamentPatternId {
+  return ORNAMENTS[Math.floor(Math.random() * ORNAMENTS.length)];
+}
 
 /** World-space rect to fill. */
 export interface PatternBounds {
@@ -50,10 +48,6 @@ export interface PatternBounds {
 
 export function isGridPatternId(value: string): value is GridPatternId {
   return GRID_PATTERNS.some(p => p.id === value);
-}
-
-export function isOrnamentPatternId(value: string): value is OrnamentPatternId {
-  return ORNAMENT_PATTERNS.some(p => p.id === value);
 }
 
 export interface BackgroundDrawOptions {
@@ -142,7 +136,6 @@ function drawGrid(
   switch (grid) {
     case 'dots': return drawDots(ctx, bounds);
     case 'crosses': return drawCrosses(ctx, bounds, zoom);
-    case 'lines': return drawLines(ctx, bounds, zoom);
     case 'plain': return;
   }
 }
@@ -175,26 +168,6 @@ function drawCrosses(ctx: CanvasRenderingContext2D, bounds: PatternBounds, zoom:
   ctx.stroke();
 }
 
-function drawLines(ctx: CanvasRenderingContext2D, bounds: PatternBounds, zoom: number): void {
-  // Minor and major lines are two passes so each colour is set once rather than per line.
-  for (const major of [false, true]) {
-    ctx.strokeStyle = major ? COLORS.gridLineMajor : COLORS.gridLine;
-    ctx.lineWidth = (major ? 1.4 : 1) / zoom;
-    ctx.beginPath();
-    for (let gx = firstLine(bounds.left); gx <= bounds.right; gx += GRID_SIZE) {
-      if (isMajorLine(gx) !== major) continue;
-      ctx.moveTo(gx, bounds.top);
-      ctx.lineTo(gx, bounds.bottom);
-    }
-    for (let gy = firstLine(bounds.top); gy <= bounds.bottom; gy += GRID_SIZE) {
-      if (isMajorLine(gy) !== major) continue;
-      ctx.moveTo(bounds.left, gy);
-      ctx.lineTo(bounds.right, gy);
-    }
-    ctx.stroke();
-  }
-}
-
 // --- Ornament layer ---
 
 function drawOrnament(
@@ -217,9 +190,8 @@ function drawOrnament(
     case 'hexagons': traceHexagons(ctx, bounds); break;
     case 'triangles': traceTriangles(ctx, bounds); break;
     case 'scales': traceScales(ctx, bounds); break;
-    case 'checker': fillChecker(ctx, bounds); break;
   }
-  if (ornament !== 'checker') ctx.stroke();
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -314,22 +286,6 @@ function traceScales(ctx: CanvasRenderingContext2D, bounds: PatternBounds): void
       const cx = col * step + offset;
       ctx.moveTo(cx - SCALE_RADIUS, cy);
       ctx.arc(cx, cy, SCALE_RADIUS, Math.PI, 0, true);
-    }
-  }
-}
-
-/** Alternating major cells, tinted rather than stroked. */
-function fillChecker(ctx: CanvasRenderingContext2D, bounds: PatternBounds): void {
-  const startX = Math.floor(bounds.left / MAJOR_STEP) * MAJOR_STEP;
-  const startY = Math.floor(bounds.top / MAJOR_STEP) * MAJOR_STEP;
-
-  ctx.fillStyle = COLORS.ornamentTile;
-  for (let gx = startX; gx <= bounds.right; gx += MAJOR_STEP) {
-    for (let gy = startY; gy <= bounds.bottom; gy += MAJOR_STEP) {
-      const cell = gx / MAJOR_STEP + gy / MAJOR_STEP;
-      // Cells can be negative, so `% 2` alone would flip parity across the origin.
-      if (Math.abs(cell % 2) === 1) continue;
-      ctx.fillRect(gx, gy, MAJOR_STEP, MAJOR_STEP);
     }
   }
 }

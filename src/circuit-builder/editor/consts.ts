@@ -13,11 +13,8 @@ export const WIRE_COLORS = [
 export const COLORS = {
   background: '#181825',
   gridDot: '#313150',
-  gridLine: '#252540',
-  gridLineMajor: '#343458',
   /** Decorative background layer. Drawn under the grid at ORNAMENT_ALPHA, hence the lift. */
   ornament: '#2f2f4d',
-  ornamentTile: '#2b2b47',
   gateFill: '#2d2d4d',
   gateStroke: '#5a5a8a',
   gateText: '#e8e8f0',

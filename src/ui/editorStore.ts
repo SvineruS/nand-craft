@@ -1,8 +1,8 @@
 import { signal } from '@preact/signals';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import type { ComponentId, LevelId } from '../circuit-builder/editor/types.ts';
-import { getSolvedLevelIds, getBackgroundStyle, saveBackgroundStyle } from '../circuit-builder/persistence/storage.ts';
-import type { BackgroundStyle } from '../circuit-builder/editor/render/backgroundPattern.ts';
+import { getSolvedLevelIds, getBackgroundGrid, saveBackgroundGrid } from '../circuit-builder/persistence/storage.ts';
+import type { GridPatternId } from '../circuit-builder/editor/render/backgroundPattern.ts';
 import { useEditor } from './editorContext.ts';
 
 // ---------------------------------------------------------------------------
@@ -41,12 +41,16 @@ export const solvedLevelIds = signal<Set<LevelId>>(getSolvedLevelIds());
 /** Message from the last failed save (e.g. storage quota), or null when saving works. */
 export const saveError = signal<string | null>(null);
 
-/** Grid + ornament drawn behind every canvas (persisted in localStorage). */
-export const backgroundStyle = signal<BackgroundStyle>(getBackgroundStyle());
+/**
+ * Snapping grid drawn behind every canvas (persisted in localStorage). The decorative
+ * ornament layered under it is not a setting — each screen derives it from what it is
+ * showing, via `ornamentForId`.
+ */
+export const backgroundGrid = signal<GridPatternId>(getBackgroundGrid());
 
-export function setBackgroundStyle(style: BackgroundStyle): void {
-  backgroundStyle.value = style;
-  saveBackgroundStyle(style);
+export function setBackgroundGrid(grid: GridPatternId): void {
+  backgroundGrid.value = grid;
+  saveBackgroundGrid(grid);
 }
 
 // ---------------------------------------------------------------------------

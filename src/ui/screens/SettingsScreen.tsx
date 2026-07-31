@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { navigateTo } from '../screenManager.ts';
-import { backgroundStyle, setBackgroundStyle } from '../editorStore.ts';
+import { backgroundGrid, setBackgroundGrid } from '../editorStore.ts';
 import {
-  type BackgroundStyle, GRID_PATTERNS, ORNAMENT_PATTERNS, drawBackground,
+  type GridPatternId, GRID_PATTERNS, drawBackground,
 } from '../../circuit-builder/editor/render/backgroundPattern.ts';
 import { COLORS } from '../../circuit-builder/editor/consts.ts';
 
@@ -12,7 +12,7 @@ const PREVIEW_HEIGHT = 52;
 const PREVIEW_ZOOM = 0.5;
 
 export function SettingsScreen() {
-  const style = backgroundStyle.value;
+  const grid = backgroundGrid.value;
 
   return (
     <div class="fullscreen-menu">
@@ -21,26 +21,12 @@ export function SettingsScreen() {
       <div class="settings-group">
         <div class="settings-label">Background grid</div>
         <div class="pattern-options">
-          {GRID_PATTERNS.map(grid => (
+          {GRID_PATTERNS.map(pattern => (
             <PatternOption
-              key={grid.id}
-              label={grid.label}
-              style={{ ...style, grid: grid.id }}
-              selected={grid.id === style.grid}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div class="settings-group">
-        <div class="settings-label">Background pattern</div>
-        <div class="pattern-options">
-          {ORNAMENT_PATTERNS.map(ornament => (
-            <PatternOption
-              key={ornament.id}
-              label={ornament.label}
-              style={{ ...style, ornament: ornament.id }}
-              selected={ornament.id === style.ornament}
+              key={pattern.id}
+              grid={pattern.id}
+              label={pattern.label}
+              selected={pattern.id === grid}
             />
           ))}
         </div>
@@ -56,13 +42,12 @@ export function SettingsScreen() {
 }
 
 interface PatternOptionProps {
+  grid: GridPatternId;
   label: string;
-  /** The full style this option would select — previewed as it would actually look. */
-  style: BackgroundStyle;
   selected: boolean;
 }
 
-function PatternOption({ label, style, selected }: PatternOptionProps) {
+function PatternOption({ grid, label, selected }: PatternOptionProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Previews are drawn by the same code the editor uses, so the two can't drift apart.
@@ -86,14 +71,20 @@ function PatternOption({ label, style, selected }: PatternOptionProps) {
       right: PREVIEW_WIDTH / PREVIEW_ZOOM,
       bottom: PREVIEW_HEIGHT / PREVIEW_ZOOM,
     };
-    // The preview is all "inside the map" — the dimmed-outside look isn't what's on offer here.
-    drawBackground(ctx, { style, viewport: bounds, map: bounds, zoom: PREVIEW_ZOOM });
-  }, [style.grid, style.ornament]);
+    // Grid only: the ornament belongs to whatever level is open, not to this choice. And
+    // map === viewport, so no preview shows the dimmed outside-the-map treatment.
+    drawBackground(ctx, {
+      style: { grid, ornament: 'none' },
+      viewport: bounds,
+      map: bounds,
+      zoom: PREVIEW_ZOOM,
+    });
+  }, [grid]);
 
   return (
     <button
       class={`pattern-option${selected ? ' pattern-option-selected' : ''}`}
-      onClick={() => setBackgroundStyle(style)}
+      onClick={() => setBackgroundGrid(grid)}
     >
       <canvas
         ref={canvasRef}
