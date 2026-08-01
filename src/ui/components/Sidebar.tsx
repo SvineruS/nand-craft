@@ -6,6 +6,7 @@ import { useEditor } from '../editorContext.ts';
 import { isGateAllowed, getGateCount, type GateConstraints } from '../../circuit-builder/levels/levelTypes.ts';
 import type { EditorState } from "../../circuit-builder/editor/EditorState.ts";
 import { getAllComponents, isComponentType } from '../../circuit-builder/components/componentRegistry.ts';
+import { gateColorsOf } from '../../circuit-builder/editor/gateColors.ts';
 
 interface SidebarProps {
   onDragEnd: () => void;
@@ -163,11 +164,12 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: G
             {Array.isArray(def.svg) ? def.svg.map((layer, i) => {
               const l = typeof layer === 'string' ? { path: layer } : layer;
               return <path key={i} d={l.path}
-                fill={l.fill === false ? 'none' : (def.color ?? '#444')}
-                stroke={def.stroke ?? '#888'} stroke-width="0.08"
+                fill={l.fill === false ? 'none' : gateColorsOf(def).fill}
+                stroke={gateColorsOf(def).stroke} stroke-width="0.08"
                 opacity={l.alpha ?? 1} />;
             }) : (
-              <path d={def.svg} fill={def.color ?? '#444'} stroke={def.stroke ?? '#888'} stroke-width="0.08" />
+              <path d={def.svg} fill={gateColorsOf(def).fill}
+                stroke={gateColorsOf(def).stroke} stroke-width="0.08" />
             )}
           </svg>
         )}

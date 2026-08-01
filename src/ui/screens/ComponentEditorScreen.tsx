@@ -9,7 +9,7 @@ import { navigateTo } from '../screenManager.ts';
 import { Sidebar } from '../components/Sidebar.tsx';
 import { TestPanel } from '../components/TestPanel.tsx';
 import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
-import { WIRE_COLORS } from '../../circuit-builder/editor/consts.ts';
+import { WireSwatches } from '../components/WireSwatches.tsx';
 import { buildComponentDefinition } from '../../circuit-builder/components/componentBuilder.ts';
 import { saveComponent, deleteComponent } from '../../circuit-builder/components/componentRegistry.ts';
 import { clearComponentDefCache } from '../../circuit-builder/editor/gates.ts';
@@ -113,17 +113,7 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
         <div class="toolbar-separator" />
 
         <span class="toolbar-color-label">Wire:</span>
-        {WIRE_COLORS.map((color) => (
-          <div
-            key={color}
-            class="toolbar-swatch"
-            style={{
-              background: color,
-              borderColor: editor.getState().wireColor === color ? '#ffffff' : 'transparent',
-            }}
-            onClick={() => handleColorChange(color)}
-          />
-        ))}
+        <WireSwatches selected={editor.getState().wireColor} onSelect={handleColorChange} />
 
         <div class="toolbar-spacer" />
 

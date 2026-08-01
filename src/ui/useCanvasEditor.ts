@@ -4,7 +4,7 @@ import type { RefObject } from 'preact';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import { Renderer } from '../circuit-builder/editor/render/Renderer.ts';
 import { EditorFrameLoop } from '../circuit-builder/editor/render/EditorFrameLoop.ts';
-import { backgroundGrid } from './editorStore.ts';
+import { backgroundGrid, paletteId } from './editorStore.ts';
 import { randomOrnament } from '../circuit-builder/editor/render/backgroundPattern.ts';
 
 /** Anything with a DOM listener lifecycle — InputHandler and CanvasInput both qualify. */
@@ -60,8 +60,11 @@ export function useCanvasEditor(options: CanvasEditorOptions): RefObject<HTMLDiv
     });
     loop.start();
 
-    // Runs once immediately, then again whenever the grid setting changes.
+    // Runs once immediately, then again whenever the grid or palette setting changes. The
+    // palette is read for its dirty side effect: scene entries carry baked-in colours, so a
+    // palette swap needs a scene rebuild, not just a repaint.
     const stopWatchingBackground = effect(() => {
+      paletteId.value;
       renderer.setBackgroundStyle({ grid: backgroundGrid.value, ornament: ornament.current });
       latest.current.getState().renderDirty = true;
     });

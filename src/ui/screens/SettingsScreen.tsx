@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { navigateTo } from '../screenManager.ts';
-import { backgroundGrid, setBackgroundGrid } from '../editorStore.ts';
+import { backgroundGrid, paletteId, setBackgroundGrid, setPaletteId } from '../editorStore.ts';
 import {
   type GridPatternId, GRID_PATTERNS, drawBackground,
 } from '../../circuit-builder/editor/render/backgroundPattern.ts';
+import { type CanvasColors, PALETTES } from '../../circuit-builder/editor/palettes.ts';
 import { COLORS } from '../../circuit-builder/editor/consts.ts';
 
 const PREVIEW_WIDTH = 76;
@@ -11,12 +12,37 @@ const PREVIEW_HEIGHT = 52;
 /** Zoomed out so a preview shows a couple of major grid cells, not one minor one. */
 const PREVIEW_ZOOM = 0.5;
 
+/** Colours shown as chips on a palette swatch — the ones that carry a palette's character. */
+const SWATCH_KEYS: (keyof CanvasColors)[] = ['gateFill', 'wireDefault', 'wireActive', 'wireZero'];
+
 export function SettingsScreen() {
   const grid = backgroundGrid.value;
+  const palette = paletteId.value;
 
   return (
     <div class="fullscreen-menu">
       <h1 class="menu-title">Settings</h1>
+
+      <div class="settings-group">
+        <div class="settings-label">Palette</div>
+        <div class="pattern-options">
+          {PALETTES.map(p => (
+            <button
+              key={p.id}
+              class={`palette-option${p.id === palette ? ' pattern-option-selected' : ''}`}
+              onClick={() => setPaletteId(p.id)}
+            >
+              <div class="palette-swatch" style={{ background: p.canvas.background }}>
+                {SWATCH_KEYS.map(key => (
+                  <span key={key} class="palette-chip" style={{ background: p.canvas[key] }} />
+                ))}
+              </div>
+              <span>{p.label}</span>
+              <span class="palette-desc">{p.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div class="settings-group">
         <div class="settings-label">Background grid</div>
@@ -49,6 +75,8 @@ interface PatternOptionProps {
 
 function PatternOption({ grid, label, selected }: PatternOptionProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Previews read the live COLORS, so they have to be redrawn when the palette changes.
+  const palette = paletteId.value;
 
   // Previews are drawn by the same code the editor uses, so the two can't drift apart.
   useEffect(() => {
@@ -79,7 +107,7 @@ function PatternOption({ grid, label, selected }: PatternOptionProps) {
       map: bounds,
       zoom: PREVIEW_ZOOM,
     });
-  }, [grid]);
+  }, [grid, palette]);
 
   return (
     <button

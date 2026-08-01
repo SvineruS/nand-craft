@@ -1,40 +1,9 @@
-export const WIRE_COLORS = [
-  '#4a4a7a', // default (no override)
-  '#fb923c', // orange
-  '#facc15', // yellow
-  '#60a5fa', // blue
-  '#c084fc', // purple
-  '#f472b6', // pink
-  '#8b5cf6', // violet
-  '#14b8a6', // teal
-  '#ffffff', // white
-]; // --- Colors (dark theme) ---
-
-export const COLORS = {
-  background: '#181825',
-  gridDot: '#313150',
-  /** Decorative background layer. Drawn under the grid at ORNAMENT_ALPHA, hence the lift. */
-  ornament: '#2f2f4d',
-  gateFill: '#2d2d4d',
-  gateStroke: '#5a5a8a',
-  gateText: '#e8e8f0',
-  wireDefault: '#555580',
-  wireActive: '#4ade80',
-  wireZero: '#f87171',
-  wireHighZ: '#45456a',
-  pinActive: '#5eebb0',
-  pinZero: '#f87171',
-  pinHighZ: '#7a7a90',
-  selection: '#6cb4ff',
-  error: '#ef4444',
-  selectionRectFill: 'rgba(108, 180, 255, 0.15)',
-  selectionRectStroke: '#6cb4ff',
-  wireNodeFill: '#3e3e60',
-  wireNodeStroke: '#8888bb',
-  /** Veil over the unbuildable area outside the map, and the map's own edge. */
-  outsideMap: 'rgba(10, 10, 18, 0.55)',
-  mapBorder: '#3d3d63',
-} as const;
+/**
+ * Canvas colours and the wire-colour list are palette-dependent, so they live in
+ * `palettes.ts` and are re-exported here — the rest of the editor keeps importing everything
+ * it needs from one module.
+ */
+export { COLORS, WIRE_COLORS } from './palettes.ts';
 
 /**
  * Playable area in world units, centred on the origin.

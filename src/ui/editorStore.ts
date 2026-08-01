@@ -1,8 +1,12 @@
-import { signal } from '@preact/signals';
+import { effect, signal } from '@preact/signals';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import type { ComponentId, LevelId } from '../circuit-builder/editor/types.ts';
-import { getSolvedLevelIds, getBackgroundGrid, saveBackgroundGrid } from '../circuit-builder/persistence/storage.ts';
+import {
+  getSolvedLevelIds, getBackgroundGrid, saveBackgroundGrid, getPaletteId, savePaletteId,
+} from '../circuit-builder/persistence/storage.ts';
 import type { GridPatternId } from '../circuit-builder/editor/render/backgroundPattern.ts';
+import type { PaletteId } from '../circuit-builder/editor/palettes.ts';
+import { applyPalette } from './theme.ts';
 import { useEditor } from './editorContext.ts';
 
 // ---------------------------------------------------------------------------
@@ -53,13 +57,35 @@ export function setBackgroundGrid(grid: GridPatternId): void {
   saveBackgroundGrid(grid);
 }
 
+/** Active colour palette (persisted in localStorage). */
+export const paletteId = signal<PaletteId>(getPaletteId());
+
+export function setPaletteId(id: PaletteId): void {
+  paletteId.value = id;
+  savePaletteId(id);
+}
+
+// Applies the stored palette at startup and every change after. Canvases watch the same
+// signal to mark themselves dirty (see useCanvasEditor); the version bump covers the Preact
+// side, where panels like the Sidebar draw gate icons in the palette's colours.
+effect(() => {
+  applyPalette(paletteId.value);
+  notifyStateChange();
+});
+
 // ---------------------------------------------------------------------------
 // State bridge – lets Preact read the mutable EditorState on demand
 // ---------------------------------------------------------------------------
 
-/** Bump the version counter so any component reading stateVersion re-renders. */
+/**
+ * Bump the version counter so any component reading stateVersion re-renders.
+ *
+ * Reads through `peek` because `stateVersion.value++` would *subscribe* to the signal it is
+ * about to write — called from inside an effect, that is a self-dependency and the signals
+ * runtime throws "Cycle detected".
+ */
 export function notifyStateChange(): void {
-  stateVersion.value++;
+  stateVersion.value = stateVersion.peek() + 1;
 }
 
 /**

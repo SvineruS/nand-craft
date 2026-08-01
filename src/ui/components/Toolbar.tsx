@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { useEditorState, testEditorVisible, levelDialogVisible, saveError } from '../editorStore.ts';
 import { useEditor } from '../editorContext.ts';
-import { WIRE_COLORS } from "../../circuit-builder/editor/consts.ts";
+import { WireSwatches } from './WireSwatches.tsx';
 
 interface ToolbarProps {
   onUndo: () => void;
@@ -38,18 +38,7 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
       <div class="toolbar-separator" />
 
       <span class="toolbar-color-label">Wire:</span>
-      {WIRE_COLORS.map((color) => (
-        <div
-          key={color}
-          class="toolbar-swatch"
-          style={{
-            background: color,
-            borderColor: state.wireColor === color ? '#ffffff' : 'transparent',
-          }}
-          title="Wire color (E to apply, Shift+E for all connected)"
-          onClick={() => onColorChange(color)}
-        />
-      ))}
+      <WireSwatches selected={state.wireColor} onSelect={onColorChange} />
 
       <div class="toolbar-spacer" />
 

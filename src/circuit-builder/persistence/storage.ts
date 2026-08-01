@@ -5,10 +5,12 @@ import type { Level } from "../levels/levelTypes.ts";
 import {
   type GridPatternId, DEFAULT_GRID_PATTERN, isGridPatternId,
 } from '../editor/render/backgroundPattern.ts';
+import { type PaletteId, DEFAULT_PALETTE_ID, isPaletteId } from '../editor/palettes.ts';
 
 const PREFIX = 'nand-craft';
 const SOLVED_KEY = `${PREFIX}:solved`;
 const BACKGROUND_GRID_KEY = `${PREFIX}:backgroundGrid`;
+const PALETTE_KEY = `${PREFIX}:palette`;
 
 function circuitKey(levelId: LevelId): string {
   return `${PREFIX}:circuit:${levelId}`;
@@ -82,6 +84,21 @@ export function saveBackgroundGrid(grid: GridPatternId): void {
     localStorage.setItem(BACKGROUND_GRID_KEY, grid);
   } catch (e) {
     console.error('Failed to persist background grid:', e);
+  }
+}
+
+/** Stored colour palette, falling back when absent or no longer a known id. */
+export function getPaletteId(): PaletteId {
+  const stored = localStorage.getItem(PALETTE_KEY);
+  if (stored && isPaletteId(stored)) return stored;
+  return DEFAULT_PALETTE_ID;
+}
+
+export function savePaletteId(id: PaletteId): void {
+  try {
+    localStorage.setItem(PALETTE_KEY, id);
+  } catch (e) {
+    console.error('Failed to persist palette:', e);
   }
 }
 

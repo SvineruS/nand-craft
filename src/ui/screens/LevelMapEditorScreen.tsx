@@ -10,7 +10,7 @@ import {
   createLevelMapEditor,
   exportLevelMap,
 } from '../../circuit-builder/levels/levelManager.ts';
-import { WIRE_COLORS } from '../../circuit-builder/editor/consts.ts';
+import { WireSwatches } from '../components/WireSwatches.tsx';
 
 
 export function LevelMapEditorScreen() {
@@ -56,14 +56,11 @@ function LevelMapEditor() {
         <button class="toolbar-btn" onClick={handleUndo}>Undo</button>
         <button class="toolbar-btn" onClick={handleRedo}>Redo</button>
         <div class="toolbar-spacer" />
-        {WIRE_COLORS.map(color => (
-          <button
-            key={color}
-            class="toolbar-btn color-btn"
-            style={{ backgroundColor: color, width: '24px', height: '24px', minWidth: '24px', padding: 0, borderRadius: '4px' }}
-            onClick={() => handleColorChange(color)}
-          />
-        ))}
+        <WireSwatches
+          selected={editor.getState().wireColor}
+          onSelect={handleColorChange}
+          size={24}
+        />
         <div class="toolbar-spacer" />
         <button class="toolbar-btn" style={{ fontWeight: 'bold' }} onClick={handleExport}>
           Export

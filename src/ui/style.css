@@ -123,7 +123,7 @@ body {
 }
 
 .toolbar-level-name {
-  color: #ffffff;
+  color: var(--text);
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -150,6 +150,8 @@ body {
   border-radius: 3px;
   cursor: pointer;
   border: 2px solid transparent;
+  /* Outline so pale swatches stay visible on a light toolbar. */
+  box-shadow: 0 0 0 1px var(--border);
   transition: border-color 0.15s;
 }
 
@@ -326,7 +328,7 @@ body {
 }
 
 .test-panel-title {
-  color: #ffffff;
+  color: var(--text);
   font-size: 12px;
   font-weight: 600;
 }
@@ -581,7 +583,7 @@ body {
 .level-dialog-title {
   margin: 0 0 8px 0;
   font-size: 22px;
-  color: #ffffff;
+  color: var(--text);
 }
 
 .level-dialog-desc {
@@ -867,6 +869,54 @@ body {
 .pattern-option-selected {
   border-color: var(--accent);
   color: var(--text);
+}
+
+.palette-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  width: 132px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+/* Board colour behind the chips, so a swatch reads as the palette it stands for. */
+.palette-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 34px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+}
+
+.palette-chip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.palette-desc {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-align: center;
+  line-height: 1.25;
 }
 
 /* ------------------------------------------------------------------ */

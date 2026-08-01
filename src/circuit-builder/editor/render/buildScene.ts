@@ -8,6 +8,7 @@ import { isComponentType } from '../../components/componentRegistry.ts';
 import { gateCenter, gateGridOffset, getGateDims, getPinPositions } from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
 import { mapRectOf } from '../utils/mapBounds.ts';
+import { gateColorsOf, levelNodeColors } from '../gateColors.ts';
 import { COLORS, GRID_SIZE, WIRE_COLORS, WIRE_LABEL_MIN_LENGTH, WIRE_LABEL_SPACING } from '../consts.ts';
 
 /**
@@ -288,16 +289,10 @@ function buildGates(
     if (!gateVisible(bounds, center, w, h)) continue;
     const def = getGateDefinition(gate.type);
 
-    let fillColor = def.color ?? COLORS.gateFill;
-    let strokeColor = def.stroke ?? COLORS.gateStroke;
     const status = state.gateStatuses?.get(gate.id);
-    if (status === 'locked') {
-      fillColor = '#333345'; strokeColor = '#555568';
-    } else if (status === 'available') {
-      fillColor = '#2d3d5d'; strokeColor = '#6cb4ff';
-    } else if (status === 'solved') {
-      fillColor = '#2d4d2d'; strokeColor = '#5a8a5a';
-    }
+    const colors = status ? levelNodeColors(status) : gateColorsOf(def);
+    let fillColor = colors.fill;
+    let strokeColor = colors.stroke;
 
     const labelX = (def.labelX ?? 0) * GRID_SIZE;
     const labelY = (def.labelY ?? 0) * GRID_SIZE;
@@ -503,8 +498,8 @@ function buildPreviewGate(
 
   return {
     type, center, w, h, rotation,
-    fillColor: def.color ?? COLORS.gateFill,
-    strokeColor: def.stroke ?? COLORS.selection,
+    fillColor: gateColorsOf(def).fill,
+    strokeColor: def.stroke ? gateColorsOf(def).stroke : COLORS.selection,
     hasSvg: !!def.svg,
     svgLayers: [0],
     label,
