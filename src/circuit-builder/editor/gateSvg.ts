@@ -42,6 +42,11 @@ const XOR_ARC           = ' M 0.0,0.1 Q 0.6,1 0.0,1.9';
 const PLUS_MARK         = ' M 0.7,1 L 1.3,1 M 1,0.7 L 1,1.3';
 const MINUS_MARK        = ' M 0.7,1.0 L 1.3,1.0';
 const DELAY_MARK        = ' M 1.0,1.3 L 1.5,0.5 L 2.0,1.3 Z';
+// Double chevrons, sitting below the gate label rather than behind it. Both are wound
+// bottom-to-top so their implicit fill turns the same way as the body box: a subpath
+// winding the other way punches a hole in the body it sits on.
+const SHIFT_RIGHT_MARK  = ' M 0.6,1.15 L 0.95,1.4 L 0.6,1.65 M 1.05,1.15 L 1.4,1.4 L 1.05,1.65';
+const SHIFT_LEFT_MARK   = ' M 1.4,1.65 L 1.05,1.4 L 1.4,1.15 M 0.95,1.65 L 0.6,1.4 L 0.95,1.15';
 const INPUT_8BIT_MARKS  = ' M 1.38,0.14 L 1.88,0.94 M 1.88,1.06 L 1.38,1.86';
 const OUTPUT_8BIT_MARKS = ' M 0.62,0.14 L 0.12,0.94 M 0.12,1.06 L 0.62,1.86';
 const CONST_8BIT_MARK   = ' M 1.8,0.4 L 1.8,1.6';
@@ -78,6 +83,8 @@ export const BOX_2x2_FULL = buildBox(2, 2);
 export const BOX_3x4      = buildBox(3, 4, 0.3);
 
 export const ADDER   = buildBox(2, 2, 0.2) + PLUS_MARK;
+export const SHIFT_RIGHT = buildBox(2, 2, 0.2) + SHIFT_RIGHT_MARK;
+export const SHIFT_LEFT  = buildBox(2, 2, 0.2) + SHIFT_LEFT_MARK;
 export const NEGATE  = BOX_2x2_INSET + MINUS_MARK;
 export const DELAY   = buildBox(3, 2, 0.3) + DELAY_MARK;
 export const COUNTER = DELAY;

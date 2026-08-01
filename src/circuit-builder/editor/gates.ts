@@ -94,6 +94,15 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     ],
     svg: SVG.NOT,
   },
+  '8bit-and': {
+    label: 'AND8', description: '8-bit AND gate', width: 3, height: 2,    color: '#2d3a50', stroke: '#5a8aad',
+    pins: [
+      { kind: 'input', x: 0, y: 0, bitWidth: 8 },
+      { kind: 'input', x: 0, y: 2, bitWidth: 8 },
+      { kind: 'output', x: 3, y: 1, bitWidth: 8 },
+    ],
+    svg: SVG.AND,
+  },
   '8bit-or': {
     label: 'OR8', description: '8-bit OR gate', width: 3, height: 2,    color: '#2d4a3a', stroke: '#5aad7c',
     pins: [
@@ -120,6 +129,28 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
       { kind: 'output', x: 2, y: 1, bitWidth: 8 },
     ],
     svg: SVG.NOT_8BIT,
+  },
+  // A and B keep the operand order the ALU gates use (A on top), and B is the shift amount
+  // rather than a second operand — labelled, because nothing about the shape says so.
+  '8bit-shr': {
+    label: 'SHR8', description: '8-bit shift right (A >> B)', width: 2, height: 2,
+    color: '#402d3a', stroke: '#ad5a90', labelY: -0.3,
+    pins: [
+      { kind: 'input', x: 0, y: 0, label: 'A', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 2, label: 'B', bitWidth: 8 },
+      { kind: 'output', x: 2, y: 1, bitWidth: 8 },
+    ],
+    svg: SVG.SHIFT_RIGHT,
+  },
+  '8bit-shl': {
+    label: 'SHL8', description: '8-bit shift left (A << B)', width: 2, height: 2,
+    color: '#402d3a', stroke: '#ad5a90', labelY: -0.3,
+    pins: [
+      { kind: 'input', x: 0, y: 0, label: 'A', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 2, label: 'B', bitWidth: 8 },
+      { kind: 'output', x: 2, y: 1, bitWidth: 8 },
+    ],
+    svg: SVG.SHIFT_LEFT,
   },
   '3bit-or': {
     label: 'OR3', description: '3-input OR gate', width: 3, height: 2,    color: '#2d4a3a', stroke: '#5aad7c',

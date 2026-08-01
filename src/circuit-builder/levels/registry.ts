@@ -19,6 +19,7 @@ import adder8 from './defs/8bit-adder.ts';
 import eqzero8 from './defs/8bit-eqzero.ts';
 import sub8 from './defs/8bit-subtractor.ts';
 import mux8 from './defs/8bit-mux.ts';
+import shr8 from './defs/8bit-shr.ts';
 import halfAdder from './defs/half-adder.ts';
 import fullAdder from './defs/full-adder.ts';
 import switchLevel from './defs/switch.ts';
@@ -55,6 +56,7 @@ export const LEVELS: Level[] = [
   eqzero8,
   sub8,
   mux8,
+  shr8,
   halfAdder,
   fullAdder,
   switchLevel,

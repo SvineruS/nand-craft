@@ -14,7 +14,7 @@ import { type Gate, type GateType, isConstantGate, isInputGate, isOutputGate, is
 export const Op = {
   NOP: 0,
   NAND: 1,
-  AND: 2,
+  AND: 2,         // 'and' and '8bit-and'
   OR: 3,          // 'or' and '8bit-or'
   NOR: 4,         // 'nor' and '8bit-nor'
   XOR: 5,
@@ -37,6 +37,8 @@ export const Op = {
   INPUT_ENABLE: 22,
   COMPONENT: 23,
   RAM: 24,        // read path only; the write lands in SeqOp.RAM
+  SHR8: 25,
+  SHL8: 26,
 } as const;
 
 /** How setSourceOutputs seeds a gate's output before propagation. */
@@ -68,7 +70,7 @@ export const SeqOp = {
 function opcodeFor(type: GateType): number {
   switch (type) {
     case 'nand': return Op.NAND;
-    case 'and': return Op.AND;
+    case 'and': case '8bit-and': return Op.AND;
     case 'or': case '8bit-or': return Op.OR;
     case 'nor': case '8bit-nor': return Op.NOR;
     case 'xor': return Op.XOR;
@@ -83,6 +85,8 @@ function opcodeFor(type: GateType): number {
     case '8bit-adder': return Op.ADD8;
     case '8bit-negative': return Op.NEG8;
     case '8bit-subtractor': return Op.SUB8;
+    case '8bit-shr': return Op.SHR8;
+    case '8bit-shl': return Op.SHL8;
     case 'constant': case 'constant-8bit': case 'constant-16bit': return Op.CONSTANT;
     case 'mux': case '8bit-mux': return Op.MUX;
     case 'tristate': case '8bit-tristate': return Op.TRISTATE;

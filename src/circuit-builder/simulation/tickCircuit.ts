@@ -329,6 +329,19 @@ function evaluateGate(
       values[outBase] = ((readInput(values, inBase) - readInput(values, inBase + 1)) & 0xFF) >>> 0;
       break;
 
+    // Logical shifts by a full 8-bit amount. The >= 8 case is spelled out because JS shift
+    // operators take the amount mod 32, so `x >>> 8` is 0 but `x >>> 32` would be x.
+    case Op.SHR8: {
+      const amount = readInput(values, inBase + 1);
+      values[outBase] = amount >= 8 ? 0 : (readInput(values, inBase) & 0xFF) >>> amount;
+      break;
+    }
+    case Op.SHL8: {
+      const amount = readInput(values, inBase + 1);
+      values[outBase] = amount >= 8 ? 0 : ((readInput(values, inBase) << amount) & 0xFF) >>> 0;
+      break;
+    }
+
     case Op.DEC1: {
       const isZero = readInput(values, inBase) === 0;
       values[outBase] = isZero ? 1 : 0;

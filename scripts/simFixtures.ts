@@ -178,7 +178,8 @@ function combinationalFixture(type: GateType): Fixture {
 
 const COMBINATIONAL_TYPES: GateType[] = [
   'nand', 'and', 'or', 'nor', 'xor', 'xnor', 'not',
-  '8bit-or', '8bit-nor', '8bit-not',
+  '8bit-and', '8bit-or', '8bit-nor', '8bit-not',
+  '8bit-shr', '8bit-shl',
   '3bit-or', '3bit-and',
   '2bit-adder', '3bit-adder',
   '1bit-decoder', '3bit-decoder',
@@ -237,6 +238,35 @@ const tristateContention: Fixture = {
       for (const bEnable of [0, 1]) {
         ticks.push({ aVal: 1, aEn: aEnable, bVal: 0, bEn: bEnable });
       }
+    }
+    return b.done(ticks);
+  },
+};
+
+/**
+ * Both shifters over every interesting shift amount. The generic sweep only samples
+ * amounts 0/1/127/128/255, which misses the whole 2..7 range and, more importantly,
+ * 32 — where a naive `a >>> amount` returns `a` because JS takes the amount mod 32.
+ */
+const shiftAmounts: Fixture = {
+  name: 'shift-amounts',
+  create() {
+    const b = new Builder();
+    const value = b.gate('input-8bit', 'value');
+    const amount = b.gate('input-8bit', 'amount');
+    const shr = b.gate('8bit-shr', 'shr');
+    const shl = b.gate('8bit-shl', 'shl');
+    const shrOut = b.gate('output-8bit', 'shrOut');
+    const shlOut = b.gate('output-8bit', 'shlOut');
+
+    b.net(op(value), ip(shr, 0), ip(shl, 0));
+    b.net(op(amount), ip(shr, 1), ip(shl, 1));
+    b.net(op(shr), ip(shrOut));
+    b.net(op(shl), ip(shlOut));
+
+    const ticks: Record<string, number>[] = [];
+    for (const a of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 31, 32, 33, 64, 255]) {
+      ticks.push({ value: 0b10110011, amount: a });
     }
     return b.done(ticks);
   },
@@ -729,6 +759,7 @@ const wideAdder: Fixture = {
 
 export const FIXTURES: Fixture[] = [
   ...COMBINATIONAL_TYPES.map(combinationalFixture),
+  shiftAmounts,
   tristateContention,
   tristateUnwiredEnable,
   widthMismatch,

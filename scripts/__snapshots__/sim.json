@@ -629,6 +629,320 @@
    }
   }
  ],
+ "comb/8bit-and": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 1,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "1/8",
+    "node#5": "1/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 128,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 128,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 127,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 127,
+    "dut:out:0": 127,
+    "in0:out:0": 127,
+    "in1:out:0": 127,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 255,
+    "dut:out:0": 127,
+    "in0:out:0": 127,
+    "in1:out:0": 255,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 128,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 128,
+    "dut:out:0": 128,
+    "in0:out:0": 128,
+    "in1:out:0": 128,
+    "out0:in:0": 128
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "128/8",
+    "node#5": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 127,
+    "dut:out:0": 127,
+    "in0:out:0": 255,
+    "in1:out:0": 127,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 255,
+    "dut:out:0": 255,
+    "in0:out:0": 255,
+    "in1:out:0": 255,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  }
+ ],
  "comb/8bit-or": [
   {
    "outputs": {
@@ -1356,6 +1670,634 @@
     "node#1": "255/8",
     "node#2": "0/8",
     "node#3": "0/8"
+   }
+  }
+ ],
+ "comb/8bit-shr": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 128,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 128,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 0,
+    "dut:out:0": 127,
+    "in0:out:0": 127,
+    "in1:out:0": 0,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 127,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 127,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 64
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 1,
+    "dut:out:0": 64,
+    "in0:out:0": 128,
+    "in1:out:0": 1,
+    "out0:in:0": 64
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "64/8",
+    "node#5": "64/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 128,
+    "dut:out:0": 0,
+    "in0:out:0": 128,
+    "in1:out:0": 128,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 0,
+    "dut:out:0": 255,
+    "in0:out:0": 255,
+    "in1:out:0": 0,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  }
+ ],
+ "comb/8bit-shl": [
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 0,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 0,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 0,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 0,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/8",
+    "node#1": "0/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 2
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 1,
+    "dut:out:0": 2,
+    "in0:out:0": 1,
+    "in1:out:0": 1,
+    "out0:in:0": 2
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "2/8",
+    "node#5": "2/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 1,
+    "dut:in:1": 128,
+    "dut:out:0": 0,
+    "in0:out:0": 1,
+    "in1:out:0": 128,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/8",
+    "node#1": "1/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 127
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 0,
+    "dut:out:0": 127,
+    "in0:out:0": 127,
+    "in1:out:0": 0,
+    "out0:in:0": 127
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "127/8",
+    "node#5": "127/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 127,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 127,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 127,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "127/8",
+    "node#1": "127/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 1,
+    "dut:out:0": 0,
+    "in0:out:0": 128,
+    "in1:out:0": 1,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "1/8",
+    "node#3": "1/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 128,
+    "dut:in:1": 128,
+    "dut:out:0": 0,
+    "in0:out:0": 128,
+    "in1:out:0": 128,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "128/8",
+    "node#1": "128/8",
+    "node#2": "128/8",
+    "node#3": "128/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 0,
+    "dut:out:0": 255,
+    "in0:out:0": 255,
+    "in1:out:0": 0,
+    "out0:in:0": 255
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "255/8",
+    "node#5": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 127,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 127,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "127/8",
+    "node#3": "127/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "out0": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "dut:in:0": 255,
+    "dut:in:1": 255,
+    "dut:out:0": 0,
+    "in0:out:0": 255,
+    "in1:out:0": 255,
+    "out0:in:0": 0
+   },
+   "nodes": {
+    "node#0": "255/8",
+    "node#1": "255/8",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "0/8",
+    "node#5": "0/8"
    }
   }
  ],
@@ -6207,6 +7149,503 @@
    }
   }
  ],
+ "shift-amounts": [
+  {
+   "outputs": {
+    "shrOut": 179,
+    "shlOut": 179
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 0,
+    "shr:in:0": 179,
+    "shr:in:1": 0,
+    "shr:out:0": 179,
+    "shl:in:0": 179,
+    "shl:in:1": 0,
+    "shl:out:0": 179,
+    "shrOut:in:0": 179,
+    "shlOut:in:0": 179
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "0/8",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "179/8",
+    "node#7": "179/8",
+    "node#8": "179/8",
+    "node#9": "179/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 89,
+    "shlOut": 102
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 1,
+    "shr:in:0": 179,
+    "shr:in:1": 1,
+    "shr:out:0": 89,
+    "shl:in:0": 179,
+    "shl:in:1": 1,
+    "shl:out:0": 102,
+    "shrOut:in:0": 89,
+    "shlOut:in:0": 102
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "1/8",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "89/8",
+    "node#7": "89/8",
+    "node#8": "102/8",
+    "node#9": "102/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 44,
+    "shlOut": 204
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 2,
+    "shr:in:0": 179,
+    "shr:in:1": 2,
+    "shr:out:0": 44,
+    "shl:in:0": 179,
+    "shl:in:1": 2,
+    "shl:out:0": 204,
+    "shrOut:in:0": 44,
+    "shlOut:in:0": 204
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "2/8",
+    "node#4": "2/8",
+    "node#5": "2/8",
+    "node#6": "44/8",
+    "node#7": "44/8",
+    "node#8": "204/8",
+    "node#9": "204/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 22,
+    "shlOut": 152
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 3,
+    "shr:in:0": 179,
+    "shr:in:1": 3,
+    "shr:out:0": 22,
+    "shl:in:0": 179,
+    "shl:in:1": 3,
+    "shl:out:0": 152,
+    "shrOut:in:0": 22,
+    "shlOut:in:0": 152
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "3/8",
+    "node#4": "3/8",
+    "node#5": "3/8",
+    "node#6": "22/8",
+    "node#7": "22/8",
+    "node#8": "152/8",
+    "node#9": "152/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 11,
+    "shlOut": 48
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 4,
+    "shr:in:0": 179,
+    "shr:in:1": 4,
+    "shr:out:0": 11,
+    "shl:in:0": 179,
+    "shl:in:1": 4,
+    "shl:out:0": 48,
+    "shrOut:in:0": 11,
+    "shlOut:in:0": 48
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "4/8",
+    "node#4": "4/8",
+    "node#5": "4/8",
+    "node#6": "11/8",
+    "node#7": "11/8",
+    "node#8": "48/8",
+    "node#9": "48/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 5,
+    "shlOut": 96
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 5,
+    "shr:in:0": 179,
+    "shr:in:1": 5,
+    "shr:out:0": 5,
+    "shl:in:0": 179,
+    "shl:in:1": 5,
+    "shl:out:0": 96,
+    "shrOut:in:0": 5,
+    "shlOut:in:0": 96
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "5/8",
+    "node#4": "5/8",
+    "node#5": "5/8",
+    "node#6": "5/8",
+    "node#7": "5/8",
+    "node#8": "96/8",
+    "node#9": "96/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 2,
+    "shlOut": 192
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 6,
+    "shr:in:0": 179,
+    "shr:in:1": 6,
+    "shr:out:0": 2,
+    "shl:in:0": 179,
+    "shl:in:1": 6,
+    "shl:out:0": 192,
+    "shrOut:in:0": 2,
+    "shlOut:in:0": 192
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "6/8",
+    "node#4": "6/8",
+    "node#5": "6/8",
+    "node#6": "2/8",
+    "node#7": "2/8",
+    "node#8": "192/8",
+    "node#9": "192/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 1,
+    "shlOut": 128
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 7,
+    "shr:in:0": 179,
+    "shr:in:1": 7,
+    "shr:out:0": 1,
+    "shl:in:0": 179,
+    "shl:in:1": 7,
+    "shl:out:0": 128,
+    "shrOut:in:0": 1,
+    "shlOut:in:0": 128
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "7/8",
+    "node#4": "7/8",
+    "node#5": "7/8",
+    "node#6": "1/8",
+    "node#7": "1/8",
+    "node#8": "128/8",
+    "node#9": "128/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 0,
+    "shlOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 8,
+    "shr:in:0": 179,
+    "shr:in:1": 8,
+    "shr:out:0": 0,
+    "shl:in:0": 179,
+    "shl:in:1": 8,
+    "shl:out:0": 0,
+    "shrOut:in:0": 0,
+    "shlOut:in:0": 0
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "8/8",
+    "node#4": "8/8",
+    "node#5": "8/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 0,
+    "shlOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 9,
+    "shr:in:0": 179,
+    "shr:in:1": 9,
+    "shr:out:0": 0,
+    "shl:in:0": 179,
+    "shl:in:1": 9,
+    "shl:out:0": 0,
+    "shrOut:in:0": 0,
+    "shlOut:in:0": 0
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "9/8",
+    "node#4": "9/8",
+    "node#5": "9/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 0,
+    "shlOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 31,
+    "shr:in:0": 179,
+    "shr:in:1": 31,
+    "shr:out:0": 0,
+    "shl:in:0": 179,
+    "shl:in:1": 31,
+    "shl:out:0": 0,
+    "shrOut:in:0": 0,
+    "shlOut:in:0": 0
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "31/8",
+    "node#4": "31/8",
+    "node#5": "31/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 0,
+    "shlOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 32,
+    "shr:in:0": 179,
+    "shr:in:1": 32,
+    "shr:out:0": 0,
+    "shl:in:0": 179,
+    "shl:in:1": 32,
+    "shl:out:0": 0,
+    "shrOut:in:0": 0,
+    "shlOut:in:0": 0
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "32/8",
+    "node#4": "32/8",
+    "node#5": "32/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 0,
+    "shlOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 33,
+    "shr:in:0": 179,
+    "shr:in:1": 33,
+    "shr:out:0": 0,
+    "shl:in:0": 179,
+    "shl:in:1": 33,
+    "shl:out:0": 0,
+    "shrOut:in:0": 0,
+    "shlOut:in:0": 0
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "33/8",
+    "node#4": "33/8",
+    "node#5": "33/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 0,
+    "shlOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 64,
+    "shr:in:0": 179,
+    "shr:in:1": 64,
+    "shr:out:0": 0,
+    "shl:in:0": 179,
+    "shl:in:1": 64,
+    "shl:out:0": 0,
+    "shrOut:in:0": 0,
+    "shlOut:in:0": 0
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "64/8",
+    "node#4": "64/8",
+    "node#5": "64/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "shrOut": 0,
+    "shlOut": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 179,
+    "amount:out:0": 255,
+    "shr:in:0": 179,
+    "shr:in:1": 255,
+    "shr:out:0": 0,
+    "shl:in:0": 179,
+    "shl:in:1": 255,
+    "shl:out:0": 0,
+    "shrOut:in:0": 0,
+    "shlOut:in:0": 0
+   },
+   "nodes": {
+    "node#0": "179/8",
+    "node#1": "179/8",
+    "node#2": "179/8",
+    "node#3": "255/8",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  }
+ ],
  "tristate-contention": [
   {
    "outputs": {
@@ -9762,6 +11201,8 @@
     "gate_20821:out:0": 0,
     "8bit-mux:in:0": 0,
     "8bit-mux:out:0": 0,
+    "8bit-shr:in:0": 0,
+    "8bit-shr:out:0": 0,
     "gate_28407:in:0": 0,
     "gate_28407:in:1": 1,
     "gate_28407:out:0": 0,
