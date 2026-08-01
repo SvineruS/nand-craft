@@ -3,7 +3,6 @@ import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import type { ComponentId, GateId, LevelId } from '../circuit-builder/editor/types.ts';
 import {
   getSolvedLevelIds, getBackgroundGrid, saveBackgroundGrid, getPaletteId, savePaletteId,
-  getPreprocessorId, savePreprocessorId,
 } from '../circuit-builder/persistence/storage.ts';
 import type { GridPatternId } from '../circuit-builder/editor/render/backgroundPattern.ts';
 import type { PaletteId } from '../circuit-builder/editor/palettes.ts';
@@ -37,14 +36,6 @@ export const programWindowGateId = signal<GateId | null>(null);
 export function openGateWindow(button: { gateId: GateId; kind: 'memory' | 'program' }): void {
   const target = button.kind === 'memory' ? memoryWindowGateId : programWindowGateId;
   target.value = button.gateId;
-}
-
-/** Program syntax the RAM editor assembles with (persisted in localStorage). */
-export const preprocessorId = signal<string>(getPreprocessorId());
-
-export function setPreprocessorId(id: string): void {
-  preprocessorId.value = id;
-  savePreprocessorId(id);
 }
 
 /** Current view mode. */

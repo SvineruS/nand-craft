@@ -7,7 +7,6 @@ import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { asmLanguage } from '../../circuit-builder/asm/asmHighlight.ts';
 import { assembleProgram } from '../../circuit-builder/asm/assembleProgram.ts';
-import { listPreprocessors } from '../../circuit-builder/asm/registry.ts';
 import type { ProgramFile } from '../../circuit-builder/persistence/programFs.ts';
 import {
   deleteProgram, listPrograms, pathProblem, readProgram, renameProgram, writeProgram,
@@ -17,7 +16,6 @@ import { padRamCells } from '../../circuit-builder/simulation/gateTypes.ts';
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { WriteRamCommand } from '../../circuit-builder/editor/commands.ts';
-import { preprocessorId, setPreprocessorId } from '../editorStore.ts';
 import { openProgramBuffer, openProgramPath, programDirty, programSource } from '../programStore.ts';
 import { ProgramExplorer } from './ProgramExplorer.tsx';
 
@@ -59,12 +57,11 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
 
   const path = openProgramPath.value;
   const dirty = programDirty.value;
-  const activePreprocessor = preprocessorId.value;
 
   // The CodeMirror instance is built once, so anything it calls back into reads the
   // current render's values through refs instead of closing over the first render's.
-  const lintRef = useRef({ path, preprocessorId: activePreprocessor });
-  lintRef.current = { path, preprocessorId: activePreprocessor };
+  const pathRef = useRef(path);
+  pathRef.current = path;
   const saveRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -77,7 +74,7 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
         extensions: [
           asmLanguage,
           syntaxHighlighting(asmHighlightStyle),
-          linter(view => lintProgram(view, lintRef.current)),
+          linter(view => lintProgram(view, pathRef.current)),
           ...editorTheme,
           history(),
           keymap.of([
@@ -200,7 +197,7 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
     setStatus({ kind: 'info', text: `Deleted ${target}` });
   };
 
-  const assemble = () => assembleProgram(programSource.peek(), path ?? '', activePreprocessor);
+  const assemble = () => assembleProgram(programSource.peek(), path ?? '');
 
   const handleAssemble = () => {
     const result = assemble();
@@ -235,16 +232,6 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
         <div class="ram-toolbar">
           <span class="ram-program-path">{path ?? 'untitled'}{dirty ? ' •' : ''}</span>
           <div class="ram-toolbar-spacer" />
-          <select
-            class="window-select"
-            title="Program syntax"
-            value={activePreprocessor}
-            onChange={e => setPreprocessorId((e.target as HTMLSelectElement).value)}
-          >
-            {listPreprocessors().map(p => (
-              <option key={p.id} value={p.id} title={p.description}>{p.label}</option>
-            ))}
-          </select>
           <button class="window-btn" onClick={() => saveBuffer(path)}>Save</button>
           <button class="window-btn" onClick={handleAssemble}>Assemble</button>
           <button class="window-btn is-primary" onClick={handleFlash}>Flash</button>
@@ -310,10 +297,10 @@ function assembleStatus(errors: { line: number; file: string; message: string }[
  * Only errors from the file being edited get a marker — one raised inside an `#include`
  * has no line here to point at, so it is reported with its file name in the message.
  */
-function lintProgram(view: EditorView, context: { path: string | null; preprocessorId: string }): Diagnostic[] {
+function lintProgram(view: EditorView, openPath: string | null): Diagnostic[] {
   const doc = view.state.doc;
-  const path = context.path ?? '';
-  const result = assembleProgram(doc.toString(), path, context.preprocessorId);
+  const path = openPath ?? '';
+  const result = assembleProgram(doc.toString(), path);
   const ownFile = path === '' ? '(unsaved)' : path;
 
   return result.errors.map(error => {

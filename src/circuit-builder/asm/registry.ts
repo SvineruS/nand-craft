@@ -2,11 +2,12 @@ import type { Preprocessor } from './types.ts';
 import { defaultPreprocessor } from './defaultPreprocessor.ts';
 
 /**
- * Registry of program syntaxes the RAM editor can assemble with.
+ * Registry of program syntaxes a program can be assembled with.
  *
- * The editor stores the *id* of the preprocessor a player picked, so a syntax that is not
- * installed (a DLC one, on a save that has it selected) resolves back to the default
- * instead of breaking the dialog.
+ * Nothing picks a syntax yet — `assembleProgram` always asks for the default. The lookup is
+ * by id and falls back to the default, so whatever ends up choosing one (most likely a
+ * directive in the program itself) cannot break the editor by naming a syntax that is not
+ * installed.
  */
 
 const preprocessors = new Map<string, Preprocessor>();
@@ -15,10 +16,6 @@ export const DEFAULT_PREPROCESSOR_ID = defaultPreprocessor.id;
 
 export function registerPreprocessor(preprocessor: Preprocessor): void {
   preprocessors.set(preprocessor.id, preprocessor);
-}
-
-export function listPreprocessors(): Preprocessor[] {
-  return [...preprocessors.values()];
 }
 
 /** The named preprocessor, or the default one when nothing is registered under that id. */

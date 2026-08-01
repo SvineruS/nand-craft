@@ -6,13 +6,11 @@ import {
   type GridPatternId, DEFAULT_GRID_PATTERN, isGridPatternId,
 } from '../editor/render/backgroundPattern.ts';
 import { type PaletteId, DEFAULT_PALETTE_ID, isPaletteId } from '../editor/palettes.ts';
-import { DEFAULT_PREPROCESSOR_ID } from '../asm/registry.ts';
 
 const PREFIX = 'nand-craft';
 const SOLVED_KEY = `${PREFIX}:solved`;
 const BACKGROUND_GRID_KEY = `${PREFIX}:backgroundGrid`;
 const PALETTE_KEY = `${PREFIX}:palette`;
-const PREPROCESSOR_KEY = `${PREFIX}:preprocessor`;
 
 function circuitKey(levelId: LevelId): string {
   return `${PREFIX}:circuit:${levelId}`;
@@ -101,23 +99,6 @@ export function savePaletteId(id: PaletteId): void {
     localStorage.setItem(PALETTE_KEY, id);
   } catch (e) {
     console.error('Failed to persist palette:', e);
-  }
-}
-
-/**
- * Program syntax the RAM editor last used. Stored as a bare id and resolved through the
- * preprocessor registry, which falls back to the default when the id is not installed —
- * so a save that names a DLC syntax still opens.
- */
-export function getPreprocessorId(): string {
-  return localStorage.getItem(PREPROCESSOR_KEY) ?? DEFAULT_PREPROCESSOR_ID;
-}
-
-export function savePreprocessorId(id: string): void {
-  try {
-    localStorage.setItem(PREPROCESSOR_KEY, id);
-  } catch (e) {
-    console.error('Failed to persist preprocessor choice:', e);
   }
 }
 
