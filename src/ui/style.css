@@ -580,7 +580,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  /* Above the floating-window band — a modal asks a question and must not be buried. */
+  z-index: 10000;
 }
 
 .level-dialog-card {
@@ -690,7 +691,12 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  /*
+   * Starting point only: useFloatingWindow renumbers the open windows from this base every
+   * time one is touched, so the last one clicked is on top. Modals sit at 10000, far enough
+   * above the band that no number of raises reaches them.
+   */
+  z-index: 900;
 }
 
 .floating-window-header {
@@ -763,11 +769,23 @@ body {
   height: 480px;
 }
 
-.window-ram {
+/*
+ * The two RAM windows open side by side, so a player can watch the bytes while editing the
+ * program that fills them. The memory grid is 16 bytes wide and the program view carries a
+ * file list, which is why they are sized differently.
+ */
+.window-ram-memory {
   top: 70px;
-  left: calc(50% - 400px);
-  width: 800px;
-  height: 560px;
+  left: calc(50% - 500px);
+  width: 360px;
+  height: 540px;
+}
+
+.window-ram-program {
+  top: 70px;
+  left: calc(50% - 130px);
+  width: 620px;
+  height: 540px;
 }
 
 .window-goals {
@@ -1233,11 +1251,6 @@ body {
   }
 }
 
-.ram-status-dim {
-  margin-left: auto;
-  color: var(--text-dim2);
-}
-
 .ram-grid-scroll {
   flex: 1;
   overflow: auto;
@@ -1249,6 +1262,9 @@ body {
   gap: 1px;
   font-family: var(--mono);
   font-size: 11px;
+  /* Cells have a min width, so a narrow window scrolls the grid rather than clipping it. */
+  width: max-content;
+  min-width: 100%;
 }
 
 .ram-grid-head,
@@ -1273,6 +1289,7 @@ body {
   font-size: 11px;
   padding: 2px 0;
   text-align: center;
+  white-space: nowrap;
   cursor: pointer;
 
   &:hover {

@@ -25,11 +25,14 @@ import { clearGateState, padRamCells, RAM_SIZE } from '../src/circuit-builder/si
 import { buildScene } from '../src/circuit-builder/editor/render/buildScene.ts';
 import { emptyDragPreview } from '../src/circuit-builder/editor/EditorState.ts';
 import {
-  gateButtonPos, gateCenter, getDrawnGateDims, getPinPositions,
+  gateButtonPositions, gateCenter, getDrawnGateDims, getPinPositions,
 } from '../src/circuit-builder/editor/utils/geometry.ts';
 import { gateBounds, hitTestGate, hitTestGateButton } from '../src/circuit-builder/editor/utils/hitTests.ts';
 import { BUILT_IN_GATE_TYPES } from '../src/circuit-builder/editor/gates.ts';
 import { QueueTestRunner, type TestGateLabels } from '../src/circuit-builder/editor/QueueTestRunner.ts';
+import {
+  raiseWindow, registerWindow, unregisterWindow, WINDOW_Z_BASE,
+} from '../src/ui/windowStacking.ts';
 import type { TestCommand } from '../src/circuit-builder/testing/dslParser.ts';
 import type { GateType } from '../src/circuit-builder/simulation/gateTypes.ts';
 
@@ -494,24 +497,39 @@ console.log('queue test runner OK');
     st.circuit.addGate({ id: ramId, type: 'ram', pos: { x: 100, y: 100 }, rotation });
     const gate = st.circuit.getGate(ramId);
 
-    const pos = gateButtonPos(gate);
-    if (!pos) throw new Error(`ram@${rotation}°: has no button`);
+    const buttons = gateButtonPositions(gate);
+    const kinds = buttons.map(b => b.kind).join(',');
+    if (kinds !== 'memory,program') throw new Error(`ram@${rotation}°: buttons are ${kinds}`);
+
     const body = gateBounds(gate);
-    const inside = pos.x >= body.x1 && pos.x <= body.x2 && pos.y >= body.y1 && pos.y <= body.y2;
-    if (!inside) throw new Error(`ram@${rotation}°: button at ${pos.x},${pos.y} is off the body`);
-    if (hitTestGateButton(pos, st) !== ramId) {
-      throw new Error(`ram@${rotation}°: clicking the drawn button misses it`);
+    for (const button of buttons) {
+      const { pos, kind } = button;
+      const where = `ram@${rotation}° ${kind}`;
+      if (pos.x < body.x1 || pos.x > body.x2 || pos.y < body.y1 || pos.y > body.y2) {
+        throw new Error(`${where}: button at ${pos.x},${pos.y} is off the body`);
+      }
+      // Each button must answer for itself: overlapping targets would make one unclickable.
+      const hit = hitTestGateButton(pos, st);
+      if (hit?.gateId !== ramId || hit.kind !== kind) {
+        throw new Error(`${where}: clicking the drawn button gives ${JSON.stringify(hit)}`);
+      }
     }
-    if (hitTestGateButton(gateCenter(gate), st) === ramId) {
-      throw new Error(`ram@${rotation}°: the whole body reads as the button`);
+    if (hitTestGateButton(gateCenter(gate), st) !== null) {
+      throw new Error(`ram@${rotation}°: the whole body reads as a button`);
     }
 
     const drawn = buildScene(st).gateButtons;
-    if (drawn.length !== 1 || drawn[0].pos.x !== pos.x || drawn[0].pos.y !== pos.y) {
-      throw new Error(`ram@${rotation}°: the drawn button is not where the hit test looks`);
+    if (drawn.length !== buttons.length) {
+      throw new Error(`ram@${rotation}°: drew ${drawn.length} buttons, placed ${buttons.length}`);
+    }
+    for (let i = 0; i < buttons.length; i++) {
+      if (drawn[i].pos.x !== buttons[i].pos.x || drawn[i].pos.y !== buttons[i].pos.y
+        || drawn[i].icon !== buttons[i].kind) {
+        throw new Error(`ram@${rotation}°: drawn button ${i} is not where the hit test looks`);
+      }
     }
   }
-  console.log('ok   RAM button is on the body and clickable at every rotation');
+  console.log('ok   both RAM buttons are on the body and separately clickable at every rotation');
 }
 
 {
@@ -519,8 +537,59 @@ console.log('queue test runner OK');
   st.circuit = new Circuit();
   const nandId = generateId('nb') as GateId;
   st.circuit.addGate({ id: nandId, type: 'nand', pos: { x: 0, y: 0 }, rotation: 0 });
-  check('gates without a window have no button',
-    gateButtonPos(st.circuit.getGate(nandId)) === null && buildScene(st).gateButtons.length === 0);
+  check('gates without a window have no buttons',
+    gateButtonPositions(st.circuit.getGate(nandId)).length === 0
+    && buildScene(st).gateButtons.length === 0);
 }
 
 console.log('RAM chip OK');
+
+// ---------------------------------------------------------------------------
+// Floating window stacking
+//
+// Whichever window was touched last must be drawn over the others, and the numbers handed
+// out must stay inside a known band however long a session runs — a modal sits above that
+// band, so a scheme that kept incrementing would eventually surface a window over one.
+// ---------------------------------------------------------------------------
+
+{
+  const cards = new Map<string, { style: { zIndex: string } }>();
+  const open = (id: string) => {
+    const card = { style: { zIndex: '' } };
+    cards.set(id, card);
+    registerWindow(id, card);
+  };
+  const z = (id: string) => Number(cards.get(id)!.style.zIndex);
+
+  open('a');
+  check('the first window is numbered', z('a') === WINDOW_Z_BASE);
+
+  open('b');
+  check('a newly opened window is on top', z('b') > z('a'));
+
+  raiseWindow('a');
+  check('touching a window raises it', z('a') > z('b'));
+
+  raiseWindow('a');
+  check('raising the top window is a no-op', z('a') === WINDOW_Z_BASE + 1 && z('b') === WINDOW_Z_BASE);
+
+  open('c');
+  check('order is a, b, c bottom to top',
+    z('b') === WINDOW_Z_BASE && z('a') === WINDOW_Z_BASE + 1 && z('c') === WINDOW_Z_BASE + 2);
+
+  unregisterWindow('a');
+  check('closing a window renumbers the rest',
+    z('b') === WINDOW_Z_BASE && z('c') === WINDOW_Z_BASE + 1);
+
+  // The point of renumbering: a thousand clicks must not climb towards the modal band.
+  for (let i = 0; i < 1000; i++) {
+    raiseWindow('b');
+    raiseWindow('c');
+  }
+  check('z stays inside the band', Math.max(z('b'), z('c')) <= WINDOW_Z_BASE + cards.size);
+
+  unregisterWindow('b');
+  unregisterWindow('c');
+}
+
+console.log('window stacking OK');

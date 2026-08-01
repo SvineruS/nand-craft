@@ -399,13 +399,14 @@ export class Renderer {
   }
 
   /**
-   * On-body buttons, drawn upright in world space so the icon reads the same on a rotated
-   * gate. The glyph is three stacked bars — a stack of memory rows.
+   * On-body buttons, drawn upright in world space so the icons read the same on a rotated
+   * gate: equal bars for memory (a stack of rows), ragged bars for program (lines of code).
    */
   private drawGateButtons(buttons: RenderGateButton[]): void {
     const { ctx } = this;
     for (const button of buttons) {
       const { x, y } = button.pos;
+
       ctx.beginPath();
       ctx.arc(x, y, button.radius, 0, Math.PI * 2);
       ctx.fillStyle = button.hovered ? COLORS.selection : COLORS.background;
@@ -416,14 +417,25 @@ export class Renderer {
 
       ctx.strokeStyle = button.hovered ? COLORS.background : COLORS.boardLabel;
       ctx.lineWidth = 1;
-      const barHalfWidth = button.radius * 0.45;
-      for (let row = -1; row <= 1; row++) {
-        const barY = y + row * button.radius * 0.4;
-        ctx.beginPath();
-        ctx.moveTo(x - barHalfWidth, barY);
-        ctx.lineTo(x + barHalfWidth, barY);
-        ctx.stroke();
-      }
+      this.drawGateButtonIcon(button);
+    }
+  }
+
+  /** Three bars, evenly wide for memory rows and indented for lines of source. */
+  private drawGateButtonIcon(button: RenderGateButton): void {
+    const { ctx } = this;
+    const { x, y } = button.pos;
+    const width = button.radius * 0.9;
+    // Left edge shared by every bar, so the ragged version reads as left-aligned text.
+    const left = x - width / 2;
+    const lengths = button.icon === 'memory' ? [1, 1, 1] : [0.85, 0.5, 0.7];
+
+    for (let row = 0; row < lengths.length; row++) {
+      const barY = y + (row - 1) * button.radius * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(left, barY);
+      ctx.lineTo(left + width * lengths[row], barY);
+      ctx.stroke();
     }
   }
 

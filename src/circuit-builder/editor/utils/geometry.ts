@@ -1,8 +1,9 @@
 import { Circuit } from '../../simulation/circuit.ts';
 import type { GateId, PinRef, Rotation, WireNode, WireNodeId } from '../types.ts';
-import { componentDefVersion, type Gate, type GateType, getGateDefinition, getPinCounts } from '../gates.ts';
+import {
+  componentDefVersion, type Gate, type GateButtonKind, getGateDefinition, getPinCounts,
+} from '../gates.ts';
 import { Vec2 } from './vec2.ts';
-import { isRamGate } from '../../simulation/gateTypes.ts';
 import { GRID_SIZE } from "../consts.ts";
 
 
@@ -62,33 +63,42 @@ export function gateCenter(gate: Gate): Vec2 {
   return { x: gate.pos.x + w / 2, y: gate.pos.y + h / 2 };
 }
 
-/** Radius of the round button some gates carry on their body. */
+/** Radius of the round buttons some gates carry on their body. */
 export const GATE_BUTTON_RADIUS = 7;
 
-/** How far the button's centre sits from the gate's bottom-right corner. */
+/** How far the last button's centre sits from the gate's bottom-right corner. */
 const GATE_BUTTON_INSET = 11;
 
-/**
- * Where a gate's on-body button sits in world space, or null for a gate that has none.
- *
- * The button opens whatever window belongs to the gate — today only RAM has one. Its
- * position rotates with the body so it stays on the same corner of the chip, but the
- * painter draws the icon upright, which is why this returns a world point rather than an
- * offset inside the gate's rotated frame.
- */
-export function gateButtonPos(gate: Gate): Vec2 | null {
-  if (!hasGateButton(gate.type)) return null;
-  const { w, h } = getGateDims(gate);
-  const center = gateCenter(gate);
-  const corner = {
-    x: center.x + w / 2 - GATE_BUTTON_INSET,
-    y: center.y + h / 2 - GATE_BUTTON_INSET,
-  };
-  return Vec2.rotateAround(corner, center, gate.rotation);
+/** Centre-to-centre distance between adjacent buttons. */
+const GATE_BUTTON_SPACING = 18;
+
+export interface GateButtonPlacement {
+  kind: GateButtonKind;
+  /** Centre in world space. */
+  pos: Vec2;
 }
 
-export function hasGateButton(type: GateType): boolean {
-  return isRamGate(type);
+/**
+ * Where a gate's on-body buttons sit in world space, in declaration order — empty for a
+ * gate that declares none.
+ *
+ * They run left to right into the bottom-right corner, and rotate with the body so they
+ * stay on the same corner of the chip. The painter draws the icons upright, which is why
+ * this returns world points rather than offsets inside the gate's rotated frame.
+ */
+export function gateButtonPositions(gate: Gate): GateButtonPlacement[] {
+  const kinds = getGateDefinition(gate.type).buttons;
+  if (!kinds || kinds.length === 0) return [];
+
+  const { w, h } = getGateDims(gate);
+  const center = gateCenter(gate);
+  const y = center.y + h / 2 - GATE_BUTTON_INSET;
+
+  return kinds.map((kind, index) => {
+    const fromCorner = (kinds.length - 1 - index) * GATE_BUTTON_SPACING;
+    const unrotated = { x: center.x + w / 2 - GATE_BUTTON_INSET - fromCorner, y };
+    return { kind, pos: Vec2.rotateAround(unrotated, center, gate.rotation) };
+  });
 }
 
 export interface PinPositions {

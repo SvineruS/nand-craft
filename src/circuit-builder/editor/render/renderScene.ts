@@ -1,5 +1,6 @@
 import type { Vec2 } from '../utils/vec2.ts';
 import type { GateType } from '../../simulation/gateTypes.ts';
+import type { GateButtonKind } from '../gates.ts';
 import type { MapRect } from '../utils/mapBounds.ts';
 
 export interface RenderWireSegment {
@@ -42,14 +43,15 @@ export interface RenderGate {
 }
 
 /**
- * A gate's on-body button — the RAM chip's memory window opener.
+ * One of a gate's on-body buttons — the RAM chip's memory and program window openers.
  *
  * Positioned in world space and drawn upright, so the icon stays readable on a gate that
- * has been rotated.
+ * has been rotated. `icon` is what the button opens; the painter has a glyph per kind.
  */
 export interface RenderGateButton {
   pos: Vec2;
   radius: number;
+  icon: GateButtonKind;
   hovered: boolean;
 }
 

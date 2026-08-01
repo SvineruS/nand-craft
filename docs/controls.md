@@ -33,7 +33,7 @@
 | **Left click** pin / wire node | Start wiring |
 | **Left drag** to pin / node / wire | Complete wire |
 | **Double-click** constant | Toggle value |
-| **Click** the ▤ button on a RAM chip | Open its memory window |
+| **Click** a button on a RAM chip | Open its memory or program window |
 | **Double-click** wire node | Drag node |
 | **Double-click** wire segment | Split and drag |
 | **Double-click** empty space | Create node and start wiring |
@@ -52,7 +52,7 @@
 
 ## Windows
 
-**Goals**, **Hints**, **Tests** and the RAM memory window are floating windows rather than
+**Goals**, **Hints**, **Tests** and the RAM windows are floating windows rather than
 modals — the board stays visible and clickable behind them. Drag one by its header, resize it
 from the grip in the bottom-right corner, and close it with **✕** or **Escape**. Each window
 remembers where you left it and how big you made it.
@@ -67,16 +67,17 @@ Open with the **Tests** button in sandbox mode. Write custom tests using three m
 
 Click **Apply** to generate test cases, then **Step** or **Run All** to execute.
 
-## RAM Window
+## RAM Windows
 
-Every RAM chip carries a small **▤** button on its body (also reachable from the Properties
-panel). It opens a window with two tabs:
+Every RAM chip carries two small buttons in its bottom-right corner, each opening a window
+of its own — they can be open at the same time, side by side, so the bytes stay in view while
+the program that fills them is edited. Both are also reachable from the Properties panel.
 
-- **Memory** — all 256 bytes in hex, decimal, binary or ASCII, with the address the circuit
-  is currently presenting highlighted. Click a byte to edit it.
-- **Program** — a file explorer and a text editor for writing the bytes as source.
-  **Flash** assembles the program and writes it into the chip, keeping it as the chip's
-  boot image so it is reloaded whenever a test run resets memory.
+- **Memory** (even bars) — all 256 bytes in hex, decimal, binary or ASCII, with the address
+  the circuit is currently presenting highlighted. Click a byte to edit it.
+- **Program** (ragged bars) — a file explorer and a text editor for writing the bytes as
+  source. **Flash** assembles the program and writes it into the chip, keeping it as the
+  chip's boot image so it is reloaded whenever a test run resets memory.
 
 Programs are plain byte sequences — the game has no instruction set, your CPU defines what a
 byte means. The default syntax supports decimal / `0x` / `0b` / `0o` / `'c'` / `"text"`

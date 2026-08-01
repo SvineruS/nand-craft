@@ -24,10 +24,20 @@ export const levelDialogVisible = signal(false);
 export const testEditorVisible = signal(false);
 
 /**
- * RAM gate whose memory window is open, or null when none is. A gate id rather than a
- * boolean because the window shows one particular chip's bytes.
+ * RAM gate whose memory / program window is open, or null when that window is closed.
+ *
+ * Gate ids rather than booleans, because a window belongs to one particular chip; two
+ * signals rather than a tab, because reading the bytes while editing the program that
+ * fills them is the normal way to debug a CPU.
  */
-export const ramDialogGateId = signal<GateId | null>(null);
+export const memoryWindowGateId = signal<GateId | null>(null);
+export const programWindowGateId = signal<GateId | null>(null);
+
+/** Open the window a gate's on-body button asks for. */
+export function openGateWindow(button: { gateId: GateId; kind: 'memory' | 'program' }): void {
+  const target = button.kind === 'memory' ? memoryWindowGateId : programWindowGateId;
+  target.value = button.gateId;
+}
 
 /** Program syntax the RAM editor assembles with (persisted in localStorage). */
 export const preprocessorId = signal<string>(getPreprocessorId());

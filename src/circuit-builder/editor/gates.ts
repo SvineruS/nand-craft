@@ -17,6 +17,14 @@ export interface SvgLayer {
   alpha?: number;    // default 1
 }
 
+/**
+ * A window a gate can open from a button on its own body.
+ *
+ * The gate declares which ones it has; what they contain is the UI's business (see
+ * `RamWindows`). Today only RAM has any.
+ */
+export type GateButtonKind = 'memory' | 'program';
+
 export interface GateDefinition {
   label: string;
   description: string;
@@ -34,6 +42,11 @@ export interface GateDefinition {
    * `label`. A name the player set on the gate itself is always drawn.
    */
   hideLabel?: boolean;
+  /**
+   * Buttons drawn on the body, left to right along the bottom-right corner in this order.
+   * `gateButtonPositions` places them; the screen decides what each one opens.
+   */
+  buttons?: GateButtonKind[];
 }
 
 
@@ -344,6 +357,9 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
   ram: {
     label: 'RAM', description: '256-byte RAM', width: 3, height: 4,
     color: '#4a3a4a', stroke: '#ad7aad',
+    // Its bytes and the program that fills them are two windows, so the chip has two
+    // buttons — a player debugging a CPU wants both open at once.
+    buttons: ['memory', 'program'],
     pins: [
       { kind: 'input', x: 0, y: 0, label: 'R', bitWidth: 1 },
       { kind: 'input', x: 0, y: 1, label: 'W', bitWidth: 1 },

@@ -419,7 +419,8 @@ loop:
       <h4>Flashing</h4>
       <p><b>Assemble</b> checks the program; <b>Flash</b> writes it into the chip and keeps
       it as the boot image, so it is reloaded whenever a test run resets memory. Editing a
-      byte by hand in the Memory tab changes the live cells only.</p>
+      byte by hand in the memory window changes the live cells only, and flashing an empty
+      program zeroes the chip and forgets its boot image.</p>
     </div>
   );
 }

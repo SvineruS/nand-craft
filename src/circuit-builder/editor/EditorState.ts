@@ -2,6 +2,7 @@ import { Circuit } from '../simulation/circuit.ts';
 import type { GateId, Rotation, WireNodeId, WireSegmentId } from './types.ts';
 import type { Vec2 } from './utils/vec2.ts';
 import type { WireEndpoint } from './utils/geometry.ts';
+import type { GateButtonRef } from './utils/hitTests.ts';
 import type { Camera } from '../../engine/camera.ts';
 import type { GateType } from "./gates.ts";
 import { WIRE_COLORS } from "./consts.ts";
@@ -95,8 +96,8 @@ export interface EditorState {
   selection: SelectionItem[];
   hoveredGate: GateId | null;
   hoveredEndpoint: WireEndpoint | null;
-  /** Gate whose on-body button the cursor is over — see gateButtonPos. */
-  hoveredGateButton: GateId | null;
+  /** The on-body button the cursor is over — see gateButtonPositions. */
+  hoveredGateButton: GateButtonRef | null;
   /** Cursor position in world space. Input writes it; the scene builder reads it. */
   mouseWorld: Vec2;
   mode: InteractionMode;

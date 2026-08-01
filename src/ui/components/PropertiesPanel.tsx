@@ -1,5 +1,5 @@
 import { useRef } from 'preact/hooks';
-import { ramDialogGateId, solvedLevelIds, useEditorState } from '../editorStore.ts';
+import { openGateWindow, solvedLevelIds, useEditorState } from '../editorStore.ts';
 import { findGateDefinition, openGateDefinition } from '../gateNav.ts';
 import { getGateDefinition, getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
@@ -69,7 +69,7 @@ function GateProperties({ gate, state, onExecute }: GatePropertiesProps) {
 
         {isNamable && <LabelRow gate={gate} state={state} onExecute={onExecute} />}
         {hasValue && <ValueRow gate={gate} state={state} onExecute={onExecute} />}
-        {isRamGate(gate.type) && <MemoryRow gateId={gate.id} />}
+        {isRamGate(gate.type) && <RamWindowRows gateId={gate.id} />}
       </div>
     </div>
   );
@@ -101,19 +101,31 @@ function DefinitionRow({ type }: { type: GateType }) {
   );
 }
 
-/** Second way into the memory window — the first is the button on the chip itself. */
-function MemoryRow({ gateId }: { gateId: GateId }) {
+/** Second way into a RAM chip's windows — the first is its two buttons on the board. */
+function RamWindowRows({ gateId }: { gateId: GateId }) {
   return (
-    <div class="prop-row">
-      <span class="prop-label">Memory</span>
-      <button
-        class="prop-link"
-        title="View the bytes and edit the program"
-        onClick={() => { ramDialogGateId.value = gateId; }}
-      >
-        Open {'↗'}
-      </button>
-    </div>
+    <>
+      <div class="prop-row">
+        <span class="prop-label">Memory</span>
+        <button
+          class="prop-link"
+          title="View and edit the bytes"
+          onClick={() => openGateWindow({ gateId, kind: 'memory' })}
+        >
+          Open {'↗'}
+        </button>
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Program</span>
+        <button
+          class="prop-link"
+          title="Write a program and flash it into the chip"
+          onClick={() => openGateWindow({ gateId, kind: 'program' })}
+        >
+          Open {'↗'}
+        </button>
+      </div>
+    </>
   );
 }
 

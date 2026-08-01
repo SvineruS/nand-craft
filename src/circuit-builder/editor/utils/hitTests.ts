@@ -2,10 +2,10 @@ import type { EditorState } from "../EditorState.ts";
 import type { GateId, WireNodeId, WireSegmentId } from "../types.ts";
 import { Vec2, routeCorner } from "./vec2.ts";
 import {
-  gateButtonPos, gateCenter, GATE_BUTTON_RADIUS, getDrawnGateDims, getPinPositions, snapToGrid,
-  type WireEndpoint,
+  gateButtonPositions, gateCenter, GATE_BUTTON_RADIUS, getDrawnGateDims, getPinPositions,
+  snapToGrid, type WireEndpoint,
 } from "./geometry.ts";
-import type { Gate } from "../gates.ts";
+import type { Gate, GateButtonKind } from "../gates.ts";
 import { GRID_SIZE } from "../consts.ts";
 
 
@@ -96,20 +96,31 @@ export function hitTestGate(pos: Vec2, state: EditorState): GateId | null {
 }
 
 /**
- * The gate whose on-body button is under the cursor, if any.
+ * The on-body button under the cursor, if any — which gate, and which of its buttons.
  *
- * Tested before the gate body itself, so pressing the button opens the gate's window
- * instead of starting a drag. It shares `gateButtonPos` with the scene builder, so what is
- * drawn and what is clickable cannot drift apart.
+ * Tested before the gate body itself, so pressing a button opens its window instead of
+ * starting a drag. It shares `gateButtonPositions` with the scene builder, so what is drawn
+ * and what is clickable cannot drift apart.
  */
-export function hitTestGateButton(pos: Vec2, state: EditorState): GateId | null {
+export function hitTestGateButton(pos: Vec2, state: EditorState): GateButtonRef | null {
   for (const gate of state.circuit.gates.values()) {
-    const buttonPos = gateButtonPos(gate);
-    if (buttonPos && Vec2.dist(pos, buttonPos) <= GATE_BUTTON_RADIUS + GATE_BUTTON_HIT_PADDING) {
-      return gate.id;
+    for (const button of gateButtonPositions(gate)) {
+      if (Vec2.dist(pos, button.pos) <= GATE_BUTTON_RADIUS + GATE_BUTTON_HIT_PADDING) {
+        return { gateId: gate.id, kind: button.kind };
+      }
     }
   }
   return null;
+}
+
+export interface GateButtonRef {
+  gateId: GateId;
+  kind: GateButtonKind;
+}
+
+export function sameGateButton(a: GateButtonRef | null, b: GateButtonRef | null): boolean {
+  if (!a || !b) return a === b;
+  return a.gateId === b.gateId && a.kind === b.kind;
 }
 
 /** Unified hit test — finds the closest pin or free wire node within radius. */

@@ -1,4 +1,5 @@
-import { useState } from 'preact/hooks';
+import type { RefObject } from 'preact';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Gate } from '../../circuit-builder/simulation/gateTypes.ts';
 import { padRamCells, RAM_SIZE } from '../../circuit-builder/simulation/gateTypes.ts';
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
@@ -22,9 +23,29 @@ const RADIX_LABELS: { id: Radix; label: string }[] = [
   { id: 'ascii', label: 'ASCII' },
 ];
 
-/** Binary is eight characters wide, so it gets half as many columns to stay readable. */
-function columnsFor(radix: Radix): number {
-  return radix === 'bin' ? 8 : 16;
+/**
+ * Narrowest a cell may be drawn. Binary needs room for eight digits, the rest for two or
+ * three, and the address gutter takes a fixed slice off the front.
+ */
+function minCellWidthFor(radix: Radix): number {
+  return radix === 'bin' ? 58 : 26;
+}
+
+/** Room the address column takes off the front of every row, plus a little slack. */
+const ADDRESS_GUTTER_WIDTH = 34;
+
+/**
+ * How many bytes per row: the wide layout when the window can hold it, half that when it
+ * cannot.
+ *
+ * A row is a power of two either way, so an address still reads off the gutter plus the
+ * column heading. Binary starts from half as many columns as the other notations because
+ * each of its cells is four times as wide.
+ */
+function columnsFor(radix: Radix, availableWidth: number): number {
+  const wide = radix === 'bin' ? 8 : 16;
+  const needed = ADDRESS_GUTTER_WIDTH + wide * minCellWidthFor(radix);
+  return availableWidth >= needed ? wide : wide / 2;
 }
 
 /** Input pin order of the RAM gate, from its definition in gates.ts. */
@@ -47,9 +68,11 @@ export function RamMemoryView({ gate, state, onExecute }: RamMemoryViewProps) {
    * which would otherwise overwrite a half-typed byte with the stored one.
    */
   const [editing, setEditing] = useState<{ address: number; text: string } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const availableWidth = useContentWidth(scrollRef);
 
   const cells = readCells(gate);
-  const columns = columnsFor(radix);
+  const columns = columnsFor(radix, availableWidth);
   const liveAddress = state.circuit.getPinValue(gate.id, 'input', PIN_ADDRESS);
 
   const writeCells = (next: number[]) => {
@@ -78,24 +101,17 @@ export function RamMemoryView({ gate, state, onExecute }: RamMemoryViewProps) {
             >{option.label}</button>
           ))}
         </div>
-        <div class="ram-toolbar-spacer" />
-        <button
-          class="window-btn"
-          title="Reload the flashed program into the live cells"
-          disabled={!gate.rom}
-          onClick={() => writeCells(padRamCells(gate.rom ?? []))}
-        >Reload boot image</button>
-        <button
-          class="window-btn"
-          title="Zero the cells and forget the boot image"
-          onClick={() => onExecute(new WriteRamCommand(state, gate.id, { cells: undefined, rom: undefined }))}
-        >Clear</button>
       </div>
 
       <PinStatus gate={gate} state={state} />
 
-      <div class="ram-grid-scroll">
-        <div class="ram-grid" style={{ gridTemplateColumns: `auto repeat(${columns}, 1fr)` }}>
+      <div class="ram-grid-scroll" ref={scrollRef}>
+        <div
+          class="ram-grid"
+          style={{
+            gridTemplateColumns: `auto repeat(${columns}, minmax(${minCellWidthFor(radix)}px, 1fr))`,
+          }}
+        >
           <div class="ram-grid-corner" />
           {range(columns).map(column => (
             <div key={column} class="ram-grid-head">{column.toString(16).toUpperCase()}</div>
@@ -184,11 +200,36 @@ function PinStatus({ gate, state }: { gate: Gate; state: EditorState }) {
       <span>W <b>{pin(PIN_WRITE)}</b></span>
       <span>A <b>{pin(PIN_ADDRESS)}</b></span>
       <span>V <b>{pin(PIN_VALUE)}</b></span>
-      <span class="ram-status-dim">
-        {gate.rom ? `boot image ${gate.rom.length} bytes` : 'no boot image'}
-      </span>
     </div>
   );
+}
+
+/**
+ * Content-box width of an element, kept current as the window around it is resized.
+ *
+ * Measured rather than derived from a CSS breakpoint because these windows are resized by
+ * hand: the layout has to answer to the element's own width, not the viewport's. The
+ * content box, not `clientWidth`, because that includes the scroll box's padding — which is
+ * room the grid does not get.
+ *
+ * No initial measurement is needed: ResizeObserver reports the element once on observe().
+ */
+function useContentWidth(ref: RefObject<HTMLElement>): number {
+  const [width, setWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const observer = new ResizeObserver(entries => {
+      const box = entries[0].contentBoxSize?.[0];
+      setWidth(box ? box.inlineSize : entries[0].target.clientWidth);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return width;
 }
 
 // ---------------------------------------------------------------------------

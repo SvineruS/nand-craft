@@ -8,11 +8,11 @@ import { TestPanel } from '../components/TestPanel.tsx';
 import { LevelDialog } from '../components/LevelDialog.tsx';
 import { LevelCompleteDialog } from '../components/LevelCompleteDialog.tsx';
 import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
-import { RamDialog } from '../components/RamDialog.tsx';
+import { RamWindows } from '../components/RamWindows.tsx';
 import { useEditorCallbacks } from '../useEditorCallbacks.ts';
 import { useCanvasEditor } from '../useCanvasEditor.ts';
 import { EditorContext } from '../editorContext.ts';
-import { notifyStateChange, openLevelIndex, ramDialogGateId, saveError } from '../editorStore.ts';
+import { notifyStateChange, openGateWindow, openLevelIndex, saveError } from '../editorStore.ts';
 import { switchToLevelMap } from '../screenManager.ts';
 
 const AUTOSAVE_INTERVAL_MS = 30_000;
@@ -39,7 +39,7 @@ function CircuitBuilder({ editor }: { editor: Editor }) {
       canvas,
       () => editor.getState(),
       () => editor.getHistory(),
-      (gateId) => { ramDialogGateId.value = gateId; },
+      openGateWindow,
     ),
     onCircuitDirty: () => {
       editor.onCircuitChanged();
@@ -94,7 +94,7 @@ function CircuitBuilder({ editor }: { editor: Editor }) {
       </div>
       <LevelDialog/>
       <TestEditorDialog/>
-      <RamDialog/>
+      <RamWindows />
       {cb.showLevelComplete && (
         <LevelCompleteDialog
           onLevelMap={() => {

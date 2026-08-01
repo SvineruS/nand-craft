@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { raiseWindow, registerWindow, unregisterWindow } from './windowStacking.ts';
 
 /**
  * Drag-by-header and resize-by-corner for a floating window, plus a memory of where the
@@ -30,11 +31,24 @@ export function useFloatingWindow(id: string) {
 
   useEffect(() => {
     const card = cardRef.current;
+    if (!card) return;
+
     const stored = geometryById.get(id);
-    if (!card || !stored) return;
     // Clamped on the way back in: the browser window may have shrunk since, and a window
     // restored past the edge would be unreachable — there is nothing to drag it back by.
-    applyGeometry(card, clampToViewport(stored));
+    if (stored) applyGeometry(card, clampToViewport(stored));
+
+    // Touching a window brings it to the front. In the capture phase and on the element
+    // itself, so it fires for a click anywhere inside — including the code editor, which
+    // handles mousedown for its own selection.
+    const onMouseDownCapture = () => raiseWindow(id);
+    card.addEventListener('mousedown', onMouseDownCapture, true);
+    registerWindow(id, card);
+
+    return () => {
+      card.removeEventListener('mousedown', onMouseDownCapture, true);
+      unregisterWindow(id);
+    };
   }, [id]);
 
   const remember = () => {

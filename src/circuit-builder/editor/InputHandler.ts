@@ -21,6 +21,7 @@ import {
 } from './commands.ts';
 import {
   gateBounds,
+  type GateButtonRef,
   hitTestEndpoint,
   hitTestGate,
   hitTestGateButton,
@@ -88,11 +89,11 @@ export class InputHandler {
   private getState: () => EditorState;
   private getHistory: () => CommandHistory;
   /**
-   * Called when a gate's on-body button is pressed. Injected by the screen, because what
-   * the button opens is a UI window and the input layer has no business knowing about one.
-   * Screens that show no such window simply pass nothing.
+   * Called when one of a gate's on-body buttons is pressed, with which button it was.
+   * Injected by the screen, because what a button opens is a UI window and the input layer
+   * has no business knowing about one. Screens that show no such window pass nothing.
    */
-  private onGateButton?: (gateId: GateId) => void;
+  private onGateButton?: (button: GateButtonRef) => void;
 
   private drag: DragState = { kind: 'none' };
   private wireStartWorld: Vec2 = { x: 0, y: 0 };
@@ -105,7 +106,7 @@ export class InputHandler {
     canvas: HTMLCanvasElement,
     getState: () => EditorState,
     getHistory: () => CommandHistory,
-    onGateButton?: (gateId: GateId) => void,
+    onGateButton?: (button: GateButtonRef) => void,
   ) {
     this.getState = getState;
     this.getHistory = getHistory;
@@ -302,7 +303,7 @@ export class InputHandler {
 
     const isDblClick = e.raw.detail >= 2;
 
-    // The gate's own button wins over everything on its body — it is drawn on top of it.
+    // A gate's own buttons win over everything on its body — they are drawn on top of it.
     const buttonHit = hitTestGateButton(world, state);
     if (buttonHit) {
       this.onGateButton?.(buttonHit);
@@ -542,7 +543,7 @@ export class InputHandler {
       return;
     }
 
-    // Hover — the on-body button first, then endpoints (pins/nodes) over gates, so a pin
+    // Hover — the on-body buttons first, then endpoints (pins/nodes) over gates, so a pin
     // on a gate edge is highlighted as the grabbable thing, not the gate body.
     const hoveredButton = hitTestGateButton(world, state);
     state.hoveredGateButton = hoveredButton;

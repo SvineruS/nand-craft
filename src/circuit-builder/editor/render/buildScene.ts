@@ -7,8 +7,10 @@ import type { Circuit } from '../../simulation/circuit.ts';
 import type { GateId, PinRef, WireNode, WireNodeId, WireSegment, WireSegmentId } from '../types.ts';
 import { isComponentType } from '../../components/componentRegistry.ts';
 import {
-  gateButtonPos, gateCenter, gateGridOffset, GATE_BUTTON_RADIUS, getGateDims, getPinPositions,
+  gateButtonPositions, gateCenter, gateGridOffset, GATE_BUTTON_RADIUS, getGateDims,
+  getPinPositions,
 } from '../utils/geometry.ts';
+import { sameGateButton } from '../utils/hitTests.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
 import { mapRectOf } from '../utils/mapBounds.ts';
 import { gateColorsOf, levelNodeColors } from '../gateColors.ts';
@@ -345,23 +347,24 @@ function buildGates(
   return result;
 }
 
-/** The on-body buttons of the gates that have one, following an in-flight drag. */
+/** The on-body buttons of the gates that declare any, following an in-flight drag. */
 function buildGateButtons(
   state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
 ): RenderGateButton[] {
   const result: RenderGateButton[] = [];
 
   for (const gate of state.circuit.gates.values()) {
-    const pos = gateButtonPos(gate);
-    if (!pos) continue;
     const offset = gateOffset(lens, gate.id);
-    const drawnPos = offset ? Vec2.add(pos, offset) : pos;
-    if (!pointVisible(bounds, drawnPos)) continue;
-    result.push({
-      pos: drawnPos,
-      radius: GATE_BUTTON_RADIUS,
-      hovered: state.hoveredGateButton === gate.id,
-    });
+    for (const button of gateButtonPositions(gate)) {
+      const pos = offset ? Vec2.add(button.pos, offset) : button.pos;
+      if (!pointVisible(bounds, pos)) continue;
+      result.push({
+        pos,
+        radius: GATE_BUTTON_RADIUS,
+        icon: button.kind,
+        hovered: sameGateButton(state.hoveredGateButton, { gateId: gate.id, kind: button.kind }),
+      });
+    }
   }
 
   return result;
