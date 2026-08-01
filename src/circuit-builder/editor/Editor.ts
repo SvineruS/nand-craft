@@ -1,5 +1,5 @@
 import type { GateId } from './types.ts';
-import { isSequentialGate } from '../simulation/gateTypes.ts';
+import { clearGateState } from '../simulation/gateTypes.ts';
 import type { EditorState } from './EditorState.ts';
 import { createEditorState } from './EditorState.ts';
 import type { Command } from './commands.ts';
@@ -102,11 +102,9 @@ export class Editor {
   /** Tick the live circuit with given input values. Updates pins, detects errors. */
   applyInputs(inputs: Map<GateId, number>, resetDelay = false): void {
     if (resetDelay) {
-      // Registers only (delay, latch, memory, counter) — gate.value holds the player's
-      // constants and must survive.
-      for (const gate of this.state.circuit.gates.values()) {
-        if (isSequentialGate(gate.type)) gate.register = undefined;
-      }
+      // Stored state only (delay, latch, memory, counter, RAM) — gate.value holds the
+      // player's constants and must survive.
+      for (const gate of this.state.circuit.gates.values()) clearGateState(gate);
     }
     this.getCircuit().tick(inputs);
     this.state.renderDirty = true;

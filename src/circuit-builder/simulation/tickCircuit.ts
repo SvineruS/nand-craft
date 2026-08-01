@@ -1,7 +1,7 @@
 import type { ComponentId, GateId } from "../editor/types.ts";
 import { type BuildResult, HIGH_Z, type SimulationState, type TickResult } from "./types.ts";
 import { Circuit } from "./circuit.ts";
-import { isInputGate, isOutputGate } from "./gateTypes.ts";
+import { isInputGate, isOutputGate, RAM_ADDRESS_MASK, RAM_SIZE } from "./gateTypes.ts";
 import { type CompiledProgram, Op, SeqOp, SrcOp } from "./program.ts";
 import { getComponent } from "../components/componentRegistry.ts";
 import { deserializeCircuit } from "../persistence/serialize.ts";
@@ -119,8 +119,8 @@ function advanceSequentialState(program: CompiledProgram, values: SimulationStat
       }
 
       case SeqOp.MEMORY: {
-        const data = readInput(values, base);
-        const write = readInput(values, base + 1);
+        const write = readInput(values, base);
+        const data = readInput(values, base + 1);
         if (write) gate.register = data;
         break;
       }
@@ -128,6 +128,15 @@ function advanceSequentialState(program: CompiledProgram, values: SimulationStat
       case SeqOp.COUNTER:
         gate.register = ((gate.register ?? 0) + 1) & 0xFF;
         break;
+
+      case SeqOp.RAM: {
+        if (!readInput(values, base + 1)) break;
+        // Allocated on first write so an untouched RAM costs nothing. The address is masked
+        // because it indexes an array, not just because the pin is 8 bits wide.
+        const cells = gate.cells ??= new Array<number>(RAM_SIZE).fill(0);
+        cells[readInput(values, base + 2) & RAM_ADDRESS_MASK] = readInput(values, base + 3) & 0xFF;
+        break;
+      }
 
       case SeqOp.COUNTER_RESET: {
         const value = readInput(values, base);
@@ -366,6 +375,20 @@ function evaluateGate(
       const count = program.inputCount[gateIndex];
       for (let i = 0; i < count; i++) result |= (readInput(values, inBase + i) & 1) << i;
       values[outBase] = result;
+      break;
+    }
+
+    case Op.RAM: {
+      // Async read: Q follows the address within the tick, like the decoder + tri-state
+      // circuit this gate stands in for. Read low (or unwired) blocks the output, matching
+      // Op.TRISTATE, so a half-wired RAM cannot drive a shared bus. The write lands later,
+      // in advanceSequentialState, so reading an address written this tick sees the old byte.
+      if (isLow(values[inBase])) {
+        values[outBase] = HIGH_Z;
+        break;
+      }
+      const cells = program.gates[gateIndex].cells;
+      values[outBase] = cells ? cells[readInput(values, inBase + 2) & RAM_ADDRESS_MASK] : 0;
       break;
     }
 

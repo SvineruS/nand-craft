@@ -2,7 +2,7 @@ import type { GateId } from './types.ts';
 import type { QueueCommandResult } from '../levels/levelTypes.ts';
 import type { TestCommand } from '../testing/dslParser.ts';
 import type { Circuit } from '../simulation/circuit.ts';
-import { isSequentialGate } from '../simulation/gateTypes.ts';
+import { clearGateState } from '../simulation/gateTypes.ts';
 
 /** Where in a command list a `@case` group starts, for grouping the log. */
 export interface CaseBoundary {
@@ -84,9 +84,7 @@ export class QueueTestRunner {
     }
 
     // Sequential levels must start from a known state; the player's constants stay.
-    for (const gate of circuit.gates.values()) {
-      if (isSequentialGate(gate.type)) gate.register = undefined;
-    }
+    for (const gate of circuit.gates.values()) clearGateState(gate);
 
     this.markRunning();
   }

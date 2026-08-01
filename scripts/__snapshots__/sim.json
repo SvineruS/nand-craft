@@ -7490,30 +7490,6 @@
    "pins": {
     "value:out:0": 1,
     "write:out:0": 0,
-    "mem:in:0": 1,
-    "mem:in:1": 0,
-    "mem:out:0": 1,
-    "sink:in:0": 1
-   },
-   "nodes": {
-    "node#0": "1/1",
-    "node#1": "1/1",
-    "node#2": "0/1",
-    "node#3": "0/1",
-    "node#4": "1/1",
-    "node#5": "1/1"
-   }
-  },
-  {
-   "outputs": {
-    "sink": 1
-   },
-   "contentionNets": [],
-   "errorSegments": [],
-   "shortCircuitGates": [],
-   "pins": {
-    "value:out:0": 0,
-    "write:out:0": 1,
     "mem:in:0": 0,
     "mem:in:1": 1,
     "mem:out:0": 1,
@@ -7530,6 +7506,30 @@
   },
   {
    "outputs": {
+    "sink": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "value:out:0": 0,
+    "write:out:0": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 0,
+    "mem:out:0": 1,
+    "sink:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1"
+   }
+  },
+  {
+   "outputs": {
     "sink": 0
    },
    "contentionNets": [],
@@ -7538,16 +7538,16 @@
    "pins": {
     "value:out:0": 1,
     "write:out:0": 0,
-    "mem:in:0": 1,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 1,
     "mem:out:0": 0,
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "1/1",
-    "node#1": "1/1",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
     "node#4": "0/1",
     "node#5": "0/1"
    }
@@ -7610,16 +7610,16 @@
    "pins": {
     "value:out:0": 1,
     "write:out:0": 0,
-    "mem:in:0": 1,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 1,
     "mem:out:0": 1,
     "sink:in:0": 1
    },
    "nodes": {
-    "node#0": "1/1",
-    "node#1": "1/1",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
     "node#4": "1/1",
     "node#5": "1/1"
    }
@@ -7682,16 +7682,16 @@
    "pins": {
     "value:out:0": 0,
     "write:out:0": 1,
-    "mem:in:0": 0,
-    "mem:in:1": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 0,
     "mem:out:0": 1,
     "sink:in:0": 1
    },
    "nodes": {
-    "node#0": "0/1",
-    "node#1": "0/1",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
     "node#4": "1/1",
     "node#5": "1/1"
    }
@@ -7706,16 +7706,16 @@
    "pins": {
     "value:out:0": 1,
     "write:out:0": 0,
-    "mem:in:0": 1,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 1,
     "mem:out:0": 0,
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "1/1",
-    "node#1": "1/1",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
     "node#4": "0/1",
     "node#5": "0/1"
    }
@@ -7756,16 +7756,16 @@
    "pins": {
     "value:out:0": 0,
     "write:out:0": 1,
-    "mem:in:0": 0,
-    "mem:in:1": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 0,
     "mem:out:0": 0,
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "0/8",
     "node#5": "0/8"
    }
@@ -7780,16 +7780,16 @@
    "pins": {
     "value:out:0": 1,
     "write:out:0": 0,
-    "mem:in:0": 1,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 1,
     "mem:out:0": 0,
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "1/8",
-    "node#1": "1/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/8",
+    "node#3": "1/8",
     "node#4": "0/8",
     "node#5": "0/8"
    }
@@ -7810,10 +7810,10 @@
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "0/8",
     "node#5": "0/8"
    }
@@ -7828,16 +7828,16 @@
    "pins": {
     "value:out:0": 42,
     "write:out:0": 1,
-    "mem:in:0": 42,
-    "mem:in:1": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 42,
     "mem:out:0": 0,
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "42/8",
-    "node#1": "42/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "42/8",
+    "node#3": "42/8",
     "node#4": "0/8",
     "node#5": "0/8"
    }
@@ -7852,16 +7852,16 @@
    "pins": {
     "value:out:0": 43,
     "write:out:0": 0,
-    "mem:in:0": 43,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 43,
     "mem:out:0": 42,
     "sink:in:0": 42
    },
    "nodes": {
-    "node#0": "43/8",
-    "node#1": "43/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "43/8",
+    "node#3": "43/8",
     "node#4": "42/8",
     "node#5": "42/8"
    }
@@ -7876,16 +7876,16 @@
    "pins": {
     "value:out:0": 255,
     "write:out:0": 1,
-    "mem:in:0": 255,
-    "mem:in:1": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 255,
     "mem:out:0": 42,
     "sink:in:0": 42
    },
    "nodes": {
-    "node#0": "255/8",
-    "node#1": "255/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
     "node#4": "42/8",
     "node#5": "42/8"
    }
@@ -7906,10 +7906,10 @@
     "sink:in:0": 255
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "255/8",
     "node#5": "255/8"
    }
@@ -7924,16 +7924,16 @@
    "pins": {
     "value:out:0": 255,
     "write:out:0": 0,
-    "mem:in:0": 255,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 255,
     "mem:out:0": 255,
     "sink:in:0": 255
    },
    "nodes": {
-    "node#0": "255/8",
-    "node#1": "255/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
     "node#4": "255/8",
     "node#5": "255/8"
    }
@@ -7948,16 +7948,16 @@
    "pins": {
     "value:out:0": 128,
     "write:out:0": 1,
-    "mem:in:0": 128,
-    "mem:in:1": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 128,
     "mem:out:0": 255,
     "sink:in:0": 255
    },
    "nodes": {
-    "node#0": "128/8",
-    "node#1": "128/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "128/8",
+    "node#3": "128/8",
     "node#4": "255/8",
     "node#5": "255/8"
    }
@@ -7972,16 +7972,16 @@
    "pins": {
     "value:out:0": 129,
     "write:out:0": 0,
-    "mem:in:0": 129,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 129,
     "mem:out:0": 128,
     "sink:in:0": 128
    },
    "nodes": {
-    "node#0": "129/8",
-    "node#1": "129/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "129/8",
+    "node#3": "129/8",
     "node#4": "128/8",
     "node#5": "128/8"
    }
@@ -7996,16 +7996,16 @@
    "pins": {
     "value:out:0": 7,
     "write:out:0": 1,
-    "mem:in:0": 7,
-    "mem:in:1": 1,
+    "mem:in:0": 1,
+    "mem:in:1": 7,
     "mem:out:0": 128,
     "sink:in:0": 128
    },
    "nodes": {
-    "node#0": "7/8",
-    "node#1": "7/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "7/8",
+    "node#3": "7/8",
     "node#4": "128/8",
     "node#5": "128/8"
    }
@@ -8020,16 +8020,16 @@
    "pins": {
     "value:out:0": 8,
     "write:out:0": 0,
-    "mem:in:0": 8,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 8,
     "mem:out:0": 7,
     "sink:in:0": 7
    },
    "nodes": {
-    "node#0": "8/8",
-    "node#1": "8/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "8/8",
+    "node#3": "8/8",
     "node#4": "7/8",
     "node#5": "7/8"
    }
@@ -8044,18 +8044,687 @@
    "pins": {
     "value:out:0": 7,
     "write:out:0": 0,
-    "mem:in:0": 7,
-    "mem:in:1": 0,
+    "mem:in:0": 0,
+    "mem:in:1": 7,
     "mem:out:0": 7,
     "sink:in:0": 7
    },
    "nodes": {
-    "node#0": "7/8",
-    "node#1": "7/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "7/8",
+    "node#3": "7/8",
     "node#4": "7/8",
     "node#5": "7/8"
+   }
+  }
+ ],
+ "ram-seq": [
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 3,
+    "value:out:0": 42,
+    "read:out:0": 0,
+    "write:out:0": 1,
+    "ram:in:0": 0,
+    "ram:in:1": 1,
+    "ram:in:2": 3,
+    "ram:in:3": 42,
+    "ram:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "3/8",
+    "node#5": "3/8",
+    "node#6": "42/8",
+    "node#7": "42/8",
+    "node#8": "Z/8",
+    "node#9": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 42
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 3,
+    "value:out:0": 0,
+    "read:out:0": 1,
+    "write:out:0": 0,
+    "ram:in:0": 1,
+    "ram:in:1": 0,
+    "ram:in:2": 3,
+    "ram:in:3": 0,
+    "ram:out:0": 42,
+    "sink:in:0": 42
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "3/8",
+    "node#5": "3/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "42/8",
+    "node#9": "42/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 5,
+    "value:out:0": 99,
+    "read:out:0": 1,
+    "write:out:0": 1,
+    "ram:in:0": 1,
+    "ram:in:1": 1,
+    "ram:in:2": 5,
+    "ram:in:3": 99,
+    "ram:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "5/8",
+    "node#5": "5/8",
+    "node#6": "99/8",
+    "node#7": "99/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 99
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 5,
+    "value:out:0": 0,
+    "read:out:0": 1,
+    "write:out:0": 0,
+    "ram:in:0": 1,
+    "ram:in:1": 0,
+    "ram:in:2": 5,
+    "ram:in:3": 0,
+    "ram:out:0": 99,
+    "sink:in:0": 99
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "5/8",
+    "node#5": "5/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "99/8",
+    "node#9": "99/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 42
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 3,
+    "value:out:0": 0,
+    "read:out:0": 1,
+    "write:out:0": 0,
+    "ram:in:0": 1,
+    "ram:in:1": 0,
+    "ram:in:2": 3,
+    "ram:in:3": 0,
+    "ram:out:0": 42,
+    "sink:in:0": 42
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "3/8",
+    "node#5": "3/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "42/8",
+    "node#9": "42/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 3,
+    "value:out:0": 0,
+    "read:out:0": 0,
+    "write:out:0": 0,
+    "ram:in:0": 0,
+    "ram:in:1": 0,
+    "ram:in:2": 3,
+    "ram:in:3": 0,
+    "ram:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "3/8",
+    "node#5": "3/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "Z/8",
+    "node#9": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 200,
+    "value:out:0": 255,
+    "read:out:0": 0,
+    "write:out:0": 1,
+    "ram:in:0": 0,
+    "ram:in:1": 1,
+    "ram:in:2": 200,
+    "ram:in:3": 255,
+    "ram:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "200/8",
+    "node#5": "200/8",
+    "node#6": "255/8",
+    "node#7": "255/8",
+    "node#8": "Z/8",
+    "node#9": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 200,
+    "value:out:0": 0,
+    "read:out:0": 1,
+    "write:out:0": 0,
+    "ram:in:0": 1,
+    "ram:in:1": 0,
+    "ram:in:2": 200,
+    "ram:in:3": 0,
+    "ram:out:0": 255,
+    "sink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "200/8",
+    "node#5": "200/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "255/8",
+    "node#9": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 255,
+    "value:out:0": 7,
+    "read:out:0": 0,
+    "write:out:0": 1,
+    "ram:in:0": 0,
+    "ram:in:1": 1,
+    "ram:in:2": 255,
+    "ram:in:3": 7,
+    "ram:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "7/8",
+    "node#7": "7/8",
+    "node#8": "Z/8",
+    "node#9": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 7
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 255,
+    "value:out:0": 0,
+    "read:out:0": 1,
+    "write:out:0": 0,
+    "ram:in:0": 1,
+    "ram:in:1": 0,
+    "ram:in:2": 255,
+    "ram:in:3": 0,
+    "ram:out:0": 7,
+    "sink:in:0": 7
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "255/8",
+    "node#5": "255/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "7/8",
+    "node#9": "7/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 1,
+    "value:out:0": 0,
+    "read:out:0": 1,
+    "write:out:0": 0,
+    "ram:in:0": 1,
+    "ram:in:1": 0,
+    "ram:in:2": 1,
+    "ram:in:3": 0,
+    "ram:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "0/8",
+    "node#9": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 99
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 5,
+    "value:out:0": 0,
+    "read:out:0": 1,
+    "write:out:0": 0,
+    "ram:in:0": 1,
+    "ram:in:1": 0,
+    "ram:in:2": 5,
+    "ram:in:3": 0,
+    "ram:out:0": 99,
+    "sink:in:0": 99
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "5/8",
+    "node#5": "5/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "99/8",
+    "node#9": "99/8"
+   }
+  }
+ ],
+ "ram-shared-bus": [
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 2,
+    "value:out:0": 11,
+    "readA:out:0": 0,
+    "readB:out:0": 0,
+    "writeA:out:0": 1,
+    "writeB:out:0": 0,
+    "ramA:in:0": 0,
+    "ramA:in:1": 1,
+    "ramA:in:2": 2,
+    "ramA:in:3": 11,
+    "ramA:out:0": null,
+    "ramB:in:0": 0,
+    "ramB:in:1": 0,
+    "ramB:in:2": 2,
+    "ramB:in:3": 11,
+    "ramB:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "1/1",
+    "node#5": "1/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "2/8",
+    "node#9": "2/8",
+    "node#10": "2/8",
+    "node#11": "11/8",
+    "node#12": "11/8",
+    "node#13": "11/8",
+    "node#14": "Z/8",
+    "node#15": "Z/8",
+    "node#16": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 2,
+    "value:out:0": 22,
+    "readA:out:0": 0,
+    "readB:out:0": 0,
+    "writeA:out:0": 0,
+    "writeB:out:0": 1,
+    "ramA:in:0": 0,
+    "ramA:in:1": 0,
+    "ramA:in:2": 2,
+    "ramA:in:3": 22,
+    "ramA:out:0": null,
+    "ramB:in:0": 0,
+    "ramB:in:1": 1,
+    "ramB:in:2": 2,
+    "ramB:in:3": 22,
+    "ramB:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "2/8",
+    "node#9": "2/8",
+    "node#10": "2/8",
+    "node#11": "22/8",
+    "node#12": "22/8",
+    "node#13": "22/8",
+    "node#14": "Z/8",
+    "node#15": "Z/8",
+    "node#16": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 11
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 2,
+    "value:out:0": 0,
+    "readA:out:0": 1,
+    "readB:out:0": 0,
+    "writeA:out:0": 0,
+    "writeB:out:0": 0,
+    "ramA:in:0": 1,
+    "ramA:in:1": 0,
+    "ramA:in:2": 2,
+    "ramA:in:3": 0,
+    "ramA:out:0": 11,
+    "ramB:in:0": 0,
+    "ramB:in:1": 0,
+    "ramB:in:2": 2,
+    "ramB:in:3": 0,
+    "ramB:out:0": null,
+    "sink:in:0": 11
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "2/8",
+    "node#9": "2/8",
+    "node#10": "2/8",
+    "node#11": "0/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "11/8",
+    "node#15": "11/8",
+    "node#16": "11/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 22
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 2,
+    "value:out:0": 0,
+    "readA:out:0": 0,
+    "readB:out:0": 1,
+    "writeA:out:0": 0,
+    "writeB:out:0": 0,
+    "ramA:in:0": 0,
+    "ramA:in:1": 0,
+    "ramA:in:2": 2,
+    "ramA:in:3": 0,
+    "ramA:out:0": null,
+    "ramB:in:0": 1,
+    "ramB:in:1": 0,
+    "ramB:in:2": 2,
+    "ramB:in:3": 0,
+    "ramB:out:0": 22,
+    "sink:in:0": 22
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "2/8",
+    "node#9": "2/8",
+    "node#10": "2/8",
+    "node#11": "0/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "22/8",
+    "node#15": "22/8",
+    "node#16": "22/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [
+    "node#14+node#15+node#16"
+   ],
+   "errorSegments": [
+    "seg#8",
+    "seg#9"
+   ],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 2,
+    "value:out:0": 0,
+    "readA:out:0": 1,
+    "readB:out:0": 1,
+    "writeA:out:0": 0,
+    "writeB:out:0": 0,
+    "ramA:in:0": 1,
+    "ramA:in:1": 0,
+    "ramA:in:2": 2,
+    "ramA:in:3": 0,
+    "ramA:out:0": 11,
+    "ramB:in:0": 1,
+    "ramB:in:1": 0,
+    "ramB:in:2": 2,
+    "ramB:in:3": 0,
+    "ramB:out:0": 22,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "2/8",
+    "node#9": "2/8",
+    "node#10": "2/8",
+    "node#11": "0/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "Z/8",
+    "node#15": "Z/8",
+    "node#16": "Z/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": null
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 2,
+    "value:out:0": 0,
+    "readA:out:0": 0,
+    "readB:out:0": 0,
+    "writeA:out:0": 0,
+    "writeB:out:0": 0,
+    "ramA:in:0": 0,
+    "ramA:in:1": 0,
+    "ramA:in:2": 2,
+    "ramA:in:3": 0,
+    "ramA:out:0": null,
+    "ramB:in:0": 0,
+    "ramB:in:1": 0,
+    "ramB:in:2": 2,
+    "ramB:in:3": 0,
+    "ramB:out:0": null,
+    "sink:in:0": null
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "2/8",
+    "node#9": "2/8",
+    "node#10": "2/8",
+    "node#11": "0/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "Z/8",
+    "node#15": "Z/8",
+    "node#16": "Z/8"
    }
   }
  ],
@@ -9036,6 +9705,8 @@
     "8bit-counter:out:0": 0,
     "8bit-counter-reset:in:0": 0,
     "8bit-counter-reset:out:0": 0,
+    "ram:in:0": null,
+    "ram:out:0": 0,
     "wire:in:0": null,
     "wire:out:0": 1,
     "nand:in:0": 1,

@@ -32,6 +32,7 @@ import memory1 from './defs/1bit-memory.ts';
 import memory8 from './defs/8bit-memory.ts';
 import counter8 from './defs/8bit-counter.ts';
 import counterReset8 from './defs/8bit-counter-reset.ts';
+import ram from './defs/ram.ts';
 import sandbox from './defs/sandbox.ts';
 
 export const LEVELS: Level[] = [
@@ -67,6 +68,7 @@ export const LEVELS: Level[] = [
   memory8,
   counter8,
   counterReset8,
+  ram,
 ];
 
 export function getLevelById(id: LevelId): Level | undefined {

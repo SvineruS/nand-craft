@@ -16,6 +16,12 @@ export interface Gate {
    * across a reload.
    */
   register?: number;
+  /**
+   * RAM contents, one byte per address. RAM gates only — see isRamGate. undefined means
+   * "never written", which reads as 0. Allocated on the first write so an untouched RAM
+   * costs nothing. Persisted, like `register`, so contents survive a reload.
+   */
+  cells?: number[];
   label?: string;
   canRemove?: boolean;
   canMove?: boolean;
@@ -26,12 +32,36 @@ const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit',
 
 const CONSTANT_TYPES = new Set<GateType>(['constant', 'constant-8bit', 'constant-16bit']);
 
+/**
+ * Gates whose output is a stored value needing no computation, so setSourceOutputs can seed
+ * it before propagation and isCombinational can drop them from the evaluation order.
+ *
+ * 'ram' is deliberately absent: its output is a stored value *selected by its address input*,
+ * so it cannot be answered until that wire has resolved. It runs in the evaluation order like
+ * a combinational gate and writes back via SeqOp.RAM. See the note in program.ts.
+ */
 const SEQUENTIAL_TYPES = new Set<GateType>(['delay', 'rs-latch', '1bit-memory', '8bit-memory', '8bit-counter', '8bit-counter-reset']);
+
+/** Addressable bytes in a RAM gate — the full range of its 8-bit address pin. */
+export const RAM_SIZE = 256;
+export const RAM_ADDRESS_MASK = RAM_SIZE - 1;
 
 export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(type); }
 export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
 export function isConstantGate(type: GateType): boolean { return CONSTANT_TYPES.has(type); }
 export function isSequentialGate(type: GateType): boolean { return SEQUENTIAL_TYPES.has(type); }
+export function isRamGate(type: GateType): boolean { return type === 'ram'; }
+
+/**
+ * Discard a gate's stored state, so a test run starts from a known board.
+ *
+ * RAM needs its own branch because it is not in SEQUENTIAL_TYPES — see the note there.
+ * gate.value is left alone: it holds the player's constants, not simulation state.
+ */
+export function clearGateState(gate: Gate): void {
+  if (isSequentialGate(gate.type)) gate.register = undefined;
+  else if (isRamGate(gate.type)) gate.cells = undefined;
+}
 
 /**
  * A gate type is either one of these built-ins or a user component's id.
@@ -68,6 +98,7 @@ export type BuiltInGateType =
   | '8bit-memory'
   | '8bit-counter'
   | '8bit-counter-reset'
+  | 'ram'
   | 'tristate'
   | '8bit-tristate'
   | 'constant'

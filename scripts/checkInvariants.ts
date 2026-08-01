@@ -98,7 +98,7 @@ function verify(step: string): void {
   }
 }
 
-const TYPES: GateType[] = ['nand', 'not', 'and', 'constant', 'delay', '8bit-memory', 'splitter'];
+const TYPES: GateType[] = ['nand', 'not', 'and', 'constant', 'delay', '8bit-memory', 'splitter', 'ram'];
 const ops = { addGate: 0, addNode: 0, addSeg: 0, rmGate: 0, rmNode: 0, rmSeg: 0, move: 0, rotate: 0, disconnect: 0, undo: 0, redo: 0 };
 
 for (let i = 0; i < 4000; i++) {

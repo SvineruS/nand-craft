@@ -123,7 +123,7 @@ export function pasteClipboard(state: EditorState, pos: Vec2, history: CommandHi
     history.execute(cmd);
     newGateIds.push(cmd.getGateId() as string);
 
-    // Carry the constant's value over; registers deliberately start cleared.
+    // Carry the constant's value over; registers and RAM contents deliberately start cleared.
     if (cg.value !== undefined) {
       state.circuit.getGate(cmd.getGateId()).value = cg.value;
     }

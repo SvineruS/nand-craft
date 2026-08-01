@@ -36,6 +36,7 @@ export const Op = {
   JOINER: 21,
   INPUT_ENABLE: 22,
   COMPONENT: 23,
+  RAM: 24,        // read path only; the write lands in SeqOp.RAM
 } as const;
 
 /** How setSourceOutputs seeds a gate's output before propagation. */
@@ -55,6 +56,13 @@ export const SeqOp = {
   MEMORY: 3,        // '1bit-memory' and '8bit-memory'
   COUNTER: 4,
   COUNTER_RESET: 5,
+  /**
+   * Unlike the others, a RAM gate is *also* evaluated combinationally (Op.RAM): its output
+   * depends on the address wire, so it cannot be seeded as a source before propagation.
+   * Only the write-back happens here. buildRoleLists keys this list off sequentialOpcodeFor
+   * rather than isSequentialGate, which is what lets a gate be in both roles.
+   */
+  RAM: 6,
 } as const;
 
 function opcodeFor(type: GateType): number {
@@ -80,6 +88,7 @@ function opcodeFor(type: GateType): number {
     case 'tristate': case '8bit-tristate': return Op.TRISTATE;
     case 'splitter': return Op.SPLITTER;
     case 'joiner': return Op.JOINER;
+    case 'ram': return Op.RAM;
     default:
       // Input gates with an enable pin gate their output to high-Z when it is low.
       if (isInputGate(type)) return Op.INPUT_ENABLE;
@@ -105,6 +114,7 @@ function sequentialOpcodeFor(type: GateType): number {
     case '1bit-memory': case '8bit-memory': return SeqOp.MEMORY;
     case '8bit-counter': return SeqOp.COUNTER;
     case '8bit-counter-reset': return SeqOp.COUNTER_RESET;
+    case 'ram': return SeqOp.RAM;
     default: return 0;
   }
 }

@@ -260,12 +260,14 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     ],
     svg: SVG.BOX_2x2,
   },
+  // S sits on top, V below — matching the RS latch above. Pins are declared top to bottom,
+  // and declaration order is the simulation's slot order, so SeqOp.MEMORY reads S then V.
   '1bit-memory': {
     label: 'MEM', description: '1-bit register', width: 2, height: 2,
     color: '#4a3a2d', stroke: '#ad8a5a',
     pins: [
-      { kind: 'input', x: 0, y: 0, label: 'V' },
-      { kind: 'input', x: 0, y: 2, label: 'S' },
+      { kind: 'input', x: 0, y: 0, label: 'S' },
+      { kind: 'input', x: 0, y: 2, label: 'V' },
       { kind: 'output', x: 2, y: 1, label: 'Q' },
     ],
     svg: SVG.BOX_2x2,
@@ -274,8 +276,8 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     label: 'MEM8', description: '8-bit register', width: 2, height: 2,
     color: '#3a4a3a', stroke: '#7aad7a',
     pins: [
-      { kind: 'input', x: 0, y: 0, label: 'V', bitWidth: 8 },
-      { kind: 'input', x: 0, y: 2, label: 'S', bitWidth: 1 },
+      { kind: 'input', x: 0, y: 0, label: 'S', bitWidth: 1 },
+      { kind: 'input', x: 0, y: 2, label: 'V', bitWidth: 8 },
       { kind: 'output', x: 2, y: 1, label: 'Q', bitWidth: 8 },
     ],
     svg: SVG.BOX_2x2,
@@ -296,6 +298,20 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
       { kind: 'output', x: 2, y: 1, label: 'Q', bitWidth: 8 },
     ],
     svg: SVG.COUNTER,
+  },
+  // Control flags on top, address and data below — same convention as the registers above.
+  // Pins are declared top to bottom, which is also the simulation's slot order.
+  ram: {
+    label: 'RAM', description: '256-byte RAM', width: 3, height: 4,
+    color: '#4a3a4a', stroke: '#ad7aad',
+    pins: [
+      { kind: 'input', x: 0, y: 0, label: 'R', bitWidth: 1 },
+      { kind: 'input', x: 0, y: 1, label: 'W', bitWidth: 1 },
+      { kind: 'input', x: 0, y: 3, label: 'A', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 4, label: 'V', bitWidth: 8 },
+      { kind: 'output', x: 3, y: 2, label: 'Q', bitWidth: 8 },
+    ],
+    svg: SVG.BOX_3x4,
   },
   tristate: {
     label: 'TRI', description: 'Tri-state buffer', width: 2, height: 2,    color: '#2d4a4a', stroke: '#5aadad', labelX: -0.3,

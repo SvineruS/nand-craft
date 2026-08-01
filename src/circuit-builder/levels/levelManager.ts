@@ -119,7 +119,7 @@ export function createLevelMapEditor(): Editor {
 
 export function exportLevelMap(circuit: Circuit): void {
   // Strip runtime fields from gates so export matches the clean format
-  const STRIP_FIELDS = new Set(['value', 'register', 'canRemove', 'canMove', 'label']);
+  const STRIP_FIELDS = new Set(['value', 'register', 'cells', 'canRemove', 'canMove', 'label']);
   const data = {
     version: 1,
     gates: [...circuit.gates.entries()].map(([id, g]) => {

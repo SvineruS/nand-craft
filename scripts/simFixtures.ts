@@ -396,7 +396,8 @@ const rsLatchSeq: Fixture = {
 };
 
 function memoryFixture(name: string, type: GateType, values: number[]): Fixture {
-  const bw = getPinBitWidth(type, 'input', 0);
+  // Input 0 is the 1-bit set flag; the data pin that decides the bus width is input 1.
+  const bw = getPinBitWidth(type, 'input', 1);
   return {
     name,
     create() {
@@ -405,8 +406,8 @@ function memoryFixture(name: string, type: GateType, values: number[]): Fixture 
       const write = b.gate('input', 'write');
       const mem = b.gate(type, 'mem');
       const sink = b.gate(outputTypeFor(bw), 'sink');
-      b.net(op(value), ip(mem, 0));
-      b.net(op(write), ip(mem, 1));
+      b.net(op(write), ip(mem, 0));
+      b.net(op(value), ip(mem, 1));
       b.net(op(mem), ip(sink));
 
       const ticks: Record<string, number>[] = [];
@@ -419,6 +420,77 @@ function memoryFixture(name: string, type: GateType, values: number[]): Fixture 
     },
   };
 }
+
+/**
+ * RAM read path. Unlike the register fixtures this one varies the address, which is the
+ * whole point: RAM is evaluated in the combinational order so Q must track A within a tick,
+ * while the write still lands after propagation.
+ */
+const ramSeq: Fixture = {
+  name: 'ram-seq',
+  create() {
+    const b = new Builder();
+    const addr = b.gate('input-8bit', 'addr');
+    const value = b.gate('input-8bit', 'value');
+    const read = b.gate('input', 'read');
+    const write = b.gate('input', 'write');
+    const ram = b.gate('ram', 'ram');
+    const sink = b.gate('output-8bit', 'sink');
+    b.net(op(read), ip(ram, 0));
+    b.net(op(write), ip(ram, 1));
+    b.net(op(addr), ip(ram, 2));
+    b.net(op(value), ip(ram, 3));
+    b.net(op(ram), ip(sink));
+
+    return b.done([
+      { addr: 3, value: 42, read: 0, write: 1 },    // write 42 -> 3, output undriven
+      { addr: 3, value: 0, read: 1, write: 0 },     // reads 42
+      { addr: 5, value: 99, read: 1, write: 1 },    // same-tick read+write reads the old 0
+      { addr: 5, value: 0, read: 1, write: 0 },     // now 99
+      { addr: 3, value: 0, read: 1, write: 0 },     // address 3 untouched
+      { addr: 3, value: 0, read: 0, write: 0 },     // read low -> high-Z
+      { addr: 200, value: 255, read: 0, write: 1 }, // beyond the level's 8 cells
+      { addr: 200, value: 0, read: 1, write: 0 },   // reads 255
+      { addr: 255, value: 7, read: 0, write: 1 },   // top of the address range
+      { addr: 255, value: 0, read: 1, write: 0 },   // reads 7
+      { addr: 1, value: 0, read: 1, write: 0 },     // never written -> 0
+      { addr: 5, value: 0, read: 1, write: 0 },     // earlier writes survived
+    ]);
+  },
+};
+
+/** Two RAMs sharing an output bus — the arrangement the RAM level has the player build. */
+const ramSharedBus: Fixture = {
+  name: 'ram-shared-bus',
+  create() {
+    const b = new Builder();
+    const addr = b.gate('input-8bit', 'addr');
+    const value = b.gate('input-8bit', 'value');
+    const readA = b.gate('input', 'readA');
+    const readB = b.gate('input', 'readB');
+    const writeA = b.gate('input', 'writeA');
+    const writeB = b.gate('input', 'writeB');
+    const ramA = b.gate('ram', 'ramA');
+    const ramB = b.gate('ram', 'ramB');
+    const sink = b.gate('output-8bit', 'sink');
+    b.net(op(readA), ip(ramA, 0));
+    b.net(op(readB), ip(ramB, 0));
+    b.net(op(writeA), ip(ramA, 1));
+    b.net(op(writeB), ip(ramB, 1));
+    b.net(op(addr), ip(ramA, 2), ip(ramB, 2));
+    b.net(op(value), ip(ramA, 3), ip(ramB, 3));
+    b.net(op(ramA), op(ramB), ip(sink));
+
+    return b.done([
+      { addr: 2, value: 11, readA: 0, readB: 0, writeA: 1, writeB: 0 },
+      { addr: 2, value: 22, readA: 0, readB: 0, writeA: 0, writeB: 1 },
+      { addr: 2, value: 0, readA: 1, readB: 0, writeA: 0, writeB: 0 },  // 11
+      { addr: 2, value: 0, readA: 0, readB: 1, writeA: 0, writeB: 0 },  // 22
+      { addr: 2, value: 0, readA: 1, readB: 1, writeA: 0, writeB: 0 },  // contention
+      { addr: 2, value: 0, readA: 0, readB: 0, writeA: 0, writeB: 0 },  // nobody drives
+    ]);
+  },
+};
 
 const counterSeq: Fixture = {
   name: 'counter-seq',
@@ -517,8 +589,8 @@ const nestedComponent: Fixture = {
     const iw = inner.gate('input', 'W');
     const mem = inner.gate('1bit-memory', 'mem');
     const iq = inner.gate('output', 'Q');
-    inner.net(op(iv), ip(mem, 0));
-    inner.net(op(iw), ip(mem, 1));
+    inner.net(op(iw), ip(mem, 0));
+    inner.net(op(iv), ip(mem, 1));
     inner.net(op(mem), ip(iq));
     const innerDef = buildComponentDefinition(
       inner.circuit, 'inner', 'cmp-inner' as ComponentId,
@@ -670,6 +742,7 @@ export const FIXTURES: Fixture[] = [
   rsLatchSeq,
   memoryFixture('mem1-seq', '1bit-memory', [1, 0, 1, 1, 0]),
   memoryFixture('mem8-seq', '8bit-memory', [0, 42, 255, 128, 7]),
+  ramSeq, ramSharedBus,
   counterSeq,
   counterResetSeq,
   switchIo,
