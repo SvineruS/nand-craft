@@ -16,7 +16,9 @@ import { padRamCells } from '../../circuit-builder/simulation/gateTypes.ts';
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { WriteRamCommand } from '../../circuit-builder/editor/commands.ts';
-import { openProgramBuffer, openProgramPath, programDirty, programSource } from '../programStore.ts';
+import {
+  explorerVisible, openProgramBuffer, openProgramPath, programDirty, programSource,
+} from '../programStore.ts';
 import { ProgramExplorer } from './ProgramExplorer.tsx';
 
 /**
@@ -57,6 +59,7 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
 
   const path = openProgramPath.value;
   const dirty = programDirty.value;
+  const showFiles = explorerVisible.value;
 
   // The CodeMirror instance is built once, so anything it calls back into reads the
   // current render's values through refs instead of closing over the first render's.
@@ -218,18 +221,25 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
 
   return (
     <div class="ram-program">
-      <ProgramExplorer
-        files={files}
-        openPath={path}
-        dirty={dirty}
-        onOpen={openFile}
-        onCreate={createFile}
-        onRename={renameFile}
-        onDelete={deleteFile}
-      />
+      {showFiles && (
+        <ProgramExplorer
+          files={files}
+          openPath={path}
+          dirty={dirty}
+          onOpen={openFile}
+          onCreate={createFile}
+          onRename={renameFile}
+          onDelete={deleteFile}
+        />
+      )}
 
       <div class="ram-program-main">
         <div class="ram-toolbar">
+          <button
+            class={`window-tab is-icon${showFiles ? ' is-active' : ''}`}
+            title={showFiles ? 'Hide the file list' : 'Show the file list'}
+            onClick={() => { explorerVisible.value = !showFiles; }}
+          >{'☰'}</button>
           <span class="ram-program-path">{path ?? 'untitled'}{dirty ? ' •' : ''}</span>
           <div class="ram-toolbar-spacer" />
           <button class="window-btn" onClick={() => saveBuffer(path)}>Save</button>

@@ -17,6 +17,13 @@ export const programSource = signal<string>('');
 /** Whether the buffer differs from what is stored under `openProgramPath`. */
 export const programDirty = signal(false);
 
+/**
+ * Whether the file list is shown beside the editor. Here rather than in the component for
+ * the same reason as the buffer: a collapsed sidebar should stay collapsed when the window
+ * is closed and reopened.
+ */
+export const explorerVisible = signal(true);
+
 export function openProgramBuffer(path: string | null, content: string): void {
   openProgramPath.value = path;
   programSource.value = content;

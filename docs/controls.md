@@ -75,9 +75,10 @@ the program that fills them is edited. Both are also reachable from the Properti
 
 - **Memory** (even bars) — all 256 bytes in hex, decimal, binary or ASCII, with the address
   the circuit is currently presenting highlighted. Click a byte to edit it.
-- **Program** (ragged bars) — a file explorer and a text editor for writing the bytes as
-  source. **Flash** assembles the program and writes it into the chip, keeping it as the
-  chip's boot image so it is reloaded whenever a test run resets memory.
+- **Program** (ragged bars) — a file list and a text editor for writing the bytes as
+  source. **Files** hides and shows the list, giving the editor the whole window.
+  **Flash** assembles the program and writes it into the chip, keeping it as the chip's
+  boot image so it is reloaded whenever a test run resets memory.
 
 Programs are plain byte sequences — the game has no instruction set, your CPU defines what a
 byte means. The default syntax supports decimal / `0x` / `0b` / `0o` / `'c'` / `"text"`

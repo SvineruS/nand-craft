@@ -1144,9 +1144,7 @@ body {
   overflow: hidden;
 }
 
-/* ------------------------------------------------------------------ */
-/* RAM window (memory view + program editor)                           */
-/* ------------------------------------------------------------------ */
+/* ── Controls shared by every window ── */
 
 .window-tab {
   background: none;
@@ -1167,6 +1165,13 @@ body {
     background: var(--label-bg);
     border-color: var(--border);
     color: var(--text);
+  }
+
+  /* A single glyph, so it gets a square target rather than a word's worth of padding. */
+  &.is-icon {
+    padding: 3px 7px;
+    font-size: 13px;
+    line-height: 1.15;
   }
 }
 
@@ -1199,6 +1204,10 @@ body {
     }
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* RAM windows (memory view + program editor)                          */
+/* ------------------------------------------------------------------ */
 
 .ram-toolbar {
   display: flex;
