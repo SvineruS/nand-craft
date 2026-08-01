@@ -59,6 +59,11 @@ export interface GateConstraints {
 export interface Level {
   id: LevelId;
   name: string;
+  /**
+   * What the level asks for, shown in the Goals window. Markdown, in the subset
+   * `ui/markdown.tsx` renders — blank lines separate paragraphs, and tables, lists,
+   * `code` and **bold** all work. A single newline is a soft wrap, not a break.
+   */
   description: string;
   inputs: { name: string }[];
   outputs: { name: string }[];

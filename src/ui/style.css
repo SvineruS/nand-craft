@@ -784,6 +784,114 @@ body {
   height: 280px;
 }
 
+.window-controls {
+  top: 70px;
+  left: calc(50% - 330px);
+  width: 660px;
+  height: 540px;
+}
+
+/**
+ * Rendered Markdown — the README's own text (see markdown.tsx). Styled as a block so any
+ * section of it can be dropped into a window without per-page rules.
+ */
+.markdown-body {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 18px 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim);
+
+  h3, h4, h5, h6 {
+    color: var(--text);
+    margin: 18px 0 6px;
+  }
+
+  h3 { font-size: 15px; }
+  h4 { font-size: 13px; }
+  h5, h6 { font-size: 12px; }
+
+  h3:first-child, h4:first-child {
+    margin-top: 8px;
+  }
+
+  p {
+    margin: 6px 0;
+  }
+
+  ul {
+    margin: 6px 0;
+    padding-left: 20px;
+  }
+
+  li {
+    margin: 3px 0;
+  }
+
+  strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  a {
+    color: var(--accent);
+  }
+
+  code {
+    background: var(--label-bg);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin: 8px 0;
+    overflow-x: auto;
+
+    code {
+      background: none;
+      padding: 0;
+      white-space: pre;
+      color: var(--text-dim2);
+    }
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0 12px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--text-dim2);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* The left column of the control tables is the key or gesture — keep it intact. */
+  td:first-child {
+    white-space: nowrap;
+    color: var(--text);
+  }
+}
+
 /** Fills the window with a code editor. */
 .window-editor {
   flex: 1;
@@ -1016,22 +1124,6 @@ body {
 .factory-canvas {
   flex: 1;
   overflow: hidden;
-}
-
-/* ── Goals window ── */
-
-.goals-body {
-  flex: 1;
-  overflow: auto;
-  padding: 14px 18px;
-}
-
-.goals-desc {
-  margin: 0;
-  color: var(--text-dim2);
-  font-size: 14px;
-  line-height: 1.5;
-  white-space: pre-line;
 }
 
 /* ------------------------------------------------------------------ */

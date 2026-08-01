@@ -1,6 +1,7 @@
 import { levelDialogVisible } from '../editorStore.ts';
 import { useEditor } from '../editorContext.ts';
 import { FloatingWindow } from './FloatingWindow.tsx';
+import { renderMarkdown } from '../markdown.tsx';
 
 /**
  * What the level asks for — opened on entering a level and reopened by the Goals button.
@@ -22,9 +23,8 @@ export function LevelDialog() {
       title={level.name}
       onClose={() => { levelDialogVisible.value = false; }}
     >
-      <div class="goals-body">
-        <p class="goals-desc">{level.description}</p>
-      </div>
+      {/* Descriptions are Markdown, so a level can spell out a table or an opcode in `code`. */}
+      <div class="markdown-body">{renderMarkdown(level.description)}</div>
     </FloatingWindow>
   );
 }
