@@ -19,14 +19,15 @@ import {
 import {
   AddGateCommand, AddWireNodeCommand, AddWireSegmentCommand, CommandHistory,
   MoveGatesCommand, MoveWireNodeCommand, RemoveGateCommand, RemoveWireNodeCommand,
-  RemoveWireSegmentCommand, RotateGatesCommand,
+  RemoveWireSegmentCommand, RotateGatesCommand, WriteRamCommand,
 } from '../src/circuit-builder/editor/commands.ts';
+import { clearGateState, padRamCells, RAM_SIZE } from '../src/circuit-builder/simulation/gateTypes.ts';
 import { buildScene } from '../src/circuit-builder/editor/render/buildScene.ts';
 import { emptyDragPreview } from '../src/circuit-builder/editor/EditorState.ts';
 import {
-  gateCenter, getDrawnGateDims, getPinPositions,
+  gateButtonPos, gateCenter, getDrawnGateDims, getPinPositions,
 } from '../src/circuit-builder/editor/utils/geometry.ts';
-import { gateBounds, hitTestGate } from '../src/circuit-builder/editor/utils/hitTests.ts';
+import { gateBounds, hitTestGate, hitTestGateButton } from '../src/circuit-builder/editor/utils/hitTests.ts';
 import { BUILT_IN_GATE_TYPES } from '../src/circuit-builder/editor/gates.ts';
 import { QueueTestRunner, type TestGateLabels } from '../src/circuit-builder/editor/QueueTestRunner.ts';
 import type { TestCommand } from '../src/circuit-builder/testing/dslParser.ts';
@@ -452,3 +453,74 @@ function runQueue(commands: TestCommand[], maxTicks = 50): QueueTestRunner {
 }
 
 console.log('queue test runner OK');
+
+// ---------------------------------------------------------------------------
+// RAM chip: boot image and on-body button
+//
+// Two things the memory window depends on. A flashed program is stored as `rom` and is the
+// one piece of gate state a test reset must *not* discard — clearGateState reloads the
+// cells from it instead. And the button that opens that window is positioned by
+// gateButtonPos, which both the painter and the hit test call, so it has to land inside the
+// chip's body at every rotation and be clickable there.
+// ---------------------------------------------------------------------------
+
+{
+  const st = createEditorState();
+  st.circuit = new Circuit();
+  const ramId = generateId('ram') as GateId;
+  st.circuit.addGate({ id: ramId, type: 'ram', pos: { x: 100, y: 100 }, rotation: 0 });
+  const ram = st.circuit.getGate(ramId);
+
+  const program = [1, 2, 3];
+  new WriteRamCommand(st, ramId, { cells: padRamCells(program), rom: program }).execute();
+  check('flash fills the cells', ram.cells?.slice(0, 3).join(',') === '1,2,3');
+
+  ram.cells![0] = 99;
+  clearGateState(ram);
+  check('reset reloads the boot image', ram.cells?.slice(0, 3).join(',') === '1,2,3');
+  check('reset leaves the rest zeroed', ram.cells?.length === RAM_SIZE && ram.cells[3] === 0);
+
+  new WriteRamCommand(st, ramId, { cells: undefined, rom: undefined }).execute();
+  clearGateState(ram);
+  check('a cleared chip resets to nothing', ram.cells === undefined);
+}
+
+{
+  const rotations: Rotation[] = [0, 90, 180, 270];
+  for (const rotation of rotations) {
+    const st = createEditorState();
+    st.circuit = new Circuit();
+    const ramId = generateId('rb') as GateId;
+    st.circuit.addGate({ id: ramId, type: 'ram', pos: { x: 100, y: 100 }, rotation });
+    const gate = st.circuit.getGate(ramId);
+
+    const pos = gateButtonPos(gate);
+    if (!pos) throw new Error(`ram@${rotation}°: has no button`);
+    const body = gateBounds(gate);
+    const inside = pos.x >= body.x1 && pos.x <= body.x2 && pos.y >= body.y1 && pos.y <= body.y2;
+    if (!inside) throw new Error(`ram@${rotation}°: button at ${pos.x},${pos.y} is off the body`);
+    if (hitTestGateButton(pos, st) !== ramId) {
+      throw new Error(`ram@${rotation}°: clicking the drawn button misses it`);
+    }
+    if (hitTestGateButton(gateCenter(gate), st) === ramId) {
+      throw new Error(`ram@${rotation}°: the whole body reads as the button`);
+    }
+
+    const drawn = buildScene(st).gateButtons;
+    if (drawn.length !== 1 || drawn[0].pos.x !== pos.x || drawn[0].pos.y !== pos.y) {
+      throw new Error(`ram@${rotation}°: the drawn button is not where the hit test looks`);
+    }
+  }
+  console.log('ok   RAM button is on the body and clickable at every rotation');
+}
+
+{
+  const st = createEditorState();
+  st.circuit = new Circuit();
+  const nandId = generateId('nb') as GateId;
+  st.circuit.addGate({ id: nandId, type: 'nand', pos: { x: 0, y: 0 }, rotation: 0 });
+  check('gates without a window have no button',
+    gateButtonPos(st.circuit.getGate(nandId)) === null && buildScene(st).gateButtons.length === 0);
+}
+
+console.log('RAM chip OK');

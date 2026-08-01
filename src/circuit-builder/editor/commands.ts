@@ -531,6 +531,60 @@ export class ChangeGateValueCommand implements Command {
   }
 }
 
+/** Live contents and boot image of a RAM gate. Both are always stated, never merged. */
+export interface RamContents {
+  cells: number[] | undefined;
+  rom: number[] | undefined;
+}
+
+/**
+ * Set what a RAM gate holds — flashing an assembled program, editing one byte in the
+ * memory view, or clearing it.
+ *
+ * Both halves travel together because they are edited together: flashing sets the boot
+ * image and the live cells to the same bytes, while a hand-edited byte changes only the
+ * cells and has to say so by repeating the boot image unchanged.
+ */
+export class WriteRamCommand implements Command {
+  readonly description = 'Write RAM';
+  private state: EditorState;
+  private gateId: GateId;
+  private next: RamContents;
+  private previous: RamContents;
+
+  constructor(state: EditorState, gateId: GateId, next: RamContents) {
+    this.state = state;
+    this.gateId = gateId;
+    this.next = copyContents(next);
+    const gate = state.circuit.getGate(gateId);
+    this.previous = copyContents({ cells: gate.cells, rom: gate.rom });
+  }
+
+  execute(): void {
+    this.apply(this.next);
+  }
+
+  undo(): void {
+    this.apply(this.previous);
+  }
+
+  private apply(contents: RamContents): void {
+    const gate = this.state.circuit.getGate(this.gateId);
+    const copy = copyContents(contents);
+    gate.cells = copy.cells;
+    gate.rom = copy.rom;
+    this.state.valueDirty = true;
+  }
+}
+
+/** Snapshot both arrays — the gate is mutated in place, so a shared reference would alias. */
+function copyContents(contents: RamContents): RamContents {
+  return {
+    cells: contents.cells ? [...contents.cells] : undefined,
+    rom: contents.rom ? [...contents.rom] : undefined,
+  };
+}
+
 export class ChangeGateLabelCommand implements Command {
   readonly description = 'Change gate label';
   private state: EditorState;

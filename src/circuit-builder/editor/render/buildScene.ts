@@ -1,12 +1,14 @@
 import type { EditorState } from '../EditorState.ts';
-import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderPinLabel, RenderErrorSegment, RenderSelectionItem, RenderPastePreview } from './renderScene.ts';
+import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderGateButton, RenderPin, RenderPinLabel, RenderErrorSegment, RenderSelectionItem, RenderPastePreview } from './renderScene.ts';
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
 import type { GateDefinition, PinDef } from '../gates.ts';
 import { type Gate, isConstantGate, isInputGate } from '../../simulation/gateTypes.ts';
 import type { Circuit } from '../../simulation/circuit.ts';
 import type { GateId, PinRef, WireNode, WireNodeId, WireSegment, WireSegmentId } from '../types.ts';
 import { isComponentType } from '../../components/componentRegistry.ts';
-import { gateCenter, gateGridOffset, getGateDims, getPinPositions } from '../utils/geometry.ts';
+import {
+  gateButtonPos, gateCenter, gateGridOffset, GATE_BUTTON_RADIUS, getGateDims, getPinPositions,
+} from '../utils/geometry.ts';
 import { routeLength, routePointAt, Vec2 } from '../utils/vec2.ts';
 import { mapRectOf } from '../utils/mapBounds.ts';
 import { gateColorsOf, levelNodeColors } from '../gateColors.ts';
@@ -49,6 +51,7 @@ export function buildScene(
     wireSegments: buildWireSegments(state, bounds, lens),
     wireNodes: buildWireNodes(state, bounds, lens),
     gates: buildGates(state, bounds, lens),
+    gateButtons: buildGateButtons(state, bounds, lens),
     pins: buildPins(state, bounds, lens),
     pinLabels: buildPinLabels(state, lens),
     errorSegments: buildErrorSegments(state, bounds, lens),
@@ -336,6 +339,28 @@ function buildGates(
       label, labelPos, labelFont, labelColor,
       valueLabel,
       errorGlow,
+    });
+  }
+
+  return result;
+}
+
+/** The on-body buttons of the gates that have one, following an in-flight drag. */
+function buildGateButtons(
+  state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
+): RenderGateButton[] {
+  const result: RenderGateButton[] = [];
+
+  for (const gate of state.circuit.gates.values()) {
+    const pos = gateButtonPos(gate);
+    if (!pos) continue;
+    const offset = gateOffset(lens, gate.id);
+    const drawnPos = offset ? Vec2.add(pos, offset) : pos;
+    if (!pointVisible(bounds, drawnPos)) continue;
+    result.push({
+      pos: drawnPos,
+      radius: GATE_BUTTON_RADIUS,
+      hovered: state.hoveredGateButton === gate.id,
     });
   }
 

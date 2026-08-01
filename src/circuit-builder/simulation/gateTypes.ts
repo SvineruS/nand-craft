@@ -22,6 +22,12 @@ export interface Gate {
    * costs nothing. Persisted, like `register`, so contents survive a reload.
    */
   cells?: number[];
+  /**
+   * Boot image for a RAM gate: the bytes the program editor flashed into it. RAM gates
+   * only. Persisted and, unlike `cells`, never cleared by a test reset — a reset reloads
+   * `cells` from it, so a program stays put while the circuit that runs it is being tested.
+   */
+  rom?: number[];
   label?: string;
   canRemove?: boolean;
   canMove?: boolean;
@@ -56,11 +62,25 @@ export function isRamGate(type: GateType): boolean { return type === 'ram'; }
  * Discard a gate's stored state, so a test run starts from a known board.
  *
  * RAM needs its own branch because it is not in SEQUENTIAL_TYPES — see the note there.
- * gate.value is left alone: it holds the player's constants, not simulation state.
+ * It resets to its boot image rather than to nothing: a flashed program is authored
+ * content like gate.value, not simulation state.
+ *
+ * gate.value is left alone for the same reason: it holds the player's constants.
  */
 export function clearGateState(gate: Gate): void {
   if (isSequentialGate(gate.type)) gate.register = undefined;
-  else if (isRamGate(gate.type)) gate.cells = undefined;
+  else if (isRamGate(gate.type)) gate.cells = gate.rom ? padRamCells(gate.rom) : undefined;
+}
+
+/**
+ * A dense RAM_SIZE array from however many bytes were stored. The tick loop indexes cells
+ * directly by masked address, so it must never be short.
+ */
+export function padRamCells(stored: readonly number[]): number[] {
+  const cells = new Array<number>(RAM_SIZE).fill(0);
+  const count = Math.min(stored.length, RAM_SIZE);
+  for (let i = 0; i < count; i++) cells[i] = stored[i] & 0xFF;
+  return cells;
 }
 
 /**

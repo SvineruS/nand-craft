@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { useEditorState, testEditorVisible, levelDialogVisible, saveError } from '../editorStore.ts';
 import { useEditor } from '../editorContext.ts';
 import { WireSwatches } from './WireSwatches.tsx';
+import { FloatingWindow } from './FloatingWindow.tsx';
 
 interface ToolbarProps {
   onUndo: () => void;
@@ -54,22 +55,16 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
       )}
 
       {showHints && level?.hints && (
-        <div class="hints-overlay" onClick={() => setShowHints(false)}>
-          <div class="hints-card" onClick={(e) => e.stopPropagation()}>
-            <div class="hints-header">
-              <span>Hints</span>
-              <button class="test-editor-close" onClick={() => setShowHints(false)}>✕</button>
-            </div>
-            <div class="hints-list">
-              {level.hints.map((hint, i) => (
-                <div key={i} class="hint-item">
-                  <span class="hint-label">Hint {i + 1}</span>
-                  <span class="hint-text">{hint}</span>
-                </div>
-              ))}
-            </div>
+        <FloatingWindow id="hints" class="window-hints" title="Hints" onClose={() => setShowHints(false)}>
+          <div class="hints-list">
+            {level.hints.map((hint, i) => (
+              <div key={i} class="hint-item">
+                <span class="hint-label">Hint {i + 1}</span>
+                <span class="hint-text">{hint}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        </FloatingWindow>
       )}
     </div>
   );

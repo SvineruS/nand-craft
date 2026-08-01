@@ -23,6 +23,7 @@ import {
   gateBounds,
   hitTestEndpoint,
   hitTestGate,
+  hitTestGateButton,
   hitTestWireSegment,
   normalizeRect,
   posInRect,
@@ -86,6 +87,12 @@ export class InputHandler {
   private keys: KeyMap;
   private getState: () => EditorState;
   private getHistory: () => CommandHistory;
+  /**
+   * Called when a gate's on-body button is pressed. Injected by the screen, because what
+   * the button opens is a UI window and the input layer has no business knowing about one.
+   * Screens that show no such window simply pass nothing.
+   */
+  private onGateButton?: (gateId: GateId) => void;
 
   private drag: DragState = { kind: 'none' };
   private wireStartWorld: Vec2 = { x: 0, y: 0 };
@@ -98,9 +105,11 @@ export class InputHandler {
     canvas: HTMLCanvasElement,
     getState: () => EditorState,
     getHistory: () => CommandHistory,
+    onGateButton?: (gateId: GateId) => void,
   ) {
     this.getState = getState;
     this.getHistory = getHistory;
+    this.onGateButton = onGateButton;
 
     this.keys = new KeyMap();
     this.setupKeyBindings();
@@ -292,6 +301,13 @@ export class InputHandler {
     }
 
     const isDblClick = e.raw.detail >= 2;
+
+    // The gate's own button wins over everything on its body — it is drawn on top of it.
+    const buttonHit = hitTestGateButton(world, state);
+    if (buttonHit) {
+      this.onGateButton?.(buttonHit);
+      return;
+    }
 
     const ep = hitTestEndpoint(world, state);
     if (ep) {
@@ -526,11 +542,13 @@ export class InputHandler {
       return;
     }
 
-    // Hover — endpoints (pins/nodes) take priority over gates so a pin on a
-    // gate edge is highlighted as the grabbable thing, not the gate body.
-    const hoveredEp = hitTestEndpoint(world, state);
+    // Hover — the on-body button first, then endpoints (pins/nodes) over gates, so a pin
+    // on a gate edge is highlighted as the grabbable thing, not the gate body.
+    const hoveredButton = hitTestGateButton(world, state);
+    state.hoveredGateButton = hoveredButton;
+    const hoveredEp = hoveredButton ? null : hitTestEndpoint(world, state);
     state.hoveredEndpoint = hoveredEp;
-    state.hoveredGate = hoveredEp ? null : hitTestGate(world, state);
+    state.hoveredGate = hoveredEp || hoveredButton ? null : hitTestGate(world, state);
     state.renderDirty = true;
   }
 

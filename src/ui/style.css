@@ -169,36 +169,9 @@ body {
   flex: 1;
 }
 
-.hints-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.hints-card {
-  background: var(--surface);
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  width: 400px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
-.hints-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-
 .hints-list {
+  flex: 1;
+  overflow: auto;
   padding: 8px 14px;
 }
 
@@ -700,40 +673,52 @@ body {
   }
 }
 
-/* ── Test Editor Dialog ── */
+/* ------------------------------------------------------------------ */
+/* Floating windows (tests, RAM, goals, hints)                         */
+/*                                                                     */
+/* One shell for every non-blocking panel: header drags it, the corner */
+/* grip resizes it, and a `.window-*` class gives it a default size and */
+/* place. Inline width/height/left/top written by useFloatingWindow win */
+/* over those defaults, so the rules here must stay unqualified.        */
+/* ------------------------------------------------------------------ */
 
-.test-editor-card {
+.floating-window {
   position: fixed;
-  top: 80px;
-  left: calc(50% - 280px);
-  background: var(--surface);
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  width: 560px;
-  height: 480px;
   display: flex;
   flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   z-index: 1000;
 }
 
-.test-editor-header {
+.floating-window-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border);
   cursor: grab;
   user-select: none;
 }
 
-.test-editor-title {
+.floating-window-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.test-editor-close {
+.floating-window-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.floating-window-close {
   background: none;
   border: none;
   color: var(--text-dim);
@@ -748,27 +733,66 @@ body {
   }
 }
 
-.test-editor-apply {
-  background: var(--accent);
-  color: var(--accent-text);
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 3px 10px;
-  border-radius: 4px;
-
-  &:hover {
-    background: var(--accent-hover);
-  }
-}
-
-.test-editor-body {
+.floating-window-body {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  border-radius: 0 0 10px 10px;
 }
 
-.test-editor-help {
+/* The grip sits over the bottom-right corner of the body. */
+.floating-window-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 55%, var(--border) 55%, var(--border) 65%, transparent 65%,
+      transparent 75%, var(--border) 75%, var(--border) 85%, transparent 85%);
+  border-radius: 0 0 10px 0;
+}
+
+.window-tests {
+  top: 80px;
+  left: calc(50% - 280px);
+  width: 560px;
+  height: 480px;
+}
+
+.window-ram {
+  top: 70px;
+  left: calc(50% - 400px);
+  width: 800px;
+  height: 560px;
+}
+
+.window-goals {
+  top: 90px;
+  left: calc(50% - 260px);
+  width: 520px;
+  height: 300px;
+}
+
+.window-hints {
+  top: 100px;
+  left: calc(50% - 200px);
+  width: 400px;
+  height: 280px;
+}
+
+/** Fills the window with a code editor. */
+.window-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.window-help {
   flex: 1;
   overflow: auto;
   padding: 12px 16px;
@@ -992,4 +1016,326 @@ body {
 .factory-canvas {
   flex: 1;
   overflow: hidden;
+}
+
+/* ── Goals window ── */
+
+.goals-body {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 18px;
+}
+
+.goals-desc {
+  margin: 0;
+  color: var(--text-dim2);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* ------------------------------------------------------------------ */
+/* RAM window (memory view + program editor)                           */
+/* ------------------------------------------------------------------ */
+
+.window-tab {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+
+  &.is-active {
+    background: var(--label-bg);
+    border-color: var(--border);
+    color: var(--text);
+  }
+}
+
+.window-btn {
+  background: var(--button-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--button-hover);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  &.is-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-text);
+
+    &:hover {
+      background: var(--accent-hover);
+    }
+  }
+}
+
+.window-select {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.ram-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ram-toolbar-spacer {
+  flex: 1;
+}
+
+.ram-radix {
+  display: flex;
+  gap: 2px;
+}
+
+/* ── Memory tab ── */
+
+.ram-memory {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ram-status {
+  display: flex;
+  gap: 14px;
+  padding: 4px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+
+  b {
+    color: var(--text);
+  }
+}
+
+.ram-status-dim {
+  margin-left: auto;
+  color: var(--text-dim2);
+}
+
+.ram-grid-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 10px;
+}
+
+.ram-grid {
+  display: grid;
+  gap: 1px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.ram-grid-head,
+.ram-grid-addr,
+.ram-grid-corner {
+  color: var(--text-dim2);
+  text-align: center;
+  padding: 2px 0;
+}
+
+.ram-grid-addr {
+  padding-right: 8px;
+  text-align: right;
+}
+
+.ram-cell {
+  background: var(--label-bg);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 0;
+  text-align: center;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+
+  &.is-zero {
+    color: var(--text-dim2);
+  }
+
+  &.is-live {
+    background: var(--current-bg);
+    border-color: var(--current-border);
+  }
+}
+
+.ram-cell-input {
+  background: var(--input-bg);
+  border: 1px solid var(--accent);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+/* ── Program tab ── */
+
+.ram-program {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.ram-program-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ram-program-path {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ram-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.ram-status-line {
+  padding: 4px 10px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+
+  &.is-error {
+    color: var(--fail);
+  }
+}
+
+.program-explorer {
+  width: 180px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+
+.program-explorer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.program-explorer-list {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.program-explorer-empty {
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text-dim2);
+}
+
+.program-explorer-folder {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  color: var(--text-dim2);
+  font-family: var(--mono);
+}
+
+.program-file {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 12px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+
+  &.is-open {
+    background: var(--label-bg);
+    color: var(--text);
+  }
+}
+
+.program-file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.program-file-actions {
+  display: none;
+  gap: 2px;
+}
+
+.program-file:hover .program-file-actions {
+  display: flex;
+}
+
+.program-file-action {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 2px;
+
+  &:hover {
+    color: var(--text);
+  }
 }

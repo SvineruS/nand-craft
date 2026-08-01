@@ -1,8 +1,9 @@
 import { effect, signal } from '@preact/signals';
 import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
-import type { ComponentId, LevelId } from '../circuit-builder/editor/types.ts';
+import type { ComponentId, GateId, LevelId } from '../circuit-builder/editor/types.ts';
 import {
   getSolvedLevelIds, getBackgroundGrid, saveBackgroundGrid, getPaletteId, savePaletteId,
+  getPreprocessorId, savePreprocessorId,
 } from '../circuit-builder/persistence/storage.ts';
 import type { GridPatternId } from '../circuit-builder/editor/render/backgroundPattern.ts';
 import type { PaletteId } from '../circuit-builder/editor/palettes.ts';
@@ -21,6 +22,20 @@ export const levelDialogVisible = signal(false);
 
 /** Whether the test editor dialog is visible. */
 export const testEditorVisible = signal(false);
+
+/**
+ * RAM gate whose memory window is open, or null when none is. A gate id rather than a
+ * boolean because the window shows one particular chip's bytes.
+ */
+export const ramDialogGateId = signal<GateId | null>(null);
+
+/** Program syntax the RAM editor assembles with (persisted in localStorage). */
+export const preprocessorId = signal<string>(getPreprocessorId());
+
+export function setPreprocessorId(id: string): void {
+  preprocessorId.value = id;
+  savePreprocessorId(id);
+}
 
 /** Current view mode. */
 export type ViewMode = 'mainMenu' | 'levelSelect' | 'levelMapEditor' | 'editor' | 'componentEditor' | 'factory' | 'settings';

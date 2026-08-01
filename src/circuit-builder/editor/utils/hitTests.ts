@@ -1,13 +1,17 @@
 import type { EditorState } from "../EditorState.ts";
 import type { GateId, WireNodeId, WireSegmentId } from "../types.ts";
 import { Vec2, routeCorner } from "./vec2.ts";
-import { gateCenter, getDrawnGateDims, getPinPositions, snapToGrid, type WireEndpoint } from "./geometry.ts";
+import {
+  gateButtonPos, gateCenter, GATE_BUTTON_RADIUS, getDrawnGateDims, getPinPositions, snapToGrid,
+  type WireEndpoint,
+} from "./geometry.ts";
 import type { Gate } from "../gates.ts";
 import { GRID_SIZE } from "../consts.ts";
 
 
 const HIT_RADIUS = 10;       // pin / wire node click target
 const WIRE_HIT_DIST = 8;     // wire segment click target
+const GATE_BUTTON_HIT_PADDING = 2;
 
 // ---------------------------------------------------------------------------
 // Selection helpers
@@ -88,6 +92,23 @@ export function hitTestGate(pos: Vec2, state: EditorState): GateId | null {
   for (const gate of state.circuit.gates.values())
     if (hitTestGate_(pos, gate))
       return gate.id;
+  return null;
+}
+
+/**
+ * The gate whose on-body button is under the cursor, if any.
+ *
+ * Tested before the gate body itself, so pressing the button opens the gate's window
+ * instead of starting a drag. It shares `gateButtonPos` with the scene builder, so what is
+ * drawn and what is clickable cannot drift apart.
+ */
+export function hitTestGateButton(pos: Vec2, state: EditorState): GateId | null {
+  for (const gate of state.circuit.gates.values()) {
+    const buttonPos = gateButtonPos(gate);
+    if (buttonPos && Vec2.dist(pos, buttonPos) <= GATE_BUTTON_RADIUS + GATE_BUTTON_HIT_PADDING) {
+      return gate.id;
+    }
+  }
   return null;
 }
 

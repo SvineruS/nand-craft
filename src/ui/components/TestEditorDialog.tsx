@@ -10,6 +10,7 @@ import { compileTestFunction, enumerateInputs } from '../../circuit-builder/test
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { useEditor } from '../editorContext.ts';
+import { FloatingWindow } from './FloatingWindow.tsx';
 import type { Circuit } from '../../circuit-builder/simulation/circuit.ts';
 import { notifyStateChange } from '../editorStore.ts';
 import { isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
@@ -131,9 +132,7 @@ export function TestEditorDialog() {
   const visible = testEditorVisible.value;
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
   const [showHelp, setShowHelp] = useState(false);
-  const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
 
   useEffect(() => {
     if (!visible || !containerRef.current) return;
@@ -239,44 +238,24 @@ export function TestEditorDialog() {
     notifyStateChange();
   };
 
-  const handleHeaderMouseDown = (e: MouseEvent) => {
-    // Don't drag when clicking buttons
-    if ((e.target as HTMLElement).closest('button')) return;
-    const card = cardRef.current;
-    if (!card) return;
-    const rect = card.getBoundingClientRect();
-    dragState.current = { startX: e.clientX, startY: e.clientY, origX: rect.left, origY: rect.top };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const ds = dragState.current;
-      if (!ds || !card) return;
-      const dx = e.clientX - ds.startX;
-      const dy = e.clientY - ds.startY;
-      card.style.left = `${ds.origX + dx}px`;
-      card.style.top = `${ds.origY + dy}px`;
-    };
-    const handleMouseUp = () => {
-      dragState.current = null;
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
+  const actions = (
+    <>
+      <button class="window-btn is-primary" onClick={handleApply}>Apply</button>
+      <button class="window-btn" title="Syntax help" onClick={() => setShowHelp(!showHelp)}>?</button>
+    </>
+  );
 
   return (
-    <div class="test-editor-card" ref={cardRef}>
-      <div class="test-editor-header" onMouseDown={handleHeaderMouseDown}>
-        <span class="test-editor-title">Test Editor</span>
-        <div style={{ display: 'flex', gap: '4px' }}>
-          <button class="test-editor-apply" onClick={handleApply}>Apply</button>
-          <button class="test-editor-close" onClick={() => setShowHelp(!showHelp)}>?</button>
-          <button class="test-editor-close" onClick={() => { testEditorVisible.value = false; }}>✕</button>
-        </div>
-      </div>
-      <div class="test-editor-body" ref={containerRef} style={{ display: showHelp ? 'none' : '' }} />
+    <FloatingWindow
+      id="tests"
+      class="window-tests"
+      title="Test Editor"
+      actions={actions}
+      onClose={() => { testEditorVisible.value = false; }}
+    >
+      <div class="window-editor" ref={containerRef} style={{ display: showHelp ? 'none' : '' }} />
       {showHelp && <HelpPanel />}
-    </div>
+    </FloatingWindow>
   );
 }
 
@@ -313,7 +292,7 @@ function generateCodeTestCases(result: ReturnType<typeof parseDsl>, circuit: Cir
 
 function HelpPanel() {
   return (
-    <div class="test-editor-help">
+    <div class="window-help">
       <h4>I/O Gates</h4>
       <p>Tests reference I/O gates by their <b>label</b>. Place IN/OUT gates on the canvas
       and rename them in the Properties panel (select gate, edit "Label" field).

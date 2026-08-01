@@ -4,11 +4,12 @@ import type { Editor } from '../../circuit-builder/editor/Editor.ts';
 import { useCanvasEditor } from '../useCanvasEditor.ts';
 import { EditorContext, useEditor } from '../editorContext.ts';
 import { componentEditorName, createComponentEditor } from '../componentNav.ts';
-import { notifyStateChange, openComponentId, testEditorVisible } from '../editorStore.ts';
+import { notifyStateChange, openComponentId, ramDialogGateId, testEditorVisible } from '../editorStore.ts';
 import { navigateTo } from '../screenManager.ts';
 import { Sidebar } from '../components/Sidebar.tsx';
 import { TestPanel } from '../components/TestPanel.tsx';
 import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
+import { RamDialog } from '../components/RamDialog.tsx';
 import { WireSwatches } from '../components/WireSwatches.tsx';
 import { buildComponentDefinition } from '../../circuit-builder/components/componentBuilder.ts';
 import { saveComponent, deleteComponent } from '../../circuit-builder/components/componentRegistry.ts';
@@ -42,6 +43,7 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
       canvas,
       () => editor.getState(),
       () => editor.getHistory(),
+      (gateId) => { ramDialogGateId.value = gateId; },
     ),
     onCircuitDirty: () => { editor.onCircuitChanged(); notifyStateChange(); },
     onValueDirty: () => { editor.retick(); notifyStateChange(); },
@@ -146,6 +148,7 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
         <Sidebar onDragEnd={handleDragEnd} />
       </div>
       <TestEditorDialog />
+      <RamDialog />
     </>
   );
 }

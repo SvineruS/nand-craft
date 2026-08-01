@@ -1,13 +1,13 @@
 import { useRef } from 'preact/hooks';
-import { solvedLevelIds, useEditorState } from '../editorStore.ts';
+import { ramDialogGateId, solvedLevelIds, useEditorState } from '../editorStore.ts';
 import { findGateDefinition, openGateDefinition } from '../gateNav.ts';
 import { getGateDefinition, getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
 import type { Gate, GateType } from '../../circuit-builder/simulation/gateTypes.ts';
-import type { WireSegmentId } from '../../circuit-builder/editor/types.ts';
+import type { GateId, WireSegmentId } from '../../circuit-builder/editor/types.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { ChangeGateLabelCommand, ChangeGateValueCommand, ChangeWireCommand } from '../../circuit-builder/editor/commands.ts';
-import { isConstantGate, isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
+import { isConstantGate, isInputGate, isOutputGate, isRamGate } from '../../circuit-builder/simulation/gateTypes.ts';
 
 
 interface PropertiesPanelProps {
@@ -69,6 +69,7 @@ function GateProperties({ gate, state, onExecute }: GatePropertiesProps) {
 
         {isNamable && <LabelRow gate={gate} state={state} onExecute={onExecute} />}
         {hasValue && <ValueRow gate={gate} state={state} onExecute={onExecute} />}
+        {isRamGate(gate.type) && <MemoryRow gateId={gate.id} />}
       </div>
     </div>
   );
@@ -96,6 +97,22 @@ function DefinitionRow({ type }: { type: GateType }) {
           {ref.name} {'↗'}
         </button>
       )}
+    </div>
+  );
+}
+
+/** Second way into the memory window — the first is the button on the chip itself. */
+function MemoryRow({ gateId }: { gateId: GateId }) {
+  return (
+    <div class="prop-row">
+      <span class="prop-label">Memory</span>
+      <button
+        class="prop-link"
+        title="View the bytes and edit the program"
+        onClick={() => { ramDialogGateId.value = gateId; }}
+      >
+        Open {'↗'}
+      </button>
     </div>
   );
 }

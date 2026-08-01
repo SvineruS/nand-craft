@@ -10,7 +10,7 @@ import {
 } from '../editor/types.ts';
 import type { Gate } from "../editor/gates.ts";
 import { updateAnchoredNodes } from '../editor/utils/geometry.ts';
-import { RAM_SIZE } from '../simulation/gateTypes.ts';
+import { padRamCells } from '../simulation/gateTypes.ts';
 
 /** A gate as stored on disk. Rotation is optional — the level map data omits the default. */
 type SerializedGate = Omit<Gate, 'id' | 'rotation'> & { rotation?: Rotation };
@@ -39,6 +39,7 @@ function serializeGate(gate: Gate): SerializedGate {
   if (gate.value !== undefined) out.value = gate.value;
   if (gate.register !== undefined) out.register = gate.register;
   if (gate.cells !== undefined) out.cells = trimTrailingZeros(gate.cells);
+  if (gate.rom !== undefined) out.rom = trimTrailingZeros(gate.rom);
   if (gate.label !== undefined) out.label = gate.label;
   if (gate.canRemove !== undefined) out.canRemove = gate.canRemove;
   if (gate.canMove !== undefined) out.canMove = gate.canMove;
@@ -47,19 +48,14 @@ function serializeGate(gate: Gate): SerializedGate {
 
 /**
  * RAM contents round-trip trimmed, because a mostly-empty 256-byte store would otherwise
- * add a wall of zeros to every save. padCells restores the dense array the tick loop indexes.
+ * add a wall of zeros to every save. padRamCells restores the dense array the tick loop
+ * indexes. The boot image is stored trimmed too, but stays trimmed in memory — only the
+ * live cells are indexed by address.
  */
 function trimTrailingZeros(cells: number[]): number[] {
   let end = cells.length;
   while (end > 0 && cells[end - 1] === 0) end--;
   return cells.slice(0, end);
-}
-
-function padCells(stored: number[]): number[] {
-  const cells = new Array<number>(RAM_SIZE).fill(0);
-  const count = Math.min(stored.length, RAM_SIZE);
-  for (let i = 0; i < count; i++) cells[i] = stored[i] & 0xFF;
-  return cells;
 }
 
 /**
@@ -75,7 +71,8 @@ function deserializeGate(id: GateId, stored: SerializedGate): Gate {
   };
   if (stored.value !== undefined) gate.value = stored.value;
   if (stored.register !== undefined) gate.register = stored.register;
-  if (stored.cells !== undefined) gate.cells = padCells(stored.cells);
+  if (stored.cells !== undefined) gate.cells = padRamCells(stored.cells);
+  if (stored.rom !== undefined) gate.rom = stored.rom.map(b => b & 0xFF);
   if (stored.label !== undefined) gate.label = stored.label;
   if (stored.canRemove !== undefined) gate.canRemove = stored.canRemove;
   if (stored.canMove !== undefined) gate.canMove = stored.canMove;

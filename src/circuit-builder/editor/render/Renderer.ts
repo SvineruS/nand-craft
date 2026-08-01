@@ -10,8 +10,8 @@ import {
 } from './backgroundPattern.ts';
 import type { MapRect } from '../utils/mapBounds.ts';
 import type {
-  RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderPinLabel,
-  RenderErrorSegment, RenderSelectionItem, RenderPastePreview,
+  RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderGateButton, RenderPin,
+  RenderPinLabel, RenderErrorSegment, RenderSelectionItem, RenderPastePreview,
 } from './renderScene.ts';
 import type { Viewport } from './buildScene.ts';
 
@@ -57,6 +57,7 @@ export class Renderer {
     this.drawWireSegments(scene.wireSegments);
     this.drawWireNodes(scene.wireNodes);
     this.drawGates(scene.gates);
+    this.drawGateButtons(scene.gateButtons);
     this.drawPins(scene.pins);
     this.drawErrorSegments(scene.errorSegments);
     this.drawSelection(scene.selection);
@@ -394,6 +395,35 @@ export class Renderer {
   private drawGates(gates: RenderGate[]): void {
     for (const gate of gates) {
       this.drawGateBody(gate);
+    }
+  }
+
+  /**
+   * On-body buttons, drawn upright in world space so the icon reads the same on a rotated
+   * gate. The glyph is three stacked bars — a stack of memory rows.
+   */
+  private drawGateButtons(buttons: RenderGateButton[]): void {
+    const { ctx } = this;
+    for (const button of buttons) {
+      const { x, y } = button.pos;
+      ctx.beginPath();
+      ctx.arc(x, y, button.radius, 0, Math.PI * 2);
+      ctx.fillStyle = button.hovered ? COLORS.selection : COLORS.background;
+      ctx.fill();
+      ctx.strokeStyle = button.hovered ? COLORS.selection : COLORS.boardLabel;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.strokeStyle = button.hovered ? COLORS.background : COLORS.boardLabel;
+      ctx.lineWidth = 1;
+      const barHalfWidth = button.radius * 0.45;
+      for (let row = -1; row <= 1; row++) {
+        const barY = y + row * button.radius * 0.4;
+        ctx.beginPath();
+        ctx.moveTo(x - barHalfWidth, barY);
+        ctx.lineTo(x + barHalfWidth, barY);
+        ctx.stroke();
+      }
     }
   }
 

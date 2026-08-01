@@ -95,6 +95,8 @@ export interface EditorState {
   selection: SelectionItem[];
   hoveredGate: GateId | null;
   hoveredEndpoint: WireEndpoint | null;
+  /** Gate whose on-body button the cursor is over — see gateButtonPos. */
+  hoveredGateButton: GateId | null;
   /** Cursor position in world space. Input writes it; the scene builder reads it. */
   mouseWorld: Vec2;
   mode: InteractionMode;
@@ -126,6 +128,7 @@ export function createEditorState(mapSize: MapSize = DEFAULT_MAP_SIZE): EditorSt
     selection: [],
     hoveredGate: null,
     hoveredEndpoint: null,
+    hoveredGateButton: null,
     mouseWorld: { x: 0, y: 0 },
     mode: { kind: 'normal' },
     selectionRect: null,

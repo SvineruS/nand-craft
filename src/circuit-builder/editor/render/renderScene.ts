@@ -41,6 +41,18 @@ export interface RenderGate {
   previewPins?: Vec2[];
 }
 
+/**
+ * A gate's on-body button — the RAM chip's memory window opener.
+ *
+ * Positioned in world space and drawn upright, so the icon stays readable on a gate that
+ * has been rotated.
+ */
+export interface RenderGateButton {
+  pos: Vec2;
+  radius: number;
+  hovered: boolean;
+}
+
 export interface RenderPin {
   pos: Vec2;
   fillColor: string;
@@ -82,6 +94,8 @@ export interface RenderScene {
   wireSegments: RenderWireSegment[];
   wireNodes: RenderWireNode[];
   gates: RenderGate[];
+  /** Buttons drawn on top of the gates that have one. */
+  gateButtons: RenderGateButton[];
   pins: RenderPin[];
   /** Pin names for the single selected gate. Empty the rest of the time. */
   pinLabels: RenderPinLabel[];

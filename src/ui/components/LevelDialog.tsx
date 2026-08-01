@@ -1,6 +1,13 @@
 import { levelDialogVisible } from '../editorStore.ts';
 import { useEditor } from '../editorContext.ts';
+import { FloatingWindow } from './FloatingWindow.tsx';
 
+/**
+ * What the level asks for — opened on entering a level and reopened by the Goals button.
+ *
+ * A window rather than a modal: the goals are what the player checks *while* building, and
+ * a dialog that has to be dismissed first made re-reading them a chore.
+ */
 export function LevelDialog() {
   const { level } = useEditor();
   const visible = levelDialogVisible.value;
@@ -9,22 +16,15 @@ export function LevelDialog() {
   if (!visible || !level) return null;
 
   return (
-    <div class="level-dialog-overlay">
-      <div class="level-dialog-card">
-        <h2 class="level-dialog-title">{level.name}</h2>
-        <p class="level-dialog-desc">{level.description}</p>
-
-        <div class="level-dialog-btn-row">
-          <button
-            class="level-dialog-start-btn"
-            onClick={() => {
-              levelDialogVisible.value = false;
-            }}
-          >
-            Start
-          </button>
-        </div>
+    <FloatingWindow
+      id="goals"
+      class="window-goals"
+      title={level.name}
+      onClose={() => { levelDialogVisible.value = false; }}
+    >
+      <div class="goals-body">
+        <p class="goals-desc">{level.description}</p>
       </div>
-    </div>
+    </FloatingWindow>
   );
 }
