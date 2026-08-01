@@ -528,6 +528,9 @@ import type { ComponentId } from '../editor/types.ts';
 /** Component definition cache. */
 const componentDefCache = new Map<string, GateDefinition>();
 
+/** Every built-in gate type, in declaration order. Lets checks sweep all of them. */
+export const BUILT_IN_GATE_TYPES = Object.keys(GATE_DEFS) as BuiltInGateType[];
+
 /** True for the built-in gate types keyed in GATE_DEFS; false for component ids. */
 export function isBuiltInGateType(type: GateType): type is BuiltInGateType {
   return Object.hasOwn(GATE_DEFS, type);

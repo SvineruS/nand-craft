@@ -20,6 +20,7 @@ import {
   RotateGatesCommand,
 } from './commands.ts';
 import {
+  gateBounds,
   hitTestEndpoint,
   hitTestGate,
   hitTestWireSegment,
@@ -35,7 +36,6 @@ import { GRID_SIZE, WIRE_COLORS } from "./consts.ts";
 import {
   clampCamera, clampGatePos, clampGroupOffset, clampPoint, type MapRect,
 } from './utils/mapBounds.ts';
-import { getGateDims } from './utils/geometry.ts';
 
 const MIN_WIRE_DRAG = 5;
 
@@ -1015,9 +1015,8 @@ function draggedBounds(
   };
 
   for (const id of gateIds) {
-    const gate = state.circuit.getGate(id);
-    const { w, h } = getGateDims(gate);
-    grow(gate.pos.x, gate.pos.y, gate.pos.x + w, gate.pos.y + h);
+    const body = gateBounds(state.circuit.getGate(id));
+    grow(body.x1, body.y1, body.x2, body.y2);
   }
   for (const id of nodeIds) {
     const node = state.circuit.wireNodes.get(id);

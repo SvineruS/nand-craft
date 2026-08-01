@@ -1,7 +1,7 @@
 import type { EditorState } from "../EditorState.ts";
 import type { GateId, WireNodeId, WireSegmentId } from "../types.ts";
 import { Vec2, routeCorner } from "./vec2.ts";
-import { getGateDims, getPinPositions, snapToGrid, type WireEndpoint } from "./geometry.ts";
+import { gateCenter, getDrawnGateDims, getPinPositions, snapToGrid, type WireEndpoint } from "./geometry.ts";
 import type { Gate } from "../gates.ts";
 import { GRID_SIZE } from "../consts.ts";
 
@@ -40,12 +40,31 @@ export function normalizeRect(rectPos: Vec2, rw: number, rh: number): Rect {
   return { x1: x, y1: y, x2: x + w, y2: y + h };
 }
 
+/**
+ * The rect a gate body actually covers, rotation included.
+ *
+ * Deliberately not `gate.pos` + `getGateDims`: that rect is only correct at 0°/180°. A 2×7
+ * splitter turned 90° is drawn 7×2 about the same centre, so the unrotated rect misses most
+ * of the body and claims empty board instead — which is what broke clicking, rubber-band
+ * selecting and drag-clamping long rotated gates like SPL and DEC3.
+ */
+export function gateBounds(gate: Gate): Rect {
+  const center = gateCenter(gate);
+  const { w, h } = getDrawnGateDims(gate);
+  return {
+    x1: center.x - w / 2,
+    y1: center.y - h / 2,
+    x2: center.x + w / 2,
+    y2: center.y + h / 2,
+  };
+}
+
 export function rectContainsGate(
   gate: Gate, normRect: Rect,
 ): boolean {
-  const { w, h } = getGateDims(gate);
-  const { x1, y1, x2, y2 } = normRect;
-  return gate.pos.x >= x1 && gate.pos.y >= y1 && gate.pos.x + w <= x2 && gate.pos.y + h <= y2;
+  const body = gateBounds(gate);
+  return body.x1 >= normRect.x1 && body.y1 >= normRect.y1
+    && body.x2 <= normRect.x2 && body.y2 <= normRect.y2;
 }
 
 export function posInRect(pos: Vec2, rect: Rect): boolean {
@@ -59,9 +78,9 @@ export function posInRect(pos: Vec2, rect: Rect): boolean {
 const GATE_HIT_PADDING = 4;
 
 export function hitTestGate_(pos: Vec2, gate: Gate): boolean {
-  const { w, h } = getGateDims(gate);
+  const { x1, y1, x2, y2 } = gateBounds(gate);
   const p = GATE_HIT_PADDING;
-  return posInRect(pos, { x1: gate.pos.x - p, y1: gate.pos.y - p, x2: gate.pos.x + w + p, y2: gate.pos.y + h + p });
+  return posInRect(pos, { x1: x1 - p, y1: y1 - p, x2: x2 + p, y2: y2 + p });
 }
 
 

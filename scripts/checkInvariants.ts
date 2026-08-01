@@ -14,7 +14,7 @@ import { createEditorState } from '../src/circuit-builder/editor/EditorState.ts'
 import { Circuit } from '../src/circuit-builder/simulation/circuit.ts';
 import {
   generateId, pinRefKey,
-  type GateId, type PinRef, type WireNodeId, type WireSegmentId,
+  type GateId, type PinRef, type Rotation, type WireNodeId, type WireSegmentId,
 } from '../src/circuit-builder/editor/types.ts';
 import {
   AddGateCommand, AddWireNodeCommand, AddWireSegmentCommand, CommandHistory,
@@ -23,7 +23,11 @@ import {
 } from '../src/circuit-builder/editor/commands.ts';
 import { buildScene } from '../src/circuit-builder/editor/render/buildScene.ts';
 import { emptyDragPreview } from '../src/circuit-builder/editor/EditorState.ts';
-import { getPinPositions } from '../src/circuit-builder/editor/utils/geometry.ts';
+import {
+  gateCenter, getDrawnGateDims, getPinPositions,
+} from '../src/circuit-builder/editor/utils/geometry.ts';
+import { gateBounds, hitTestGate } from '../src/circuit-builder/editor/utils/hitTests.ts';
+import { BUILT_IN_GATE_TYPES } from '../src/circuit-builder/editor/gates.ts';
 import { QueueTestRunner, type TestGateLabels } from '../src/circuit-builder/editor/QueueTestRunner.ts';
 import type { TestCommand } from '../src/circuit-builder/testing/dslParser.ts';
 import type { GateType } from '../src/circuit-builder/simulation/gateTypes.ts';
@@ -312,6 +316,62 @@ function expectEqual(label: string, previewed: string, committed: string): void 
 }
 
 console.log('drag preview equivalence OK');
+
+// ---------------------------------------------------------------------------
+// Gate hit box vs drawn body
+//
+// A gate is drawn by rotating the canvas about its centre, so at 90°/270° a non-square body
+// covers h × w — while `gate.pos` plus the definition still says w × h. Hit testing, rubber-
+// band selection and drag clamping all compare world points against that box, and using the
+// unrotated one made long rotated gates (SPL, DEC3) unclickable over most of their body.
+//
+// Pin positions come from an independent path (rotatePoint), so they anchor this: every pin
+// sits on or inside the body, whatever the rotation.
+// ---------------------------------------------------------------------------
+
+{
+  const rotations: Rotation[] = [0, 90, 180, 270];
+  let cases = 0;
+
+  for (const type of BUILT_IN_GATE_TYPES) {
+    for (const rotation of rotations) {
+      const st = createEditorState();
+      st.circuit = new Circuit();
+      const gateId = generateId('hb') as GateId;
+      st.circuit.addGate({ id: gateId, type, pos: { x: 100, y: 100 }, rotation });
+      const gate = st.circuit.getGate(gateId);
+      const body = gateBounds(gate);
+      const { inputs, outputs } = getPinPositions(gate);
+      const where = `${type}@${rotation}°`;
+
+      for (const pin of [...inputs, ...outputs]) {
+        if (pin.x < body.x1 || pin.x > body.x2 || pin.y < body.y1 || pin.y > body.y2) {
+          throw new Error(`${where}: pin ${pin.x},${pin.y} is outside the hit box `
+            + `${body.x1},${body.y1}..${body.x2},${body.y2}`);
+        }
+        if (hitTestGate({ x: pin.x, y: pin.y }, st) !== gateId) {
+          throw new Error(`${where}: clicking pin ${pin.x},${pin.y} misses the gate`);
+        }
+      }
+
+      // ...and the box is not wildly oversized either: well past the body is not a hit
+      const center = gateCenter(gate);
+      const { w, h } = getDrawnGateDims(gate);
+      for (const outside of [
+        { x: center.x + w, y: center.y },
+        { x: center.x, y: center.y + h },
+      ]) {
+        if (hitTestGate(outside, st) === gateId) {
+          throw new Error(`${where}: ${outside.x},${outside.y} is outside the body but still hits`);
+        }
+      }
+      cases++;
+    }
+  }
+  console.log(`ok   hit box matches drawn body for ${cases} type/rotation pairs`);
+}
+
+console.log('gate hit box OK');
 
 // ---------------------------------------------------------------------------
 // Queue test runner

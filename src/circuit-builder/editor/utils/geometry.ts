@@ -41,7 +41,21 @@ export function getGateDims(gate: Gate): { w: number; h: number } {
   return { w: def.width * GRID_SIZE, h: def.height * GRID_SIZE };
 }
 
-/** Gate center in world coordinates. */
+/**
+ * Gate pixel dimensions as drawn.
+ *
+ * A rotated gate is drawn by turning the canvas about `gateCenter`, so at 90°/270° the body
+ * covers h × w even though `gate.pos` and the definition still describe w × h. Use this for
+ * anything comparing world positions against the visible body; use `getGateDims` for the
+ * definition's own size (pin layout, label wrapping, the grid offset).
+ */
+export function getDrawnGateDims(gate: Gate): { w: number; h: number } {
+  const { w, h } = getGateDims(gate);
+  const turned = gate.rotation === 90 || gate.rotation === 270;
+  return turned ? { w: h, h: w } : { w, h };
+}
+
+/** Gate center in world coordinates. This is also the pivot rotation turns about. */
 export function gateCenter(gate: Gate): Vec2 {
   const { w, h } = getGateDims(gate);
   return { x: gate.pos.x + w / 2, y: gate.pos.y + h / 2 };
