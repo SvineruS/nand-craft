@@ -31,8 +31,11 @@ export interface CanvasColors {
   pinWidth1: string;
   pinWidth8: string;
   pinWidth16: string;
-  /** A wire's name label when the wire carries no colour of its own. */
-  wireLabel: string;
+  /**
+   * Text written straight onto the board rather than onto a gate body: wire names, pin
+   * names. Must read against `background`, not against `gateFill`.
+   */
+  boardLabel: string;
   selection: string;
   error: string;
   /** Not hex — drawn straight to the canvas, so any CSS colour works. */
@@ -106,7 +109,7 @@ const MIDNIGHT: Palette = {
     pinWidth1: '#fb923c',
     pinWidth8: '#60a5fa',
     pinWidth16: '#f472b6',
-    wireLabel: '#9ca3af',
+    boardLabel: '#9ca3af',
     selection: '#6cb4ff',
     error: '#ef4444',
     selectionRectFill: 'rgba(108, 180, 255, 0.15)',
@@ -177,7 +180,7 @@ const FR4: Palette = {
     pinWidth1: '#ffab4d',
     pinWidth8: '#7cc4ff',
     pinWidth16: '#ff8ad8',
-    wireLabel: '#cfe3d6',
+    boardLabel: '#cfe3d6',
     selection: '#7cf0ff',
     error: '#ff5252',
     selectionRectFill: 'rgba(124, 240, 255, 0.18)',
@@ -246,7 +249,7 @@ const BLUE_MASK: Palette = {
     pinWidth1: '#ffb35e',
     pinWidth8: '#7fe3ff',
     pinWidth16: '#ff8ad8',
-    wireLabel: '#c3d8ec',
+    boardLabel: '#c3d8ec',
     selection: '#ff8ad8',
     error: '#ff5b5b',
     selectionRectFill: 'rgba(255, 138, 216, 0.18)',
@@ -314,7 +317,7 @@ const BREADBOARD: Palette = {
     pinWidth1: '#c2410c',
     pinWidth8: '#1d4ed8',
     pinWidth16: '#be185d',
-    wireLabel: '#5f5b50',
+    boardLabel: '#5f5b50',
     selection: '#1e6fd9',
     error: '#c62828',
     selectionRectFill: 'rgba(30, 111, 217, 0.15)',

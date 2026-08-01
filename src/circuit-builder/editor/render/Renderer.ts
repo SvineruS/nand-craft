@@ -10,7 +10,7 @@ import {
 } from './backgroundPattern.ts';
 import type { MapRect } from '../utils/mapBounds.ts';
 import type {
-  RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin,
+  RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderPinLabel,
   RenderErrorSegment, RenderSelectionItem, RenderPastePreview,
 } from './renderScene.ts';
 import type { Viewport } from './buildScene.ts';
@@ -60,6 +60,9 @@ export class Renderer {
     this.drawPins(scene.pins);
     this.drawErrorSegments(scene.errorSegments);
     this.drawSelection(scene.selection);
+    // After the selection outline: the labels belong to the selected gate and should sit
+    // on top of it, its wires, and its outline.
+    this.drawPinLabels(scene.pinLabels);
     this.drawSelectionRect(scene.selectionRect);
     this.drawWireInProgress(scene.wireInProgress);
     this.drawDropPreview(scene.dropPreview);
@@ -407,6 +410,29 @@ export class Renderer {
     }
   }
 
+  /** Pin names, each on a chip of background so they stay readable over a wire. */
+  private drawPinLabels(labels: RenderPinLabel[]): void {
+    if (labels.length === 0) return;
+    const { ctx } = this;
+
+    ctx.font = '9px sans-serif';
+    ctx.textBaseline = 'middle';
+    for (const label of labels) {
+      const textWidth = ctx.measureText(label.text).width;
+      ctx.textAlign = label.align;
+      ctx.fillStyle = COLORS.background;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.roundRect(chipLeft(label, textWidth), label.pos.y - 6, textWidth + 6, 12, 3);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // boardLabel, not gateText: the chip is the board colour, and on a light-gate palette
+      // gateText is dark enough to disappear into a dark board.
+      ctx.fillStyle = COLORS.boardLabel;
+      ctx.fillText(label.text, label.pos.x, label.pos.y);
+    }
+  }
+
   private drawErrorSegments(errors: RenderErrorSegment[]): void {
     if (errors.length === 0) return;
     const { ctx } = this;
@@ -541,6 +567,13 @@ export class Renderer {
 
     ctx.globalAlpha = 1;
   }
+}
+
+/** Left edge of a pin label's background chip, matching how its text is aligned. */
+function chipLeft(label: RenderPinLabel, textWidth: number): number {
+  if (label.align === 'left') return label.pos.x - 3;
+  if (label.align === 'right') return label.pos.x - textWidth - 3;
+  return label.pos.x - textWidth / 2 - 3;
 }
 
 function perpendicularOffset(a: Vec2, b: Vec2, offset: number): Vec2 {

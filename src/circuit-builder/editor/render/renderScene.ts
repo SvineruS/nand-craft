@@ -49,6 +49,16 @@ export interface RenderPin {
   strokeWidth: number;
 }
 
+/**
+ * A pin's name, placed just outside the pin it belongs to. `align` is how the text sits
+ * against `pos` — it grows away from the pin, so a long name never covers it.
+ */
+export interface RenderPinLabel {
+  text: string;
+  pos: Vec2;
+  align: 'left' | 'right' | 'center';
+}
+
 export interface RenderErrorSegment {
   from: Vec2;
   to: Vec2;
@@ -73,6 +83,8 @@ export interface RenderScene {
   wireNodes: RenderWireNode[];
   gates: RenderGate[];
   pins: RenderPin[];
+  /** Pin names for the single selected gate. Empty the rest of the time. */
+  pinLabels: RenderPinLabel[];
   errorSegments: RenderErrorSegment[];
   selection: RenderSelectionItem[];
   selectionRect: { pos: Vec2; w: number; h: number } | null;

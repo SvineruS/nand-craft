@@ -496,6 +496,9 @@ body {
   padding: 8px 6px;
   flex-shrink: 0;
   margin-top: auto;
+  /* A wide gate lists a lot of pins; scroll it rather than push the table off the panel. */
+  max-height: 50%;
+  overflow-y: auto;
 }
 
 .props-header {
@@ -530,6 +533,36 @@ body {
 .prop-value {
   color: var(--text);
   font-weight: 600;
+}
+
+.prop-value-dim {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* The gate's own description, wrapped rather than squeezed into a row. */
+.prop-desc {
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 0 6px;
+  white-space: pre-wrap;
+}
+
+/* Looks like a .prop-value, behaves like a link — it is the row's right-hand side. */
+.prop-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  text-align: right;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .prop-input {

@@ -1,6 +1,7 @@
 import type { EditorState } from '../EditorState.ts';
-import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderErrorSegment, RenderSelectionItem, RenderPastePreview } from './renderScene.ts';
+import type { RenderScene, RenderWireSegment, RenderWireNode, RenderGate, RenderPin, RenderPinLabel, RenderErrorSegment, RenderSelectionItem, RenderPastePreview } from './renderScene.ts';
 import { getGateDefinition, getPinBitWidth } from '../gates.ts';
+import type { GateDefinition, PinDef } from '../gates.ts';
 import { type Gate, isConstantGate, isInputGate } from '../../simulation/gateTypes.ts';
 import type { Circuit } from '../../simulation/circuit.ts';
 import type { GateId, PinRef, WireNode, WireNodeId, WireSegment, WireSegmentId } from '../types.ts';
@@ -49,6 +50,7 @@ export function buildScene(
     wireNodes: buildWireNodes(state, bounds, lens),
     gates: buildGates(state, bounds, lens),
     pins: buildPins(state, bounds, lens),
+    pinLabels: buildPinLabels(state, lens),
     errorSegments: buildErrorSegments(state, bounds, lens),
     selection: buildSelection(state, lens),
     selectionRect: state.selectionRect,
@@ -205,7 +207,7 @@ function pushSegment(
   let nameLabel: RenderWireSegment['nameLabel'] = null;
   if (segment.label) {
     const mid = routePointAt(from, to, 0.5);
-    nameLabel = { text: segment.label, color: segment.color ?? COLORS.wireLabel, pos: mid };
+    nameLabel = { text: segment.label, color: segment.color ?? COLORS.boardLabel, pos: mid };
   }
 
   result.push({ from, to, bodyColor, thickness, multibit: bitWidth > 1, signalColor: sc, valueLabels, nameLabel });
@@ -399,6 +401,87 @@ function buildPin(
     strokeColor: isHovered ? COLORS.selection : pinStrokeForWidth(bitWidth),
     radius: isHovered ? 5 : 3.5,
     strokeWidth: isHovered ? 1.5 : 1,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Pin labels
+// ---------------------------------------------------------------------------
+
+/**
+ * Gap between a pin and its name, in world units. The sideways gap only has to clear the
+ * pin dot; the vertical one also has to clear the label chip's own height.
+ */
+const PIN_LABEL_GAP = 7;
+const PIN_LABEL_GAP_VERTICAL = 12;
+
+/**
+ * Pin names around the selected gate — what a gate's pins mean, shown where the pins are.
+ *
+ * Only for a lone selection: a box-select of twenty gates would bury the circuit in text,
+ * and by then the player is moving gates, not reading them. Not culled either, for the same
+ * reason — there is at most one gate's worth, and it is the gate the player just clicked.
+ *
+ * Only named pins get a label. A NAND's two inputs are interchangeable and the definition
+ * says so by leaving them unnamed; captioning them "In 1" and "In 2" would be text that
+ * teaches nothing.
+ */
+function buildPinLabels(state: EditorState, lens: PreviewLens | null): RenderPinLabel[] {
+  if (state.selection.length !== 1 || state.selection[0].type !== 'gate') return [];
+
+  const gate = state.circuit.gates.get(state.selection[0].id);
+  if (!gate) return [];
+
+  const def = getGateDefinition(gate.type);
+  const offset = gateOffset(lens, gate.id);
+  const { inputs, outputs } = getPinPositions(gate);
+
+  const result: RenderPinLabel[] = [];
+  let inputIndex = 0;
+  let outputIndex = 0;
+  for (const pin of def.pins) {
+    const isInput = pin.kind === 'input';
+    const pos = (isInput ? inputs : outputs)[isInput ? inputIndex++ : outputIndex++];
+    if (!pos || !pin.label) continue;
+
+    const placed = placePinLabel(offset ? Vec2.add(pos, offset) : pos, pinFacing(pin, def), gate.rotation);
+    result.push({ text: pin.label, ...placed });
+  }
+  return result;
+}
+
+/**
+ * Which way a pin points, in the definition's own unrotated grid.
+ *
+ * The edge the pin sits on, not the direction from the gate's centre: on a tall gate like
+ * the joiner a centre-to-pin ray is near-horizontal in the middle and diagonal at the ends,
+ * which staggers what should be one straight column of names.
+ */
+function pinFacing(pin: PinDef, def: GateDefinition): Vec2 {
+  if (pin.x <= 0) return { x: -1, y: 0 };
+  if (pin.x >= def.width) return { x: 1, y: 0 };
+  if (pin.y <= 0) return { x: 0, y: -1 };
+  return { x: 0, y: 1 };
+}
+
+/** The name's anchor point and how the painter should align text against it. */
+function placePinLabel(
+  pin: Vec2, facing: Vec2, rotation: number,
+): { pos: Vec2; align: RenderPinLabel['align'] } {
+  const dir = Vec2.rotateAround(facing, { x: 0, y: 0 }, rotation);
+
+  // Sideways: sit beside the pin and grow away from it, so a long name never covers the pin.
+  if (Math.abs(dir.x) > Math.abs(dir.y)) {
+    const sign = Math.sign(dir.x);
+    return {
+      pos: { x: pin.x + sign * PIN_LABEL_GAP, y: pin.y },
+      align: sign > 0 ? 'left' : 'right',
+    };
+  }
+
+  return {
+    pos: { x: pin.x, y: pin.y + Math.sign(dir.y) * PIN_LABEL_GAP_VERTICAL },
+    align: 'center',
   };
 }
 
