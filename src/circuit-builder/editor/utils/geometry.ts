@@ -267,12 +267,19 @@ export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNod
   return circuit.anchoredNodesOf(gateIds);
 }
 
-/** Remove wire nodes that have no remaining segments and aren't anchored to a pin. */
+/**
+ * Remove wire nodes that have no remaining segments.
+ *
+ * Pin-anchored nodes are cleaned up too. They used to be exempt, which left a stray node
+ * sitting on a gate pin after its last wire was deleted: harmless to the simulation, but it
+ * rendered as a connection point, got persisted, and piled up. Nothing needs the bare node —
+ * InputHandler.ensureWireNode creates one on demand when a wire is next drawn from the pin.
+ */
 export function cleanupOrphanNodes(circuit: Circuit, nodeIds: Iterable<WireNodeId>): WireNode[] {
   const removed: WireNode[] = [];
   for (const nid of nodeIds) {
     const node = circuit.wireNodes.get(nid);
-    if (!node || node.pin) continue;
+    if (!node) continue;
     if (circuit.degreeOf(nid) === 0) {
       removed.push({ ...node, pos: Vec2.copy(node.pos) });
       circuit.removeWireNode(nid);
