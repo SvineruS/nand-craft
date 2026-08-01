@@ -205,7 +205,7 @@ function pushSegment(
   let nameLabel: RenderWireSegment['nameLabel'] = null;
   if (segment.label) {
     const mid = routePointAt(from, to, 0.5);
-    nameLabel = { text: segment.label, color: segment.color ?? '#9ca3af', pos: mid };
+    nameLabel = { text: segment.label, color: segment.color ?? COLORS.wireLabel, pos: mid };
   }
 
   result.push({ from, to, bodyColor, thickness, multibit: bitWidth > 1, signalColor: sc, valueLabels, nameLabel });
@@ -496,10 +496,12 @@ function buildPreviewGate(
     y: pin.y * GRID_SIZE - h / 2,
   }));
 
+  const colors = gateColorsOf(def);
+
   return {
     type, center, w, h, rotation,
-    fillColor: gateColorsOf(def).fill,
-    strokeColor: def.stroke ? gateColorsOf(def).stroke : COLORS.selection,
+    fillColor: colors.fill,
+    strokeColor: def.stroke ? colors.stroke : COLORS.selection,
     hasSvg: !!def.svg,
     svgLayers: [0],
     label,
@@ -582,9 +584,9 @@ function pinColorForValue(value: number | null): string {
 }
 
 function pinStrokeForWidth(bitWidth: number): string {
-  if (bitWidth >= 16) return '#f472b6';
-  if (bitWidth >= 8) return '#60a5fa';
-  return '#fb923c';
+  if (bitWidth >= 16) return COLORS.pinWidth16;
+  if (bitWidth >= 8) return COLORS.pinWidth8;
+  return COLORS.pinWidth1;
 }
 
 /** Pick which SVG layer indices to draw. Variants pick one, components draw all. */

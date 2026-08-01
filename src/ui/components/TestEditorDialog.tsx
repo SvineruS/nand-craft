@@ -38,14 +38,18 @@ function collectGateLabels(circuit: Circuit): { inputs: Set<string>; outputs: Se
   return { inputs, outputs };
 }
 
+/**
+ * Syntax colours, drawn from the palette's CSS variables rather than fixed hexes — the
+ * editor sits on `--bg`, and a dark-theme pastel is unreadable on a light board.
+ */
 const dslHighlightStyle = HighlightStyle.define([
-  { tag: tags.meta, color: '#e5c07b' },
-  { tag: tags.labelName, color: '#7f8c8d' },
-  { tag: tags.keyword, color: '#c678dd' },
-  { tag: tags.number, color: '#d19a66' },
-  { tag: tags.comment, color: '#5c6370', fontStyle: 'italic' },
-  { tag: tags.variableName, color: '#61afef' },
-  { tag: tags.punctuation, color: '#888' },
+  { tag: tags.meta, color: 'var(--orange)' },
+  { tag: tags.labelName, color: 'var(--text-dim)' },
+  { tag: tags.keyword, color: 'var(--col-expected)' },
+  { tag: tags.number, color: 'var(--col-actual)' },
+  { tag: tags.comment, color: 'var(--text-dim2)', fontStyle: 'italic' },
+  { tag: tags.variableName, color: 'var(--col-input)' },
+  { tag: tags.punctuation, color: 'var(--text-dim)' },
 ]);
 
 /**
@@ -152,11 +156,11 @@ export function TestEditorDialog() {
           '.cm-content': { color: 'var(--text)', caretColor: 'var(--text)' },
           '.cm-cursor': { borderLeftColor: 'var(--text)' },
           '.cm-selectionBackground': { backgroundColor: 'rgba(100, 150, 255, 0.2) !important' },
-          '.cm-activeLine': { backgroundColor: 'rgba(255, 255, 255, 0.03)' },
+          '.cm-activeLine': { backgroundColor: 'var(--label-bg)' },
           '.cm-tooltip': { backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' },
           '.cm-tooltip-lint': { backgroundColor: 'var(--surface)' },
           '.cm-lint-marker-error': { content: '"!"' },
-          '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy #ef4444' },
+          '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--fail)' },
         }),
         history(),
         keymap.of([

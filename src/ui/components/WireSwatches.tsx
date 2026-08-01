@@ -12,8 +12,9 @@ interface WireSwatchesProps {
 /**
  * The wire-colour row shared by every toolbar.
  *
- * Reads `paletteId` so it re-renders when the palette changes: `WIRE_COLORS` is mutated in
- * place, so nothing about the array itself tells Preact the list has been reordered.
+ * Reads `paletteId` so it re-renders when the palette changes: the sentinel swatch is drawn
+ * in the board's own `COLORS.wireDefault`, which is mutated in place and so tells Preact
+ * nothing on its own.
  */
 export function WireSwatches({ selected, onSelect, size = 18 }: WireSwatchesProps) {
   paletteId.value;

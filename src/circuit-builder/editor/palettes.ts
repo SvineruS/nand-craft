@@ -8,6 +8,10 @@
  * up on the next frame with no plumbing.
  */
 
+/**
+ * Canvas colours for one board. Every entry must be `#rrggbb` unless its comment says
+ * otherwise — `gateColors.ts` parses some of them as hex to derive tints.
+ */
 export interface CanvasColors {
   background: string;
   gridDot: string;
@@ -23,13 +27,20 @@ export interface CanvasColors {
   pinActive: string;
   pinZero: string;
   pinHighZ: string;
+  /** Pin outline by bus width: 1-bit, 8-bit, 16-bit. */
+  pinWidth1: string;
+  pinWidth8: string;
+  pinWidth16: string;
+  /** A wire's name label when the wire carries no colour of its own. */
+  wireLabel: string;
   selection: string;
   error: string;
+  /** Not hex — drawn straight to the canvas, so any CSS colour works. */
   selectionRectFill: string;
   selectionRectStroke: string;
   wireNodeFill: string;
   wireNodeStroke: string;
-  /** Veil over the unbuildable area outside the map, and the map's own edge. */
+  /** Veil over the unbuildable area outside the map, and the map's own edge. Not hex. */
   outsideMap: string;
   mapBorder: string;
   /**
@@ -46,25 +57,13 @@ export interface CanvasColors {
 export type UiVarName =
   | 'bg' | 'surface' | 'surface-hover' | 'border'
   | 'text' | 'text-dim' | 'text-dim2'
-  | 'accent' | 'accent-hover'
+  | 'accent' | 'accent-hover' | 'accent-text'
   | 'green' | 'red' | 'orange' | 'pass' | 'fail'
   | 'button-bg' | 'button-hover' | 'label-bg' | 'prop-bg'
-  | 'input-bg' | 'input-border' | 'current-bg' | 'current-border';
+  | 'input-bg' | 'input-border' | 'current-bg' | 'current-border'
+  | 'col-input' | 'col-expected' | 'col-actual';
 
 export type PaletteId = 'midnight' | 'fr4' | 'blueMask' | 'breadboard';
-
-/** Wire colours as authored. `WIRE_COLORS` is this list, reordered to suit the palette. */
-const BASE_WIRE_COLORS = [
-  '#4a4a7a', // default (no override)
-  '#fb923c', // orange
-  '#facc15', // yellow
-  '#60a5fa', // blue
-  '#c084fc', // purple
-  '#f472b6', // pink
-  '#8b5cf6', // violet
-  '#14b8a6', // teal
-  '#ffffff', // white
-];
 
 export interface Palette {
   id: PaletteId;
@@ -104,6 +103,10 @@ const MIDNIGHT: Palette = {
     pinActive: '#5eebb0',
     pinZero: '#f87171',
     pinHighZ: '#7a7a90',
+    pinWidth1: '#fb923c',
+    pinWidth8: '#60a5fa',
+    pinWidth16: '#f472b6',
+    wireLabel: '#9ca3af',
     selection: '#6cb4ff',
     error: '#ef4444',
     selectionRectFill: 'rgba(108, 180, 255, 0.15)',
@@ -126,6 +129,7 @@ const MIDNIGHT: Palette = {
     'text-dim2': '#999baf',
     'accent': '#3b82f6',
     'accent-hover': '#2563eb',
+    'accent-text': '#ffffff',
     'green': '#4ade80',
     'red': '#f87171',
     'orange': '#fb923c',
@@ -139,6 +143,9 @@ const MIDNIGHT: Palette = {
     'input-border': '#4a4a7a',
     'current-bg': 'rgba(96, 165, 250, 0.12)',
     'current-border': '#60a5fa',
+    'col-input': '#60a5fa',
+    'col-expected': '#c084fc',
+    'col-actual': '#facc15',
   },
 };
 
@@ -167,6 +174,10 @@ const FR4: Palette = {
     pinActive: '#8dffab',
     pinZero: '#ff6b80',
     pinHighZ: '#9aae9f',
+    pinWidth1: '#ffab4d',
+    pinWidth8: '#7cc4ff',
+    pinWidth16: '#ff8ad8',
+    wireLabel: '#cfe3d6',
     selection: '#7cf0ff',
     error: '#ff5252',
     selectionRectFill: 'rgba(124, 240, 255, 0.18)',
@@ -189,6 +200,8 @@ const FR4: Palette = {
     'text-dim2': '#94bda8',
     'accent': '#ffc94d',
     'accent-hover': '#e0ab2e',
+    // Gold accent, so label text on it has to be dark.
+    'accent-text': '#12251c',
     'green': '#7ce8a4',
     'red': '#ff8a70',
     'orange': '#ffab4d',
@@ -202,6 +215,9 @@ const FR4: Palette = {
     'input-border': '#2f9a6b',
     'current-bg': 'rgba(255, 217, 77, 0.14)',
     'current-border': '#ffd94d',
+    'col-input': '#7cc4ff',
+    'col-expected': '#d9a8ff',
+    'col-actual': '#ffd75e',
   },
 };
 
@@ -226,6 +242,11 @@ const BLUE_MASK: Palette = {
     pinActive: '#8bf5b4',
     pinZero: '#ff7089',
     pinHighZ: '#9db2c6',
+    // Blue would vanish into a blue board, so the 8-bit slot goes cyan here.
+    pinWidth1: '#ffb35e',
+    pinWidth8: '#7fe3ff',
+    pinWidth16: '#ff8ad8',
+    wireLabel: '#c3d8ec',
     selection: '#ff8ad8',
     error: '#ff5b5b',
     selectionRectFill: 'rgba(255, 138, 216, 0.18)',
@@ -248,6 +269,7 @@ const BLUE_MASK: Palette = {
     'text-dim2': '#93b4d3',
     'accent': '#ffd75e',
     'accent-hover': '#e6bc43',
+    'accent-text': '#0a1826',
     'green': '#6fe3a5',
     'red': '#ff8f7a',
     'orange': '#ffb35e',
@@ -261,6 +283,9 @@ const BLUE_MASK: Palette = {
     'input-border': '#356fb0',
     'current-bg': 'rgba(255, 215, 94, 0.14)',
     'current-border': '#ffd75e',
+    'col-input': '#7fe3ff',
+    'col-expected': '#e0a8ff',
+    'col-actual': '#ffd75e',
   },
 };
 
@@ -285,6 +310,11 @@ const BREADBOARD: Palette = {
     pinActive: '#0a9e48',
     pinZero: '#d22b2b',
     pinHighZ: '#8f8f8f',
+    // Deepened: the dark-board pastels have almost no contrast against a cream board.
+    pinWidth1: '#c2410c',
+    pinWidth8: '#1d4ed8',
+    pinWidth16: '#be185d',
+    wireLabel: '#5f5b50',
     selection: '#1e6fd9',
     error: '#c62828',
     selectionRectFill: 'rgba(30, 111, 217, 0.15)',
@@ -307,6 +337,7 @@ const BREADBOARD: Palette = {
     'text-dim2': '#6e6a5e',
     'accent': '#1e6fd9',
     'accent-hover': '#1558ad',
+    'accent-text': '#ffffff',
     'green': '#0a9e48',
     'red': '#d22b2b',
     'orange': '#d97706',
@@ -320,6 +351,10 @@ const BREADBOARD: Palette = {
     'input-border': '#bdb7a5',
     'current-bg': 'rgba(30, 111, 217, 0.12)',
     'current-border': '#1e6fd9',
+    // Darkened for a light surface — the dark-board versions are unreadable on cream.
+    'col-input': '#1d4ed8',
+    'col-expected': '#7e22ce',
+    'col-actual': '#a16207',
   },
 };
 
@@ -353,24 +388,27 @@ export const THEME: { gateStyle: Palette['gateStyle'] } = {
  * Colours a wire can be given. Index 0 is the "no override" sentinel — a wire left on it
  * draws in `COLORS.wireDefault` — and the rest are real choices.
  *
- * White is the useful high-contrast pick on a dark board and invisible on a light one, so
- * on a light palette it trades places with the sentinel: white becomes the slot nobody
- * paints with, and the dark slate becomes a real choice.
+ * The same list on every board, deliberately. A wire's colour is recognised as "no override"
+ * by comparing it to the sentinel (see `InputHandler.getActiveWireColor`) and is stored
+ * verbatim in saved circuits, so a per-palette list would change the meaning of colours
+ * already on the board: switch to another palette and the wires you drew would repaint, and
+ * new ones would silently carry an explicit override. Both a white and an ink slot are
+ * offered instead, one of which reads on any board.
  */
-export const WIRE_COLORS: string[] = wireColorsFor(getPalette(DEFAULT_PALETTE_ID));
+export const WIRE_COLORS: readonly string[] = [
+  '#4a4a7a', // default (no override) — sentinel, never painted
+  '#fb923c', // orange
+  '#facc15', // yellow
+  '#60a5fa', // blue
+  '#c084fc', // purple
+  '#f472b6', // pink
+  '#8b5cf6', // violet
+  '#14b8a6', // teal
+  '#ffffff', // white — the high-contrast pick on a dark board
+  '#1c1c1c', // ink — the high-contrast pick on a light board
+];
 
 export function applyCanvasColors(palette: Palette): void {
   Object.assign(COLORS, palette.canvas);
   THEME.gateStyle = palette.gateStyle;
-  // Mutated in place: modules index into this array, and re-assigning it would strand them.
-  wireColorsFor(palette).forEach((color, i) => { WIRE_COLORS[i] = color; });
-}
-
-function wireColorsFor(palette: Palette): string[] {
-  const colors = [...BASE_WIRE_COLORS];
-  if (palette.scheme !== 'light') return colors;
-
-  const last = colors.length - 1;
-  [colors[0], colors[last]] = [colors[last], colors[0]];
-  return colors;
 }

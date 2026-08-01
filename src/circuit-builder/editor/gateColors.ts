@@ -80,9 +80,15 @@ interface SaturationTarget {
   scale: number;
 }
 
-/** Same hue, new lightness, saturation pulled into a readable band. */
+/**
+ * Same hue, new lightness, saturation pulled into a readable band.
+ *
+ * A grey has no hue to preserve — `hexToHsl` reports hue 0 for it, so applying the
+ * saturation floor would turn every grey into a red. Greys only change lightness.
+ */
 function recolor(hex: string, lightness: number, saturation: SaturationTarget): string {
   const { h, s } = hexToHsl(hex);
+  if (s === 0) return hslToHex(0, 0, lightness);
   const clamped = Math.min(saturation.max, Math.max(saturation.min, s * saturation.scale));
   return hslToHex(h, clamped, lightness);
 }

@@ -1,32 +1,42 @@
+/*
+ * These are only what the page shows before the palette is applied — `applyPalette`
+ * overwrites every one of them on the root element at startup. They mirror the `ui` block of
+ * DEFAULT_PALETTE_ID (Breadboard) in palettes.ts so the first paint is not a different theme
+ * that flips a frame later; keep the two in step.
+ */
 :root {
-  --bg: #1e1e2e;
-  --surface: #2d2d4d;
-  --surface-hover: #3d3d5d;
-  --border: #444466;
-  --text: #e0e0e0;
-  --text-dim: #9ca3af;
-  --text-dim2: #999baf;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --green: #4ade80;
-  --red: #f87171;
-  --orange: #fb923c;
-  --pass: #22c55e;
-  --fail: #ef4444;
-  --button-bg: #363650;
-  --button-hover: #44446a;
-  --label-bg: #252540;
-  --prop-bg: #252540;
-  --input-bg: #1a1a30;
-  --input-border: #4a4a7a;
-  --current-bg: rgba(96, 165, 250, 0.12);
-  --current-border: #60a5fa;
+  --bg: #f4f2ea;
+  --surface: #e4e0d3;
+  --surface-hover: #d7d2c2;
+  --border: #bdb7a5;
+  --text: #22221e;
+  --text-dim: #5f5b50;
+  --text-dim2: #6e6a5e;
+  --accent: #1e6fd9;
+  --accent-hover: #1558ad;
+  --accent-text: #ffffff;
+  --green: #0a9e48;
+  --red: #d22b2b;
+  --orange: #d97706;
+  --pass: #0a9e48;
+  --fail: #c62828;
+  --button-bg: #ded9cb;
+  --button-hover: #cec8b7;
+  --label-bg: #eae6da;
+  --prop-bg: #eae6da;
+  --input-bg: #ffffff;
+  --input-border: #bdb7a5;
+  --current-bg: rgba(30, 111, 217, 0.12);
+  --current-border: #1e6fd9;
+  --col-input: #1d4ed8;
+  --col-expected: #7e22ce;
+  --col-actual: #a16207;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 14px/1.4 var(--sans);
-  color-scheme: dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -411,9 +421,9 @@ body {
   top: 0;
   z-index: 1;
 
-  &.col-input { color: #60a5fa; }
-  &.col-expected { color: #c084fc; }
-  &.col-actual { color: #facc15; }
+  &.col-input { color: var(--col-input); }
+  &.col-expected { color: var(--col-expected); }
+  &.col-actual { color: var(--col-actual); }
   &.col-index { color: var(--text-dim); }
 }
 
@@ -617,7 +627,7 @@ body {
   padding: 4px 10px;
   margin-bottom: 4px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--label-bg);
   font-size: 13px;
   color: var(--text);
 }
@@ -628,9 +638,9 @@ body {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-  background: rgba(59, 130, 246, 0.15);
+  background: var(--current-bg);
   color: var(--accent);
-  border: 1px solid rgba(59, 130, 246, 0.267);
+  border: 1px solid var(--current-border);
   margin-bottom: 24px;
 }
 
@@ -642,7 +652,7 @@ body {
 
 .level-dialog-start-btn {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--accent-text);
   border: none;
   border-radius: 6px;
   padding: 10px 28px;
@@ -707,7 +717,7 @@ body {
 
 .test-editor-apply {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-text);
   border: none;
   font-size: 12px;
   font-weight: 600;
@@ -866,7 +876,13 @@ body {
   }
 }
 
-.pattern-option-selected {
+/*
+ * Compound selectors on purpose: both base rules set the `border` shorthand, which resets
+ * border-color, and `.palette-option` is declared later in this file. At equal specificity
+ * it would win and the selected option would show no highlight at all.
+ */
+.pattern-option.pattern-option-selected,
+.palette-option.pattern-option-selected {
   border-color: var(--accent);
   color: var(--text);
 }

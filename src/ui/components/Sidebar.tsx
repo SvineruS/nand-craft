@@ -113,6 +113,7 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: G
   const maxCount = constraints?.maxCount?.[type];
   const currentCount = editorState && maxCount !== undefined ? getGateCount(type, editorState.circuit.gates.values()) : 0;
   const atLimit = maxCount !== undefined && currentCount >= maxCount;
+  const colors = gateColorsOf(def);
 
   return (
     <div
@@ -164,12 +165,12 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: G
             {Array.isArray(def.svg) ? def.svg.map((layer, i) => {
               const l = typeof layer === 'string' ? { path: layer } : layer;
               return <path key={i} d={l.path}
-                fill={l.fill === false ? 'none' : gateColorsOf(def).fill}
-                stroke={gateColorsOf(def).stroke} stroke-width="0.08"
+                fill={l.fill === false ? 'none' : colors.fill}
+                stroke={colors.stroke} stroke-width="0.08"
                 opacity={l.alpha ?? 1} />;
             }) : (
-              <path d={def.svg} fill={gateColorsOf(def).fill}
-                stroke={gateColorsOf(def).stroke} stroke-width="0.08" />
+              <path d={def.svg} fill={colors.fill}
+                stroke={colors.stroke} stroke-width="0.08" />
             )}
           </svg>
         )}
