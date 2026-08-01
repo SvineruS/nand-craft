@@ -316,18 +316,13 @@ function buildGates(
       const valColor = val !== null ? signalColor(val) : COLORS.gateText;
       valueLabel = { text: valText, color: valColor, pos: { x: labelX, y: labelY } };
     } else {
-      label = gate.label ?? def.label;
+      label = gate.label ?? (def.hideLabel ? '' : def.label);
       labelFont = 'bold 11px monospace';
       labelColor = COLORS.gateText;
       labelPos = { x: labelX, y: labelY };
     }
 
-    // Auto-wrap label if too wide for gate (monospace ~7px per char at 11px font)
-    const charWidth = 7;
-    const maxChars = Math.floor((w * 0.9) / charWidth);
-    if (label.length > maxChars && maxChars > 1) {
-      label = wrapText(label, maxChars);
-    }
+    label = fitGateLabel(label, w);
 
     const errorGlow = circuit.getBuild()?.shortCircuitGates.includes(gate.id) ?? false;
 
@@ -566,12 +561,7 @@ function buildPreviewGate(
   const labelX = (def.labelX ?? 0) * GRID_SIZE;
   const labelY = (def.labelY ?? 0) * GRID_SIZE;
 
-  let label = def.label;
-  const charWidth = 7;
-  const maxChars = Math.floor((w * 0.9) / charWidth);
-  if (label.length > maxChars && maxChars > 1) {
-    label = wrapText(label, maxChars);
-  }
+  const label = def.hideLabel ? '' : fitGateLabel(def.label, w);
 
   // Pin positions relative to center
   const previewPins = def.pins.map(pin => ({
@@ -698,6 +688,18 @@ function formatWireValue(value: number, bitWidth: number): string {
   if (bitWidth >= 16) return '0x' + value.toString(16).toUpperCase();
   if (bitWidth >= 8) return String(value);
   return value ? 'T' : 'F';
+}
+
+/**
+ * Wrap a gate label to its body width, in monospace character widths.
+ *
+ * Both the placed gate and the placement preview go through here, so a gate's label cannot
+ * change shape at the moment it is dropped.
+ */
+function fitGateLabel(label: string, bodyWidth: number): string {
+  const CHAR_WIDTH = 7;   // monospace advance at 11px
+  const maxChars = Math.floor((bodyWidth * 0.9) / CHAR_WIDTH);
+  return label.length > maxChars && maxChars > 1 ? wrapText(label, maxChars) : label;
 }
 
 /** Wrap text to fit within maxChars per line, breaking at spaces or by character. */

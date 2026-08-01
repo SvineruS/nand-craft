@@ -9,6 +9,7 @@ import {
   type WireSegmentId,
 } from '../editor/types.ts';
 import type { Gate } from "../editor/gates.ts";
+import { updateAnchoredNodes } from '../editor/utils/geometry.ts';
 import { RAM_SIZE } from '../simulation/gateTypes.ts';
 
 /** A gate as stored on disk. Rotation is optional — the level map data omits the default. */
@@ -113,6 +114,15 @@ export function deserializeCircuit(data: SerializedCircuit): Circuit {
   }
   for (const [id, seg] of data.wireSegments) {
     circuit.addWireSegment({ ...seg, id: id as WireSegmentId });
+  }
+
+  // An anchored node's position *is* its pin's position — every move and rotation re-syncs
+  // it. Saved positions are therefore redundant, and stale whenever a gate definition's pin
+  // layout changes: a save written when the splitter was two columns wide would draw its
+  // wires one cell clear of the gate. Re-deriving on load keeps old saves correct instead of
+  // needing a migration per layout change.
+  for (const gate of circuit.gates.values()) {
+    updateAnchoredNodes(gate, circuit);
   }
 
   // Ensure ID counter is past the highest used ID (use max to never decrease it,

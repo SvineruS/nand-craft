@@ -28,6 +28,12 @@ export interface GateDefinition {
   stroke?: string; // stroke color for the gate outline
   labelX?: number; // label x offset in grid units from center (default 0)
   labelY?: number; // label y offset in grid units from center (default 0)
+  /**
+   * Draw no label on the board. For one-column gates whose body is too narrow to hold a
+   * name; the shape and the numbered pins identify them, and the sidebar still shows
+   * `label`. A name the player set on the gate itself is always drawn.
+   */
+  hideLabel?: boolean;
 }
 
 
@@ -204,20 +210,23 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     ],
     svg: [{ path: SVG.DECODER_2_0 }, { path: SVG.DECODER_2_1 }],
   },
+  // One grid column wide, like the splitter and joiner: too narrow for a board label, so it
+  // is hidden rather than spending a second column on a gate that is all pins.
   '3bit-decoder': {
-    label: 'DEC3', description: '3-to-8 decoder', width: 2, height: 8,    color: '#402d50', stroke: '#8a5aad',
+    label: 'DEC3', description: '3-to-8 decoder', width: 1, height: 8, hideLabel: true,
+    color: '#402d50', stroke: '#8a5aad',
     pins: [
       { kind: 'input', x: 0, y: 1, label: 'A' },
       { kind: 'input', x: 0, y: 2, label: 'B' },
       { kind: 'input', x: 0, y: 3, label: 'C' },
-      { kind: 'output', x: 2, y: 0, label: '0' },
-      { kind: 'output', x: 2, y: 1, label: '1' },
-      { kind: 'output', x: 2, y: 2, label: '2' },
-      { kind: 'output', x: 2, y: 3, label: '3' },
-      { kind: 'output', x: 2, y: 4, label: '4' },
-      { kind: 'output', x: 2, y: 5, label: '5' },
-      { kind: 'output', x: 2, y: 6, label: '6' },
-      { kind: 'output', x: 2, y: 7, label: '7' },
+      { kind: 'output', x: 1, y: 0, label: '0' },
+      { kind: 'output', x: 1, y: 1, label: '1' },
+      { kind: 'output', x: 1, y: 2, label: '2' },
+      { kind: 'output', x: 1, y: 3, label: '3' },
+      { kind: 'output', x: 1, y: 4, label: '4' },
+      { kind: 'output', x: 1, y: 5, label: '5' },
+      { kind: 'output', x: 1, y: 6, label: '6' },
+      { kind: 'output', x: 1, y: 7, label: '7' },
     ],
     svg: SVG.DECODER_8,
   },
@@ -482,22 +491,24 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
   // Bit pins are labelled because their order is their meaning: the tick loop shifts by pin
   // index, so the top pin is bit 0. Nothing else about the gate says which end is the LSB.
   splitter: {
-    label: 'SPL', description: '8-bit bus splitter', width: 2, height: 7,    color: '#2d4040', stroke: '#5a9090',
+    label: 'SPL', description: '8-bit bus splitter', width: 1, height: 7, hideLabel: true,
+    color: '#2d4040', stroke: '#5a9090',
     pins: [
       { kind: 'input', x: 0, y: 3, bitWidth: 8, label: 'bus' },
-      { kind: 'output', x: 2, y: 0, bitWidth: 1, label: '0' },
-      { kind: 'output', x: 2, y: 1, bitWidth: 1, label: '1' },
-      { kind: 'output', x: 2, y: 2, bitWidth: 1, label: '2' },
-      { kind: 'output', x: 2, y: 3, bitWidth: 1, label: '3' },
-      { kind: 'output', x: 2, y: 4, bitWidth: 1, label: '4' },
-      { kind: 'output', x: 2, y: 5, bitWidth: 1, label: '5' },
-      { kind: 'output', x: 2, y: 6, bitWidth: 1, label: '6' },
-      { kind: 'output', x: 2, y: 7, bitWidth: 1, label: '7' },
+      { kind: 'output', x: 1, y: 0, bitWidth: 1, label: '0' },
+      { kind: 'output', x: 1, y: 1, bitWidth: 1, label: '1' },
+      { kind: 'output', x: 1, y: 2, bitWidth: 1, label: '2' },
+      { kind: 'output', x: 1, y: 3, bitWidth: 1, label: '3' },
+      { kind: 'output', x: 1, y: 4, bitWidth: 1, label: '4' },
+      { kind: 'output', x: 1, y: 5, bitWidth: 1, label: '5' },
+      { kind: 'output', x: 1, y: 6, bitWidth: 1, label: '6' },
+      { kind: 'output', x: 1, y: 7, bitWidth: 1, label: '7' },
     ],
     svg: SVG.SPLITTER,
   },
   joiner: {
-    label: 'JON', description: '8-bit bus joiner', width: 2, height: 7,    color: '#40402d', stroke: '#90905a',
+    label: 'JON', description: '8-bit bus joiner', width: 1, height: 7, hideLabel: true,
+    color: '#40402d', stroke: '#90905a',
     pins: [
       { kind: 'input', x: 0, y: 0, bitWidth: 1, label: '0' },
       { kind: 'input', x: 0, y: 1, bitWidth: 1, label: '1' },
@@ -507,7 +518,7 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 5, bitWidth: 1, label: '5' },
       { kind: 'input', x: 0, y: 6, bitWidth: 1, label: '6' },
       { kind: 'input', x: 0, y: 7, bitWidth: 1, label: '7' },
-      { kind: 'output', x: 2, y: 3, bitWidth: 8, label: 'bus' },
+      { kind: 'output', x: 1, y: 3, bitWidth: 8, label: 'bus' },
     ],
     svg: SVG.JOINER,
   },

@@ -18,9 +18,15 @@ function buildBubble(centerX: number, radius: number): string {
        + ` a ${radius},${radius} 0 1,0 ${-d},0`;
 }
 
-/** Trapezoid 2 units wide — the selector/bus-fan shape used by mux, decoders and splitters. */
-function buildTrapezoid(leftTop: number, leftBottom: number, rightBottom: number, rightTop: number): string {
-  return `M 0,${leftTop} L 0,${leftBottom} L 2,${rightBottom} L 2,${rightTop} Z`;
+/**
+ * Trapezoid `width` units wide — the selector/bus-fan shape used by mux, decoders and
+ * splitters. The bus gates pass width 1: they are tall enough to read as a fan without
+ * spending a second grid column on it.
+ */
+function buildTrapezoid(
+  leftTop: number, leftBottom: number, rightBottom: number, rightTop: number, width = 2,
+): string {
+  return `M 0,${leftTop} L 0,${leftBottom} L ${width},${rightBottom} L ${width},${rightTop} Z`;
 }
 
 // --- Bodies ---
@@ -116,12 +122,12 @@ export const OUTPUT_8BIT_SW  = OUTPUT_SW_BODY + OUTPUT_8BIT_MARKS;
 export const DECODER_2   = buildTrapezoid(0.7, 1.3, 1.7, 0.3);
 export const DECODER_2_0 = DECODER_2 + DEC_LINE_0;
 export const DECODER_2_1 = DECODER_2 + DEC_LINE_1;
-export const DECODER_8   = buildTrapezoid(0.5, 4, 8, 0);
+export const DECODER_8   = buildTrapezoid(0.5, 4, 8, 0, 1);
 
 export const MUX_A       = MUX_BODY + MUX_LINE_A;
 export const MUX_B       = MUX_BODY + MUX_LINE_B;
 export const MUX_8BIT_A  = MUX_BODY + MUX_8BIT_MARKS + MUX_LINE_A;
 export const MUX_8BIT_B  = MUX_BODY + MUX_8BIT_MARKS + MUX_LINE_B;
 
-export const SPLITTER = buildTrapezoid(1, 6, 7, 0);
-export const JOINER   = buildTrapezoid(0, 7, 6, 1);
+export const SPLITTER = buildTrapezoid(1, 6, 7, 0, 1);
+export const JOINER   = buildTrapezoid(0, 7, 6, 1, 1);
