@@ -762,11 +762,12 @@ body {
   border-radius: 0 0 10px 0;
 }
 
+/* Wide enough for the file list beside a readable column of test rows. */
 .window-tests {
   top: 80px;
-  left: calc(50% - 280px);
-  width: 560px;
-  height: 480px;
+  left: calc(50% - 350px);
+  width: 700px;
+  height: 500px;
 }
 
 /*
@@ -1205,11 +1206,8 @@ body {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* RAM windows (memory view + program editor)                          */
-/* ------------------------------------------------------------------ */
-
-.ram-toolbar {
+/* A strip of controls over a window's content. */
+.window-toolbar {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1217,16 +1215,20 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-.ram-toolbar-spacer {
+.window-toolbar-spacer {
   flex: 1;
 }
+
+/* ------------------------------------------------------------------ */
+/* RAM windows (memory view + program editor)                          */
+/* ------------------------------------------------------------------ */
 
 .ram-radix {
   display: flex;
   gap: 2px;
 }
 
-/* ── Memory tab ── */
+/* ── Memory window ── */
 
 .ram-memory {
   flex: 1;
@@ -1317,23 +1319,25 @@ body {
   }
 }
 
-/* ── Program tab ── */
+/* ------------------------------------------------------------------ */
+/* File-backed editors (RAM programs, tests)                           */
+/* ------------------------------------------------------------------ */
 
-.ram-program {
+.file-editor {
   flex: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
 }
 
-.ram-program-main {
+.file-editor-main {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
-.ram-program-path {
+.file-editor-path {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--text-dim);
@@ -1342,14 +1346,7 @@ body {
   white-space: nowrap;
 }
 
-.ram-editor {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--bg);
-}
-
-.ram-status-line {
+.file-editor-status {
   padding: 4px 10px;
   border-top: 1px solid var(--border);
   font-size: 11px;
@@ -1361,7 +1358,7 @@ body {
   }
 }
 
-.program-explorer {
+.file-explorer {
   width: 180px;
   flex: none;
   display: flex;
@@ -1369,7 +1366,7 @@ body {
   border-right: 1px solid var(--border);
 }
 
-.program-explorer-head {
+.file-explorer-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1379,26 +1376,26 @@ body {
   color: var(--text-dim);
 }
 
-.program-explorer-list {
+.file-explorer-list {
   flex: 1;
   overflow: auto;
   padding: 4px 0;
 }
 
-.program-explorer-empty {
+.file-explorer-empty {
   padding: 8px 10px;
   font-size: 11px;
   color: var(--text-dim2);
 }
 
-.program-explorer-folder {
+.file-explorer-folder {
   padding: 4px 10px 2px;
   font-size: 11px;
   color: var(--text-dim2);
   font-family: var(--mono);
 }
 
-.program-file {
+.file-row {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1419,23 +1416,23 @@ body {
   }
 }
 
-.program-file-name {
+.file-row-name {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.program-file-actions {
+.file-row-actions {
   display: none;
   gap: 2px;
 }
 
-.program-file:hover .program-file-actions {
+.file-row:hover .file-row-actions {
   display: flex;
 }
 
-.program-file-action {
+.file-row-action {
   background: none;
   border: none;
   color: var(--text-dim);

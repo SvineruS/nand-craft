@@ -1,6 +1,6 @@
 import type { AssembleResult } from './types.ts';
 import { DEFAULT_PREPROCESSOR_ID, getPreprocessor } from './registry.ts';
-import { resolveInclude } from '../persistence/programFs.ts';
+import { programFiles } from '../persistence/userFiles.ts';
 import { RAM_SIZE } from '../simulation/gateTypes.ts';
 
 /**
@@ -16,7 +16,7 @@ export function assembleProgram(source: string, path: string): AssembleResult {
   return getPreprocessor(DEFAULT_PREPROCESSOR_ID).assemble({
     source,
     path,
-    readFile: resolveInclude,
+    readFile: programFiles.resolve,
     memorySize: RAM_SIZE,
   });
 }

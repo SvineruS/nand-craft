@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import { testEditorVisible } from '../editorStore.ts';
-import { EditorView, keymap } from '@codemirror/view';
-import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
-import { EditorState } from '@codemirror/state';
 import { linter, type Diagnostic } from '@codemirror/lint';
 import { dslLanguage } from '../../circuit-builder/testing/dslHighlight.ts';
 import { parseDsl, convertToTestCases } from '../../circuit-builder/testing/dslParser.ts';
 import { compileTestFunction, enumerateInputs } from '../../circuit-builder/testing/codeSandbox.ts';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
+import { testFiles } from '../../circuit-builder/persistence/userFiles.ts';
 import { useEditor } from '../editorContext.ts';
+import { testBuffer } from '../fileBuffers.ts';
+import { useCodeEditor, type CodeEditorHandle } from '../useCodeEditor.ts';
+import { useFileEditor, type FileEditorStatus } from '../useFileEditor.ts';
 import { FloatingWindow } from './FloatingWindow.tsx';
+import { FileEditorPane, HelpToggle } from './FileEditorPane.tsx';
 import type { Circuit } from '../../circuit-builder/simulation/circuit.ts';
 import { notifyStateChange } from '../editorStore.ts';
 import { isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
@@ -128,63 +130,50 @@ function findCommandLine(lines: string[], label: string, startFrom: number): num
 }
 
 export function TestEditorDialog() {
+  if (!testEditorVisible.value) return null;
+  return <TestEditor />;
+}
+
+/**
+ * Inner component so the editor and its file list are built only while the window is open,
+ * and torn down with it — the buffer itself lives on in `testBuffer`.
+ */
+function TestEditor() {
   const editor = useEditor();
-  const visible = testEditorVisible.value;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
+  const [status, setStatus] = useState<FileEditorStatus | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const handleRef = useRef<CodeEditorHandle | null>(null);
 
-  useEffect(() => {
-    if (!visible || !containerRef.current) return;
+  const files = useFileEditor({
+    store: testFiles,
+    buffer: testBuffer,
+    loadDocument: content => handleRef.current?.load(content),
+    template: PLACEHOLDER,
+    namePrefix: 'suite',
+    onStatus: setStatus,
+  });
 
-    const state = EditorState.create({
-      doc: viewRef.current?.state.doc.toString() ?? PLACEHOLDER,
-      extensions: [
-        dslLanguage,
-        syntaxHighlighting(dslHighlightStyle),
-        createDslLinter(editor.getCircuit()),
-        EditorView.theme({
-          '&': { height: '100%', fontSize: '13px' },
-          '.cm-content': { fontFamily: 'monospace', padding: '8px 0' },
-          '.cm-gutters': { display: 'none' },
-          '.cm-scroller': { overflow: 'auto' },
-          '.cm-focused': { outline: 'none' },
-        }),
-        EditorView.theme({
-          '&': { backgroundColor: 'var(--bg)' },
-          '.cm-content': { color: 'var(--text)', caretColor: 'var(--text)' },
-          '.cm-cursor': { borderLeftColor: 'var(--text)' },
-          '.cm-selectionBackground': { backgroundColor: 'rgba(100, 150, 255, 0.2) !important' },
-          '.cm-activeLine': { backgroundColor: 'var(--label-bg)' },
-          '.cm-tooltip': { backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' },
-          '.cm-tooltip-lint': { backgroundColor: 'var(--surface)' },
-          '.cm-lint-marker-error': { content: '"!"' },
-          '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--fail)' },
-        }),
-        history(),
-        keymap.of([
-          { key: 'Escape', run: () => { testEditorVisible.value = false; return true; } },
-          ...defaultKeymap,
-          ...historyKeymap,
-        ]),
-      ],
-    });
-
-    const view = new EditorView({ state, parent: containerRef.current });
-    viewRef.current = view;
-    view.focus();
-
-    return () => view.destroy();
-  }, [visible]);
-
-  if (!visible) return null;
+  const containerRef = useCodeEditor(handleRef, {
+    buffer: testBuffer,
+    extensions: [
+      dslLanguage,
+      syntaxHighlighting(dslHighlightStyle),
+      createDslLinter(editor.getCircuit()),
+    ],
+    onSave: files.save,
+    initialise: files.initialise,
+    keys: [{ key: 'Escape', run: () => { testEditorVisible.value = false; return true; } }],
+  });
 
   const handleApply = () => {
-    const doc = viewRef.current?.state.doc.toString();
+    const doc = testBuffer.source.peek();
     if (!doc) return;
 
     const result = parseDsl(doc);
-    if (result.errors.length > 0) return;
+    if (result.errors.length > 0) {
+      setStatus({ kind: 'error', text: `Line ${result.errors[0].line}: ${result.errors[0].message}` });
+      return;
+    }
 
     if (result.mode === 'queue') {
       // Queue mode: flatten commands with case boundary markers
@@ -202,6 +191,7 @@ export function TestEditorDialog() {
       editor.tests.mode = 'queue';
       editor.tests.startQueue(allCommands, caseBoundaries);
       notifyStateChange();
+      setStatus({ kind: 'info', text: `Applied ${allCommands.length} queue commands` });
       return;
     }
 
@@ -213,7 +203,7 @@ export function TestEditorDialog() {
         cases = convertToTestCases(result);
       }
     } catch (e) {
-      console.error('Failed to generate test cases:', e);
+      setStatus({ kind: 'error', text: `Could not generate cases: ${(e as Error).message}` });
       return;
     }
 
@@ -236,12 +226,13 @@ export function TestEditorDialog() {
 
     editor.tests.setSuite({ cases, inputNames, outputNames });
     notifyStateChange();
+    setStatus({ kind: 'info', text: `Applied ${cases.length} test cases` });
   };
 
   const actions = (
     <>
       <button class="window-btn is-primary" onClick={handleApply}>Apply</button>
-      <button class="window-btn" title="Syntax help" onClick={() => setShowHelp(!showHelp)}>?</button>
+      <HelpToggle open={showHelp} onToggle={() => setShowHelp(!showHelp)} />
     </>
   );
 
@@ -250,11 +241,12 @@ export function TestEditorDialog() {
       id="tests"
       class="window-tests"
       title="Test Editor"
-      actions={actions}
       onClose={() => { testEditorVisible.value = false; }}
     >
-      <div class="window-editor" ref={containerRef} style={{ display: showHelp ? 'none' : '' }} />
-      {showHelp && <HelpPanel />}
+      <FileEditorPane editor={files} status={status} actions={actions}>
+        <div class="window-editor" ref={containerRef} style={{ display: showHelp ? 'none' : '' }} />
+        {showHelp && <HelpPanel />}
+      </FileEditorPane>
     </FloatingWindow>
   );
 }

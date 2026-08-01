@@ -67,6 +67,10 @@ Open with the **Tests** button in sandbox mode. Write custom tests using three m
 
 Click **Apply** to generate test cases, then **Step** or **Run All** to execute.
 
+Suites are files, like RAM programs: the list on the left keeps them, **☰** hides it,
+**Save** stores the open one, and every test file ends in `.test`, which is added for you.
+Folders come from the path — naming a suite `alu/adder` puts it in an `alu` folder.
+
 ## RAM Windows
 
 Every RAM chip carries two small buttons in its bottom-right corner, each opening a window

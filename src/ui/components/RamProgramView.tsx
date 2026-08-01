@@ -1,32 +1,28 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
-import { EditorView, keymap } from '@codemirror/view';
-import { EditorState as CodeMirrorState } from '@codemirror/state';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { useRef, useState } from 'preact/hooks';
+import { EditorView } from '@codemirror/view';
 import { linter, type Diagnostic } from '@codemirror/lint';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { asmLanguage } from '../../circuit-builder/asm/asmHighlight.ts';
 import { assembleProgram } from '../../circuit-builder/asm/assembleProgram.ts';
-import type { ProgramFile } from '../../circuit-builder/persistence/programFs.ts';
-import {
-  deleteProgram, listPrograms, pathProblem, readProgram, renameProgram,
-  withProgramExtension, writeProgram,
-} from '../../circuit-builder/persistence/programFs.ts';
+import type { AsmDiagnostic } from '../../circuit-builder/asm/types.ts';
+import { programFiles } from '../../circuit-builder/persistence/userFiles.ts';
 import type { Gate } from '../../circuit-builder/simulation/gateTypes.ts';
 import { padRamCells } from '../../circuit-builder/simulation/gateTypes.ts';
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { WriteRamCommand } from '../../circuit-builder/editor/commands.ts';
-import {
-  explorerVisible, openProgramBuffer, openProgramPath, programDirty, programSource,
-} from '../programStore.ts';
-import { ProgramExplorer } from './ProgramExplorer.tsx';
+import { programBuffer } from '../fileBuffers.ts';
+import { useCodeEditor, type CodeEditorHandle } from '../useCodeEditor.ts';
+import { useFileEditor, type FileEditorStatus } from '../useFileEditor.ts';
+import { FileEditorPane, HelpToggle } from './FileEditorPane.tsx';
 
 /**
  * Write a program, assemble it, flash it into the chip.
  *
- * The buffer lives in programStore rather than here — see the note there — so this
- * component is only the wiring between the file list, the text editor and the RAM gate.
+ * The files, the buffer and the text editor are the shared machinery (`useFileEditor`,
+ * `useCodeEditor`, `FileEditorPane`); what belongs to this view is the assembly syntax and
+ * the two buttons that turn source into bytes.
  */
 
 const NEW_FILE_TEMPLATE = `; A program is just bytes. What they mean is up to your CPU.
@@ -38,11 +34,6 @@ start:
   NOP
 `;
 
-interface Status {
-  kind: 'info' | 'error';
-  text: string;
-}
-
 interface RamProgramViewProps {
   gate: Gate;
   state: EditorState;
@@ -50,158 +41,36 @@ interface RamProgramViewProps {
 }
 
 export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
-  /** Set while the code loads a different file, so that edit is not counted as the player's. */
-  const loadingRef = useRef(false);
-  const [files, setFiles] = useState<ProgramFile[]>(() => listPrograms());
-  const [status, setStatus] = useState<Status | null>(null);
+  const [status, setStatus] = useState<FileEditorStatus | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const handleRef = useRef<CodeEditorHandle | null>(null);
 
-  const path = openProgramPath.value;
-  const dirty = programDirty.value;
-  const showFiles = explorerVisible.value;
+  const files = useFileEditor({
+    store: programFiles,
+    buffer: programBuffer,
+    loadDocument: content => handleRef.current?.load(content),
+    template: NEW_FILE_TEMPLATE,
+    namePrefix: 'program',
+    onStatus: setStatus,
+  });
 
-  // The CodeMirror instance is built once, so anything it calls back into reads the
-  // current render's values through refs instead of closing over the first render's.
-  const pathRef = useRef(path);
-  pathRef.current = path;
-  const saveRef = useRef<() => void>(() => {});
+  // The linter runs on every keystroke, and must assemble against the file the buffer is
+  // saved as — read through a ref, because the editor is built once.
+  const pathRef = useRef(files.path);
+  pathRef.current = files.path;
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-    openInitialBuffer();
+  const containerRef = useCodeEditor(handleRef, {
+    buffer: programBuffer,
+    extensions: [
+      asmLanguage,
+      syntaxHighlighting(asmHighlightStyle),
+      linter(view => lintProgram(view, pathRef.current)),
+    ],
+    onSave: files.save,
+    initialise: files.initialise,
+  });
 
-    const view = new EditorView({
-      state: CodeMirrorState.create({
-        doc: programSource.peek(),
-        extensions: [
-          asmLanguage,
-          syntaxHighlighting(asmHighlightStyle),
-          linter(view => lintProgram(view, pathRef.current)),
-          ...editorTheme,
-          history(),
-          keymap.of([
-            { key: 'Mod-s', run: () => { saveRef.current(); return true; } },
-            ...defaultKeymap,
-            ...historyKeymap,
-          ]),
-          EditorView.updateListener.of(update => {
-            if (!update.docChanged || loadingRef.current) return;
-            programSource.value = update.state.doc.toString();
-            programDirty.value = true;
-          }),
-        ],
-      }),
-      parent: containerRef.current,
-    });
-
-    viewRef.current = view;
-    view.focus();
-    return () => { view.destroy(); viewRef.current = null; };
-  }, []);
-
-  const loadIntoEditor = (content: string) => {
-    const view = viewRef.current;
-    if (!view) return;
-    loadingRef.current = true;
-    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: content } });
-    loadingRef.current = false;
-  };
-
-  /** Store the buffer. Returns false when it could not be saved, having said why. */
-  const saveBuffer = (targetPath: string | null): boolean => {
-    if (targetPath === null) return createFile();
-    const error = writeProgram(targetPath, programSource.peek());
-    if (error) {
-      setStatus({ kind: 'error', text: error });
-      return false;
-    }
-    programDirty.value = false;
-    setFiles(listPrograms());
-    setStatus({ kind: 'info', text: `Saved ${targetPath}` });
-    return true;
-  };
-
-  saveRef.current = () => { saveBuffer(openProgramPath.peek()); };
-
-  // An unsaved buffer would otherwise be lost when the window closes.
-  useEffect(() => () => {
-    if (programDirty.peek() && openProgramPath.peek()) {
-      writeProgram(openProgramPath.peek() as string, programSource.peek());
-      programDirty.value = false;
-    }
-  }, []);
-
-  const createFile = (): boolean => {
-    const name = askForPath('New program', suggestFileName(files));
-    if (!name) return false;
-    if (readProgram(name)) {
-      setStatus({ kind: 'error', text: `"${name}" already exists` });
-      return false;
-    }
-
-    // An untitled buffer is being named; a saved one is being left behind for a fresh file.
-    const untitled = openProgramPath.peek() === null;
-    if (!untitled && programDirty.peek()) saveBuffer(openProgramPath.peek());
-    const buffer = programSource.peek();
-    const content = untitled && buffer.trim() !== '' ? buffer : NEW_FILE_TEMPLATE;
-    const error = writeProgram(name, content);
-    if (error) {
-      setStatus({ kind: 'error', text: error });
-      return false;
-    }
-    openProgramBuffer(name, content);
-    loadIntoEditor(content);
-    setFiles(listPrograms());
-    setStatus({ kind: 'info', text: `Created ${name}` });
-    return true;
-  };
-
-  const openFile = (next: string) => {
-    if (next === openProgramPath.peek()) return;
-    if (programDirty.peek() && openProgramPath.peek()) saveBuffer(openProgramPath.peek());
-
-    const file = readProgram(next);
-    if (!file) {
-      setFiles(listPrograms());
-      return;
-    }
-    openProgramBuffer(file.path, file.content);
-    loadIntoEditor(file.content);
-    setStatus(null);
-  };
-
-  const renameFile = (from: string) => {
-    const to = askForPath(`Rename "${from}" to`, from);
-    if (!to || to === from) return;
-    const error = renameProgram(from, to);
-    if (error) {
-      setStatus({ kind: 'error', text: error });
-      return;
-    }
-    if (openProgramPath.peek() === from) openProgramPath.value = to;
-    setFiles(listPrograms());
-    setStatus({ kind: 'info', text: `Renamed to ${to}` });
-  };
-
-  const deleteFile = (target: string) => {
-    if (!confirm(`Delete "${target}"? This cannot be undone.`)) return;
-    const error = deleteProgram(target);
-    if (error) {
-      setStatus({ kind: 'error', text: error });
-      return;
-    }
-    if (openProgramPath.peek() === target) {
-      // The text stays in the buffer — deleting a file should not eat what is on screen.
-      openProgramPath.value = null;
-      programDirty.value = true;
-    }
-    setFiles(listPrograms());
-    setStatus({ kind: 'info', text: `Deleted ${target}` });
-  };
-
-  const assemble = () => assembleProgram(programSource.peek(), path ?? '');
+  const assemble = () => assembleProgram(programBuffer.source.peek(), files.path ?? '');
 
   const handleAssemble = () => {
     const result = assemble();
@@ -220,89 +89,23 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
     setStatus({ kind: 'info', text: `Flashed ${result.bytes.length} bytes into ${gate.label ?? 'RAM'}` });
   };
 
+  const actions = (
+    <>
+      <button class="window-btn" onClick={handleAssemble}>Assemble</button>
+      <button class="window-btn is-primary" onClick={handleFlash}>Flash</button>
+      <HelpToggle open={showHelp} onToggle={() => setShowHelp(!showHelp)} />
+    </>
+  );
+
   return (
-    <div class="ram-program">
-      {showFiles && (
-        <ProgramExplorer
-          files={files}
-          openPath={path}
-          dirty={dirty}
-          onOpen={openFile}
-          onCreate={createFile}
-          onRename={renameFile}
-          onDelete={deleteFile}
-        />
-      )}
-
-      <div class="ram-program-main">
-        <div class="ram-toolbar">
-          <button
-            class={`window-tab is-icon${showFiles ? ' is-active' : ''}`}
-            title={showFiles ? 'Hide the file list' : 'Show the file list'}
-            onClick={() => { explorerVisible.value = !showFiles; }}
-          >{'☰'}</button>
-          <span class="ram-program-path">{path ?? 'untitled'}{dirty ? ' •' : ''}</span>
-          <div class="ram-toolbar-spacer" />
-          <button class="window-btn" onClick={() => saveBuffer(path)}>Save</button>
-          <button class="window-btn" onClick={handleAssemble}>Assemble</button>
-          <button class="window-btn is-primary" onClick={handleFlash}>Flash</button>
-          <button class="window-btn" title="Syntax help" onClick={() => setShowHelp(!showHelp)}>?</button>
-        </div>
-
-        <div class="ram-editor" ref={containerRef} style={{ display: showHelp ? 'none' : '' }} />
-        {showHelp && <ProgramHelp />}
-
-        {status && <div class={`ram-status-line${status.kind === 'error' ? ' is-error' : ''}`}>{status.text}</div>}
-      </div>
-    </div>
+    <FileEditorPane editor={files} status={status} actions={actions}>
+      <div class="window-editor" ref={containerRef} style={{ display: showHelp ? 'none' : '' }} />
+      {showHelp && <ProgramHelp />}
+    </FileEditorPane>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Editing helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Ask for a path, validating it here so the file system never sees a bad one.
- *
- * The extension is applied to whatever is typed rather than left to the player: a name
- * without one, or with the wrong one, is a file that reads as a different kind of thing in
- * the list and in an `#include`. The prompt says nothing about it — it is not something the
- * player has to think about, which is the point of enforcing it.
- */
-function askForPath(title: string, suggestion: string): string | null {
-  const raw = prompt(`${title} (folders allowed: cpu/ops)`, suggestion);
-  if (raw === null) return null;
-
-  const problem = pathProblem(raw.trim());
-  if (problem) {
-    alert(problem);
-    return null;
-  }
-  return withProgramExtension(raw);
-}
-
-/**
- * What the editor shows the first time it is opened in a session: the file edited most
- * recently, or a template when there are no files yet.
- */
-function openInitialBuffer(): void {
-  if (openProgramPath.peek() !== null || programSource.peek() !== '') return;
-
-  const recent = listPrograms().sort((a, b) => b.updatedAt - a.updatedAt)[0];
-  if (recent) openProgramBuffer(recent.path, recent.content);
-  else openProgramBuffer(null, NEW_FILE_TEMPLATE);
-}
-
-function suggestFileName(files: ProgramFile[]): string {
-  const taken = new Set(files.map(file => file.path));
-  for (let i = 1; ; i++) {
-    const name = withProgramExtension(`program${i > 1 ? i : ''}`);
-    if (!taken.has(name)) return name;
-  }
-}
-
-function assembleStatus(errors: { line: number; file: string; message: string }[], okText: string): Status {
+function assembleStatus(errors: AsmDiagnostic[], okText: string): FileEditorStatus {
   if (errors.length === 0) return { kind: 'info', text: okText };
   const first = errors[0];
   const more = errors.length > 1 ? ` (+${errors.length - 1} more)` : '';
@@ -334,11 +137,7 @@ function lintProgram(view: EditorView, openPath: string | null): Diagnostic[] {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Look
-// ---------------------------------------------------------------------------
-
-/** Same approach as the test editor's: palette variables, not fixed hexes. */
+/** Syntax colours, from the palette's CSS variables — see the note in useCodeEditor. */
 const asmHighlightStyle = HighlightStyle.define([
   { tag: tags.meta, color: 'var(--orange)' },
   { tag: tags.macroName, color: 'var(--col-expected)' },
@@ -349,22 +148,6 @@ const asmHighlightStyle = HighlightStyle.define([
   { tag: tags.variableName, color: 'var(--text)' },
   { tag: tags.punctuation, color: 'var(--text-dim)' },
 ]);
-
-const editorTheme = [
-  EditorView.theme({
-    '&': { height: '100%', fontSize: '13px', backgroundColor: 'var(--bg)' },
-    '.cm-content': { fontFamily: 'monospace', padding: '8px 0', color: 'var(--text)', caretColor: 'var(--text)' },
-    '.cm-gutters': { backgroundColor: 'var(--bg)', color: 'var(--text-dim2)', border: 'none' },
-    '.cm-scroller': { overflow: 'auto' },
-    '.cm-focused': { outline: 'none' },
-    '.cm-cursor': { borderLeftColor: 'var(--text)' },
-    '.cm-selectionBackground': { backgroundColor: 'rgba(100, 150, 255, 0.2) !important' },
-    '.cm-activeLine': { backgroundColor: 'var(--label-bg)' },
-    '.cm-tooltip': { backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' },
-    '.cm-tooltip-lint': { backgroundColor: 'var(--surface)' },
-    '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--fail)' },
-  }),
-];
 
 function ProgramHelp() {
   return (

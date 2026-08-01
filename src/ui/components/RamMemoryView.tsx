@@ -91,7 +91,7 @@ export function RamMemoryView({ gate, state, onExecute }: RamMemoryViewProps) {
 
   return (
     <div class="ram-memory">
-      <div class="ram-toolbar">
+      <div class="window-toolbar">
         <div class="ram-radix">
           {RADIX_LABELS.map(option => (
             <button
