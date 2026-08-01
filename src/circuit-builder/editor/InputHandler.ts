@@ -66,6 +66,11 @@ type DragState =
       kind: 'wireNode';
       nodeId: WireNodeId;
       startPos: Vec2Type;
+      /**
+       * Set once the pointer leaves the node's start cell. A bare click merges the node
+       * away, so a drag that happens to end back on the start cell must not look like one.
+       */
+      dragged: boolean;
       /** Present iff the drag pulls the node off a pin. */
       detachPin?: PinRef;
     }
@@ -464,9 +469,11 @@ export class InputHandler {
     // Wire node dragging — preview only; the circuit is untouched until mouseup
     if (this.drag.kind === 'wireNode') {
       const { nodeId, startPos, detachPin } = this.drag;
+      const nodePos = clampPoint(Vec2.snap(world), state.mapSize);
+      if (!Vec2.equal(nodePos, startPos)) this.drag.dragged = true;
       state.dragPreview = {
         ...emptyDragPreview(),
-        offset: Vec2.sub(clampPoint(Vec2.snap(world), state.mapSize), startPos),
+        offset: Vec2.sub(nodePos, startPos),
         nodeIds: [nodeId],
         detachedNodeIds: detachPin ? [nodeId] : [],
       };
@@ -579,18 +586,19 @@ export class InputHandler {
       return;
     }
 
-    const { nodeId, startPos, detachPin } = drag;
+    const { nodeId, startPos, detachPin, dragged } = drag;
     const target = hitTestEndpoint(world, state, nodeId);
     const moved = !Vec2.equal(finalPos, startPos);
 
     if (!moved && !detachPin) {
-      // Click without movement on a free 2-segment node → merge it away
-      if (this.tryMergeWireNode(state, nodeId)) {
+      // Click without movement on a free 2-segment node → merge it away. A drag that came
+      // back to the start cell is a cancelled move, not a click, so it must not merge.
+      if (!dragged && this.tryMergeWireNode(state, nodeId)) {
         state.selection = [];
         state.renderDirty = true;
         return;
       }
-      // Pure click on a pinned/multi-segment node: no-op
+      // Pure click on a pinned/multi-segment node, or a move back to the start: no-op
     } else if (target) {
       this.getHistory().beginBatch('Merge wire node');
       this.mergeNodeOnto(state, nodeId, target, detachPin);
@@ -781,6 +789,7 @@ export class InputHandler {
       kind: 'wireNode',
       nodeId,
       startPos: Vec2.copy(state.circuit.getWireNode(nodeId).pos),
+      dragged: false,
       detachPin: opts.detachPin,
     };
     state.dragPreview = { ...emptyDragPreview(), nodeIds: [nodeId] };
