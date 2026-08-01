@@ -270,7 +270,7 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2, label: 'V' },
       { kind: 'output', x: 2, y: 1, label: 'Q' },
     ],
-    svg: SVG.BOX_2x2,
+    svg: SVG.BOX_2x2_FULL,
   },
   '8bit-memory': {
     label: 'MEM8', description: '8-bit register', width: 2, height: 2,
@@ -280,7 +280,7 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
       { kind: 'input', x: 0, y: 2, label: 'V', bitWidth: 8 },
       { kind: 'output', x: 2, y: 1, label: 'Q', bitWidth: 8 },
     ],
-    svg: SVG.BOX_2x2,
+    svg: SVG.BOX_2x2_FULL,
   },
   '8bit-counter': {
     label: 'CTR', description: '8-bit counter', width: 3, height: 2,    color: '#3a3a4a', stroke: '#7a7aad',

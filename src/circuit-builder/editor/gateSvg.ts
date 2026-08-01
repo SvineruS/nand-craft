@@ -1,105 +1,120 @@
-// SVG path data for gate shapes.
-// Unique gates load from .svg files; IO/mux/constant variants are composed from fragments.
+// SVG path data for gate shapes, in grid units (a gate's own width × height).
+// Everything is a plain path string so shapes compose by concatenation: a body plus
+// modifier marks (inversion bubble, bus slashes, selector lines) makes a variant.
 
-import andSvg from './svg/and.svg?raw';
-import nandSvg from './svg/nand.svg?raw';
-import orSvg from './svg/or.svg?raw';
-import norSvg from './svg/nor.svg?raw';
-import xorSvg from './svg/xor.svg?raw';
-import xnorSvg from './svg/xnor.svg?raw';
-import notSvg from './svg/not.svg?raw';
-import tristateSvg from './svg/tristate.svg?raw';
-import box2x2Svg from './svg/box-2x2.svg?raw';
-import box3x3Svg from './svg/box-3x3.svg?raw';
-import box3x4Svg from './svg/box-3x4.svg?raw';
-import adderSvg from './svg/adder.svg?raw';
-import negateSvg from './svg/negate.svg?raw';
-import delaySvg from './svg/delay.svg?raw';
-import decoder2Svg from './svg/decoder-2.svg?raw';
-import decoder8Svg from './svg/decoder-8.svg?raw';
-import splitterSvg from './svg/splitter.svg?raw';
-import joinerSvg from './svg/joiner.svg?raw';
+// --- Shape builders ---
 
-function extractPath(svg: string): string {
-  const match = svg.match(/\bd="([^"]*)"/);
-  return match ? match[1] : '';
+/** Rectangle spanning width × height grid units. `inset` 0 makes the body reach the pins. */
+function buildBox(width: number, height: number, inset = 0): string {
+  const [x1, y1] = [inset, inset];
+  const [x2, y2] = [width - inset, height - inset];
+  return `M ${x1},${y1} L ${x2},${y1} L ${x2},${y2} L ${x1},${y2} Z`;
 }
 
-// --- Unique gate shapes (from SVG files) ---
+/** Inversion bubble on the output side, vertically centred on a 2-unit-tall gate. */
+function buildBubble(centerX: number, radius: number): string {
+  const d = radius * 2;
+  return ` M ${centerX},1 m ${-radius},0 a ${radius},${radius} 0 1,0 ${d},0`
+       + ` a ${radius},${radius} 0 1,0 ${-d},0`;
+}
 
-export const AND = extractPath(andSvg);
-export const NAND = extractPath(nandSvg);
-export const OR = extractPath(orSvg);
-export const NOR = extractPath(norSvg);
-export const XOR = extractPath(xorSvg);
-export const XNOR = extractPath(xnorSvg);
-export const NOT = extractPath(notSvg);
-export const TRISTATE = extractPath(tristateSvg);
-export const BOX_2x2 = extractPath(box2x2Svg);
-export const BOX_3x3 = extractPath(box3x3Svg);
-export const BOX_3x4 = extractPath(box3x4Svg);
-export const ADDER = extractPath(adderSvg);
-export const NEGATE = extractPath(negateSvg);
-export const DELAY = extractPath(delaySvg);
-export const COUNTER = DELAY;
-export const DECODER_2 = extractPath(decoder2Svg);
-export const DECODER_8 = extractPath(decoder8Svg);
-export const SPLITTER = extractPath(splitterSvg);
-export const JOINER = extractPath(joinerSvg);
+/** Trapezoid 2 units wide — the selector/bus-fan shape used by mux, decoders and splitters. */
+function buildTrapezoid(leftTop: number, leftBottom: number, rightBottom: number, rightTop: number): string {
+  return `M 0,${leftTop} L 0,${leftBottom} L 2,${rightBottom} L 2,${rightTop} Z`;
+}
 
-// --- Composable path fragments ---
+// --- Bodies ---
 
-// Base shapes
-const INPUT_SHAPE  = 'M 0.2,0.2 L 1.3,0.2 L 1.8,1 L 1.3,1.8 L 0.2,1.8 Z';
-const OUTPUT_SHAPE = 'M 1.8,0.2 L 0.7,0.2 L 0.2,1 L 0.7,1.8 L 1.8,1.8 Z';
-const INPUT_SW_SHAPE  = 'M 0.2,0.2 L 1.3,0.2 L 1.8,1 L 1.3,1.8 L 1.2,1.8 L 1,1.6 L 0.8,1.8 L 0.2,1.8 Z';
-const OUTPUT_SW_SHAPE = 'M 1.8,0.2 L 0.7,0.2 L 0.2,1 L 0.7,1.8 L 0.8,1.8 L 1,1.6 L 1.2,1.8 L 1.8,1.8 Z';
-const BOX_SHAPE    = 'M 0.3,0.3 L 1.7,0.3 L 1.7,1.7 L 0.3,1.7 Z';
-const MUX_SHAPE    = 'M 0,0 L 2,0.5 L 2,1.5 L 0,2 Z';
+const AND_BODY       = 'M 0.2,0.1 L 0.2,1.9 L 1.5,1.9 A 0.9,0.9 0 0,0 1.5,0.1 Z';
+const OR_BODY        = 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.3,1.9 2.8,1 Q 2.3,0.1 1.2,0.1 Z';
+// Shortened nose, so the inverted variants have room for the bubble inside the same 3 units.
+const OR_BODY_SHORT  = 'M 0.2,0.1 Q 0.8,1 0.2,1.9 L 1.2,1.9 Q 2.1,1.9 2.5,1 Q 2.1,0.1 1.2,0.1 Z';
+const NOT_BODY       = 'M 0.2,0.3 L 0.2,1.7 L 1.5,1 Z';
+const TRISTATE_BODY  = 'M 0.15,0.1 L 0.15,1.9 L 1.7,1 Z';
+const BOX_2x2_INSET  = buildBox(2, 2, 0.3);
+const MUX_BODY       = buildTrapezoid(0, 2, 1.5, 0.5);
 
-// Modifiers
+// --- Modifier marks ---
+
+const BUBBLE            = buildBubble(2.6, 0.15);
+const NOT_BUBBLE        = buildBubble(1.65, 0.18);
+const XOR_ARC           = ' M 0.0,0.1 Q 0.6,1 0.0,1.9';
+const PLUS_MARK         = ' M 0.7,1 L 1.3,1 M 1,0.7 L 1,1.3';
+const MINUS_MARK        = ' M 0.7,1.0 L 1.3,1.0';
+const DELAY_MARK        = ' M 1.0,1.3 L 1.5,0.5 L 2.0,1.3 Z';
 const INPUT_8BIT_MARKS  = ' M 1.38,0.14 L 1.88,0.94 M 1.88,1.06 L 1.38,1.86';
 const OUTPUT_8BIT_MARKS = ' M 0.62,0.14 L 0.12,0.94 M 0.12,1.06 L 0.62,1.86';
 const CONST_8BIT_MARK   = ' M 1.8,0.4 L 1.8,1.6';
 const CONST_16BIT_MARK  = ' M 1.8,0.4 L 1.8,1.6 M 1.9,0.4 L 1.9,1.6';
+const NOT_8BIT_MARK     = ' M 0.1,0.4 L 0.1,1.6';
+const TRISTATE_8BIT_MARK = ' M 0.05,0.4 L 0.05,1.6';
 const MUX_8BIT_MARKS    = ' M -0.15,0.1 L -0.15,1.9';
 const MUX_LINE_A        = ' M 1,1 L 0.15,0.15';
 const MUX_LINE_B        = ' M 1,1 L 0.15,1.85';
+const DEC_LINE_0        = ' M 1,1 L 1.85,0.4';
+const DEC_LINE_1        = ' M 1,1 L 1.85,1.6';
 
-// NOT 8-bit variant (bus mark on input side)
-export const NOT_8BIT = NOT + ' M 0.1,0.4 L 0.1,1.6';
+// --- Logic gates ---
 
-// Tristate 8-bit variant (bus mark on input side)
-export const TRISTATE_8BIT = TRISTATE + ' M 0.05,0.4 L 0.05,1.6';
+export const AND  = AND_BODY;
+export const NAND = AND_BODY + BUBBLE;
+export const OR   = OR_BODY;
+export const NOR  = OR_BODY_SHORT + BUBBLE;
+export const XOR  = OR_BODY + XOR_ARC;
+export const XNOR = OR_BODY_SHORT + XOR_ARC + BUBBLE;
 
-// --- Composed gate SVGs ---
+export const NOT      = NOT_BODY + NOT_BUBBLE;
+export const NOT_8BIT = NOT + NOT_8BIT_MARK;
 
-// Input gates
-export const INPUT          = INPUT_SHAPE;
-export const INPUT_8BIT     = INPUT_SHAPE + INPUT_8BIT_MARKS;
-export const INPUT_SW       = INPUT_SW_SHAPE;
-export const INPUT_8BIT_SW  = INPUT_SW_SHAPE + INPUT_8BIT_MARKS;
+export const TRISTATE      = TRISTATE_BODY;
+export const TRISTATE_8BIT = TRISTATE_BODY + TRISTATE_8BIT_MARK;
 
-// Output gates
-export const OUTPUT          = OUTPUT_SHAPE;
-export const OUTPUT_8BIT     = OUTPUT_SHAPE + OUTPUT_8BIT_MARKS;
-export const OUTPUT_SW       = OUTPUT_SW_SHAPE;
-export const OUTPUT_8BIT_SW  = OUTPUT_SW_SHAPE + OUTPUT_8BIT_MARKS;
+// --- Boxes ---
 
-// Constant gates
-export const CONSTANT_8BIT  = BOX_SHAPE + CONST_8BIT_MARK;
-export const CONSTANT_16BIT = BOX_SHAPE + CONST_16BIT_MARK;
+// The registers use a full-cell box so the body meets its pins; the RS latch and the
+// constants keep the inset box, which has no pin on three of its sides.
+export const BOX_2x2      = BOX_2x2_INSET;
+export const BOX_2x2_FULL = buildBox(2, 2);
+export const BOX_3x4      = buildBox(3, 4, 0.3);
 
-// Decoder line modifiers
-const DEC_LINE_0 = ' M 1,1 L 1.85,0.4';
-const DEC_LINE_1 = ' M 1,1 L 1.85,1.6';
+export const ADDER   = buildBox(2, 2, 0.2) + PLUS_MARK;
+export const NEGATE  = BOX_2x2_INSET + MINUS_MARK;
+export const DELAY   = buildBox(3, 2, 0.3) + DELAY_MARK;
+export const COUNTER = DELAY;
 
-// Decoder gates (arrays: [A=0 → O0, A=1 → O1])
+export const CONSTANT_8BIT  = BOX_2x2_INSET + CONST_8BIT_MARK;
+export const CONSTANT_16BIT = BOX_2x2_INSET + CONST_16BIT_MARK;
+
+// --- IO gates ---
+
+const INPUT_BODY      = 'M 0.2,0.2 L 1.3,0.2 L 1.8,1 L 1.3,1.8 L 0.2,1.8 Z';
+const OUTPUT_BODY     = 'M 1.8,0.2 L 0.7,0.2 L 0.2,1 L 0.7,1.8 L 1.8,1.8 Z';
+// The "SW" variants notch the bottom edge to mark an interactive switch.
+const INPUT_SW_BODY   = 'M 0.2,0.2 L 1.3,0.2 L 1.8,1 L 1.3,1.8 L 1.2,1.8 L 1,1.6 L 0.8,1.8 L 0.2,1.8 Z';
+const OUTPUT_SW_BODY  = 'M 1.8,0.2 L 0.7,0.2 L 0.2,1 L 0.7,1.8 L 0.8,1.8 L 1,1.6 L 1.2,1.8 L 1.8,1.8 Z';
+
+export const INPUT          = INPUT_BODY;
+export const INPUT_8BIT     = INPUT_BODY + INPUT_8BIT_MARKS;
+export const INPUT_SW       = INPUT_SW_BODY;
+export const INPUT_8BIT_SW  = INPUT_SW_BODY + INPUT_8BIT_MARKS;
+
+export const OUTPUT          = OUTPUT_BODY;
+export const OUTPUT_8BIT     = OUTPUT_BODY + OUTPUT_8BIT_MARKS;
+export const OUTPUT_SW       = OUTPUT_SW_BODY;
+export const OUTPUT_8BIT_SW  = OUTPUT_SW_BODY + OUTPUT_8BIT_MARKS;
+
+// --- Selectors and bus shapes ---
+
+// Decoders and muxes render as layer arrays: one path per selected input/output.
+export const DECODER_2   = buildTrapezoid(0.7, 1.3, 1.7, 0.3);
 export const DECODER_2_0 = DECODER_2 + DEC_LINE_0;
 export const DECODER_2_1 = DECODER_2 + DEC_LINE_1;
+export const DECODER_8   = buildTrapezoid(0.5, 4, 8, 0);
 
-// MUX gates (arrays: [S=0 → A, S=1 → B])
-export const MUX_A       = MUX_SHAPE + MUX_LINE_A;
-export const MUX_B       = MUX_SHAPE + MUX_LINE_B;
-export const MUX_8BIT_A  = MUX_SHAPE + MUX_8BIT_MARKS + MUX_LINE_A;
-export const MUX_8BIT_B  = MUX_SHAPE + MUX_8BIT_MARKS + MUX_LINE_B;
+export const MUX_A       = MUX_BODY + MUX_LINE_A;
+export const MUX_B       = MUX_BODY + MUX_LINE_B;
+export const MUX_8BIT_A  = MUX_BODY + MUX_8BIT_MARKS + MUX_LINE_A;
+export const MUX_8BIT_B  = MUX_BODY + MUX_8BIT_MARKS + MUX_LINE_B;
+
+export const SPLITTER = buildTrapezoid(1, 6, 7, 0);
+export const JOINER   = buildTrapezoid(0, 7, 6, 1);
