@@ -9,7 +9,8 @@ import { asmLanguage } from '../../circuit-builder/asm/asmHighlight.ts';
 import { assembleProgram } from '../../circuit-builder/asm/assembleProgram.ts';
 import type { ProgramFile } from '../../circuit-builder/persistence/programFs.ts';
 import {
-  deleteProgram, listPrograms, pathProblem, readProgram, renameProgram, writeProgram,
+  deleteProgram, listPrograms, pathProblem, readProgram, renameProgram,
+  withProgramExtension, writeProgram,
 } from '../../circuit-builder/persistence/programFs.ts';
 import type { Gate } from '../../circuit-builder/simulation/gateTypes.ts';
 import { padRamCells } from '../../circuit-builder/simulation/gateTypes.ts';
@@ -261,17 +262,24 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
 // Editing helpers
 // ---------------------------------------------------------------------------
 
-/** Ask for a path, validating it here so the file system never sees a bad one. */
+/**
+ * Ask for a path, validating it here so the file system never sees a bad one.
+ *
+ * The extension is applied to whatever is typed rather than left to the player: a name
+ * without one, or with the wrong one, is a file that reads as a different kind of thing in
+ * the list and in an `#include`. The prompt says nothing about it — it is not something the
+ * player has to think about, which is the point of enforcing it.
+ */
 function askForPath(title: string, suggestion: string): string | null {
-  const raw = prompt(`${title} (folders allowed: cpu/ops.inc)`, suggestion);
+  const raw = prompt(`${title} (folders allowed: cpu/ops)`, suggestion);
   if (raw === null) return null;
-  const trimmed = raw.trim();
-  const problem = pathProblem(trimmed);
+
+  const problem = pathProblem(raw.trim());
   if (problem) {
     alert(problem);
     return null;
   }
-  return trimmed;
+  return withProgramExtension(raw);
 }
 
 /**
@@ -289,7 +297,7 @@ function openInitialBuffer(): void {
 function suggestFileName(files: ProgramFile[]): string {
   const taken = new Set(files.map(file => file.path));
   for (let i = 1; ; i++) {
-    const name = `program${i > 1 ? i : ''}.asm`;
+    const name = withProgramExtension(`program${i > 1 ? i : ''}`);
     if (!taken.has(name)) return name;
   }
 }
@@ -410,8 +418,10 @@ loop:
 
       <h4>#include — reuse another file</h4>
       <p>Pastes the whole file in. The path is resolved next to the including file first,
-      then from the root.</p>
-      <pre>{`#include "cpu/opcodes.inc"`}</pre>
+      then from the root. Every program file ends in <code>.asm</code>, and the include may
+      leave it off.</p>
+      <pre>{`#include "cpu/opcodes.asm"
+#include "cpu/opcodes"      ; the same file`}</pre>
 
       <h4>Flashing</h4>
       <p><b>Assemble</b> checks the program; <b>Flash</b> writes it into the chip and keeps

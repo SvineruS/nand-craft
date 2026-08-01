@@ -3,7 +3,7 @@ import type { ResolvedFile } from '../asm/types.ts';
 /**
  * A tiny file system for RAM programs, kept in one localStorage entry.
  *
- * Paths are slash-separated (`cpu/opcodes.inc`); folders are not stored as objects, they
+ * Paths are slash-separated (`cpu/opcodes.asm`); folders are not stored as objects, they
  * are just the prefixes that appear in paths. That keeps the whole store a flat map — one
  * read, one write, nothing to keep consistent — while the explorer can still show a tree.
  */
@@ -107,13 +107,30 @@ export function pathProblem(path: string): string | null {
   return null;
 }
 
-/** The folder part of a path (`cpu/lib/ops.inc` → `cpu/lib`), or '' at the root. */
+/**
+ * The extension every program file carries.
+ *
+ * Enforced rather than suggested: the player never has to think about it, every file in the
+ * list looks like the same kind of thing, and an `#include` can be typed exactly as the name
+ * reads in the explorer.
+ */
+export const PROGRAM_EXTENSION = '.asm';
+
+/** `name` with the program extension, added unless it is already there. */
+export function withProgramExtension(name: string): string {
+  const trimmed = name.trim();
+  return trimmed.toLowerCase().endsWith(PROGRAM_EXTENSION)
+    ? trimmed.slice(0, -PROGRAM_EXTENSION.length) + PROGRAM_EXTENSION
+    : trimmed + PROGRAM_EXTENSION;
+}
+
+/** The folder part of a path (`cpu/lib/ops.asm` → `cpu/lib`), or '' at the root. */
 export function folderOf(path: string): string {
   const cut = path.lastIndexOf('/');
   return cut < 0 ? '' : path.slice(0, cut);
 }
 
-/** The file name part of a path (`cpu/lib/ops.inc` → `ops.inc`). */
+/** The file name part of a path (`cpu/lib/ops.asm` → `ops.asm`). */
 export function nameOf(path: string): string {
   return path.slice(path.lastIndexOf('/') + 1);
 }
@@ -126,18 +143,23 @@ export function joinPath(folder: string, name: string): string {
  * Resolve an `#include` spec against the file that wrote it: first as a sibling, then from
  * the root. Leading `/` means "from the root" explicitly.
  *
+ * The extension is optional in an include, because every file has the same one: `"ops"`
+ * and `"ops.asm"` both find `ops.asm`.
+ *
  * Passed to the preprocessor as its `readFile`, so no preprocessor has to know how this
  * file system spells paths.
  */
 export function resolveInclude(spec: string, fromPath: string): ResolvedFile | null {
   const cleaned = spec.trim().replace(/^\.\//, '');
-  const candidates = cleaned.startsWith('/')
+  const roots = cleaned.startsWith('/')
     ? [cleaned.slice(1)]
     : [joinPath(folderOf(fromPath), cleaned), cleaned];
 
-  for (const path of candidates) {
-    const file = readProgram(path);
-    if (file) return { path: file.path, content: file.content };
+  for (const root of roots) {
+    for (const path of [root, withProgramExtension(root)]) {
+      const file = readProgram(path);
+      if (file) return { path: file.path, content: file.content };
+    }
   }
   return null;
 }

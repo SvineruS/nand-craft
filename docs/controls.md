@@ -86,7 +86,7 @@ values, arithmetic and bit operators, `#define` constants and copy-paste macros 
 arguments, `#include`, `#org` and labels:
 
 ```asm
-#include "cpu/opcodes.inc"
+#include "cpu/opcodes.asm"
 #define LOADI(reg, value) 0x10 | reg, value
 
 start:
@@ -95,7 +95,8 @@ start:
   JMP start
 ```
 
-Files live in a small localStorage-backed file system (folders come from the path, e.g.
-`cpu/opcodes.inc`) and can be renamed and deleted from the explorer. Press **?** in the
-window for the full syntax reference. The syntax itself is a registry entry
+Files live in a small localStorage-backed file system and can be renamed and deleted from
+the list. Folders come from the path — naming a file `cpu/opcodes` puts it in a `cpu`
+folder — and every file ends in `.asm`, which is added for you. Press **?** in the window
+for the full syntax reference. The syntax itself is a registry entry
 (`src/circuit-builder/asm/registry.ts`), so alternative preprocessors can be added.

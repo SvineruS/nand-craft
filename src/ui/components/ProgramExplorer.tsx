@@ -5,7 +5,7 @@ import { folderOf, nameOf } from '../../circuit-builder/persistence/programFs.ts
  * File list for the RAM program editor.
  *
  * Folders are not stored anywhere — they are the prefixes of the paths, grouped here for
- * display. Creating `cpu/ops.inc` creates the folder as a side effect of the name.
+ * display. Creating `cpu/ops.asm` creates the folder as a side effect of the name.
  */
 
 interface ProgramExplorerProps {
