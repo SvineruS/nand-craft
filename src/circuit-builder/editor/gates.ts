@@ -213,12 +213,12 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
   // One grid column wide, like the splitter and joiner: too narrow for a board label, so it
   // is hidden rather than spending a second column on a gate that is all pins.
   '3bit-decoder': {
-    label: 'DEC3', description: '3-to-8 decoder', width: 1, height: 8, hideLabel: true,
+    label: 'DEC3', description: '3-to-8 decoder', width: 1, height: 7, hideLabel: true,
     color: '#402d50', stroke: '#8a5aad',
     pins: [
-      { kind: 'input', x: 0, y: 1, label: 'A' },
-      { kind: 'input', x: 0, y: 2, label: 'B' },
-      { kind: 'input', x: 0, y: 3, label: 'C' },
+      { kind: 'input', x: 0, y: 0, label: 'A' },
+      { kind: 'input', x: 0, y: 1, label: 'B' },
+      { kind: 'input', x: 0, y: 2, label: 'C' },
       { kind: 'output', x: 1, y: 0, label: '0' },
       { kind: 'output', x: 1, y: 1, label: '1' },
       { kind: 'output', x: 1, y: 2, label: '2' },

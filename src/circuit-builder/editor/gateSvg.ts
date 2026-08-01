@@ -122,7 +122,9 @@ export const OUTPUT_8BIT_SW  = OUTPUT_SW_BODY + OUTPUT_8BIT_MARKS;
 export const DECODER_2   = buildTrapezoid(0.7, 1.3, 1.7, 0.3);
 export const DECODER_2_0 = DECODER_2 + DEC_LINE_0;
 export const DECODER_2_1 = DECODER_2 + DEC_LINE_1;
-export const DECODER_8   = buildTrapezoid(0.5, 4, 8, 0, 1);
+// Left edge covers the three input rows at the top, right edge all eight outputs. The
+// resulting wedge also tells the decoder apart from the splitter's symmetric taper.
+export const DECODER_8   = buildTrapezoid(0, 3, 7, 0, 1);
 
 export const MUX_A       = MUX_BODY + MUX_LINE_A;
 export const MUX_B       = MUX_BODY + MUX_LINE_B;
