@@ -2,7 +2,7 @@ import type { RefObject } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { EditorView, keymap, type KeyBinding } from '@codemirror/view';
 import { EditorState, type Extension } from '@codemirror/state';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import type { FileBuffer } from './fileBuffers.ts';
 
 /**
@@ -59,6 +59,10 @@ export function useCodeEditor(
           keymap.of([
             ...keys,
             { key: 'Mod-s', run: () => { saveRef.current(); return true; } },
+            // Tab indents instead of leaving the editor. CodeMirror leaves it unbound by
+            // default so keyboard users can tab past a read-only view; here the editor is
+            // the thing being used, and losing the caret mid-line is the worse surprise.
+            indentWithTab,
             ...defaultKeymap,
             ...historyKeymap,
           ]),
