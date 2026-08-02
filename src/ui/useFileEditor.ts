@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { FileStore, StoredFile } from '../circuit-builder/persistence/fileStore.ts';
 import { pathProblem } from '../circuit-builder/persistence/fileStore.ts';
+import { AUTOSAVE_INTERVAL_MS } from '../circuit-builder/persistence/storage.ts';
 import type { FileBuffer } from './fileBuffers.ts';
 
 /**
@@ -78,9 +79,7 @@ export function useFileEditor(options: FileEditorOptions): FileEditor {
   };
 
   /** Write the open file before moving away from it, so nothing typed is lost. */
-  const saveIfDirty = () => {
-    if (buffer.dirty.peek() && buffer.openPath.peek() !== null) save();
-  };
+  const saveIfDirty = () => { writeIfDirty(store, buffer); };
 
   const create = (): boolean => {
     const name = askForPath(store, 'New file', suggestName(store, files, namePrefix));
@@ -161,13 +160,31 @@ export function useFileEditor(options: FileEditorOptions): FileEditor {
     else buffer.open(null, template);
   };
 
-  // An unsaved buffer would otherwise be lost when the window closes.
-  useEffect(() => () => {
-    if (buffer.dirty.peek() && buffer.openPath.peek() !== null) {
-      store.write(buffer.openPath.peek() as string, buffer.source.peek());
-      buffer.dirty.value = false;
-    }
-  }, []);
+  /**
+   * Autosave, on the same triggers the circuit editors use.
+   *
+   * Ctrl+S, switching files and closing the window already write; what this adds is the
+   * interval and the reload — a buffer typed into and left alone used to live only in memory,
+   * so refreshing the page threw it away. `store` and `buffer` are module-level singletons,
+   * hence stable deps: the interval is not rebuilt on every keystroke.
+   */
+  useEffect(() => {
+    const saveNow = () => {
+      if (writeIfDirty(store, buffer)) setFiles(store.list());
+    };
+    const onVisibilityChange = () => { if (document.hidden) saveNow(); };
+    window.addEventListener('beforeunload', saveNow);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    const interval = setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
+
+    return () => {
+      window.removeEventListener('beforeunload', saveNow);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      clearInterval(interval);
+      // Write, but without refreshing the list — this component is going away.
+      writeIfDirty(store, buffer);
+    };
+  }, [store, buffer]);
 
   return {
     files,
@@ -182,6 +199,23 @@ export function useFileEditor(options: FileEditorOptions): FileEditor {
     remove,
     save,
   };
+}
+
+/**
+ * Write the buffer to its file if there is anything to write. Returns true if it wrote.
+ *
+ * Quiet on purpose — no status line, no file-list refresh — because it runs from an interval
+ * and from unmount cleanup, where announcing itself would either nag or touch state that is
+ * on its way out. An untitled buffer is skipped: naming a file is the player's call, and the
+ * autosave has nowhere to put it. A failed write leaves the buffer dirty, so the next trigger
+ * (or Ctrl+S, which does report) tries again.
+ */
+function writeIfDirty(store: FileStore, buffer: FileBuffer): boolean {
+  const target = buffer.openPath.peek();
+  if (!buffer.dirty.peek() || target === null) return false;
+  if (store.write(target, buffer.source.peek())) return false;
+  buffer.dirty.value = false;
+  return true;
 }
 
 /**
