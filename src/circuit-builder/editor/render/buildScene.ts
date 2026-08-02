@@ -318,7 +318,10 @@ function buildGates(
 
       const val = circuit.getPinValue(gate.id, 'output', 0);
       const valText = val !== null ? String(val) : '?';
-      const valColor = val !== null ? signalColor(val) : COLORS.gateText;
+      // Width-aware, or an 8-bit constant of 42 would print in the 1-bit "on" green.
+      const valColor = val !== null
+        ? signalColor(val, getPinBitWidth(gate.type, 'output', 0))
+        : COLORS.gateText;
       valueLabel = { text: valText, color: valColor, pos: { x: labelX, y: labelY } };
     } else {
       label = gate.label ?? (def.hideLabel ? '' : def.label);
@@ -420,7 +423,7 @@ function buildPin(
 
   return {
     pos,
-    fillColor: pinColorForValue(value),
+    fillColor: pinColorForValue(value, bitWidth),
     strokeColor: isHovered ? COLORS.selection : pinStrokeForWidth(bitWidth),
     radius: isHovered ? 5 : 3.5,
     strokeWidth: isHovered ? 1.5 : 1,
@@ -658,12 +661,21 @@ function buildPastePreview(state: EditorState): RenderPastePreview | null {
 // Color / formatting helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Colour of a value carried on a wire: the two-colour flag palette for a single bit, the
+ * gradient for a bus. Pins use `pinColorForValue`, which follows the same rule in its own
+ * slightly brighter palette.
+ */
 function signalColor(value: number | null, bitWidth = 1): string {
   if (value === null) return COLORS.wireHighZ;
   if (bitWidth <= 1) return value === 0 ? COLORS.wireZero : COLORS.wireActive;
+  return multibitGradient(gradientPosition(value, bitWidth));
+}
+
+/** Where a value sits between zero and the widest its pin can hold. */
+function gradientPosition(value: number, bitWidth: number): number {
   const max = ((1 << bitWidth) >>> 0) - 1;
-  const t = max > 0 ? value / max : 0;
-  return multibitGradient(t);
+  return max > 0 ? value / max : 0;
 }
 
 function multibitGradient(t: number): string {
@@ -678,10 +690,15 @@ function lerp3(a: number, b: number, c: number, t: number): number {
   return b + (c - b) * ((t - 0.5) * 2);
 }
 
-function pinColorForValue(value: number | null): string {
+/**
+ * A pin is coloured by its value the same way its wire is: red/green only means anything
+ * for a single bit. A bus pin used to read as "on" for every value but zero, which put a
+ * green dot on the end of an orange wire carrying 42.
+ */
+function pinColorForValue(value: number | null, bitWidth: number): string {
   if (value === null) return COLORS.pinHighZ;
-  if (value === 0) return COLORS.pinZero;
-  return COLORS.pinActive;
+  if (bitWidth <= 1) return value === 0 ? COLORS.pinZero : COLORS.pinActive;
+  return multibitGradient(gradientPosition(value, bitWidth));
 }
 
 function pinStrokeForWidth(bitWidth: number): string {
