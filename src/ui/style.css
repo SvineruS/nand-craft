@@ -353,6 +353,11 @@ body {
   font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
+  /* Same reason as .props-section: the panel is width: fit-content, and a failure message
+     is long enough to widen it — so the panel would jump every time a test fails. */
+  width: 0;
+  min-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .test-panel-mode-row {
