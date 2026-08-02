@@ -472,6 +472,12 @@ body {
   /* A wide gate lists a lot of pins; scroll it rather than push the table off the panel. */
   max-height: 50%;
   overflow-y: auto;
+  /* The panel is width: fit-content, so anything in here would widen it — and the panel
+     would then resize every time a gate with a longer description is selected. width: 0
+     drops this block out of that intrinsic width; min-width stretches it back to whatever
+     width the test table settled on, and long text wraps inside it. */
+  width: 0;
+  min-width: 100%;
 }
 
 .props-header {
@@ -493,6 +499,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
   padding: 3px 6px;
   background: var(--prop-bg);
   border-radius: 3px;
@@ -501,6 +508,15 @@ body {
 
 .prop-label {
   color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* The row no longer widens the panel, so a long value wraps instead of overflowing it. */
+.prop-value,
+.prop-link {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .prop-value {
@@ -530,7 +546,6 @@ body {
   color: var(--accent);
   font: inherit;
   font-weight: 600;
-  text-align: right;
   cursor: pointer;
 
   &:hover {
