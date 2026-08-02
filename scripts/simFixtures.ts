@@ -522,6 +522,7 @@ const ramSharedBus: Fixture = {
   },
 };
 
+/** Left free-running: with O unwired the counter must still increment every tick. */
 const counterSeq: Fixture = {
   name: 'counter-seq',
   create() {
@@ -533,16 +534,16 @@ const counterSeq: Fixture = {
   },
 };
 
-const counterResetSeq: Fixture = {
-  name: 'counter-reset-seq',
+const counterSetSeq: Fixture = {
+  name: 'counter-set-seq',
   create() {
     const b = new Builder();
     const value = b.gate('input-8bit', 'value');
     const override = b.gate('input', 'override');
-    const ctr = b.gate('8bit-counter-reset', 'ctr');
+    const ctr = b.gate('8bit-counter', 'ctr');
     const sink = b.gate('output-8bit', 'sink');
-    b.net(op(value), ip(ctr, 0));
-    b.net(op(override), ip(ctr, 1));
+    b.net(op(override), ip(ctr, 0));
+    b.net(op(value), ip(ctr, 1));
     b.net(op(ctr), ip(sink));
 
     const pattern: [number, number][] = [
@@ -775,7 +776,7 @@ export const FIXTURES: Fixture[] = [
   memoryFixture('mem8-seq', '8bit-memory', [0, 42, 255, 128, 7]),
   ramSeq, ramSharedBus,
   counterSeq,
-  counterResetSeq,
+  counterSetSeq,
   switchIo,
   constantsAndLevel,
   nestedComponent,

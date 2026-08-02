@@ -46,7 +46,7 @@ const CONSTANT_TYPES = new Set<GateType>(['constant', 'constant-8bit', 'constant
  * so it cannot be answered until that wire has resolved. It runs in the evaluation order like
  * a combinational gate and writes back via SeqOp.RAM. See the note in program.ts.
  */
-const SEQUENTIAL_TYPES = new Set<GateType>(['delay', 'rs-latch', '1bit-memory', '8bit-memory', '8bit-counter', '8bit-counter-reset']);
+const SEQUENTIAL_TYPES = new Set<GateType>(['delay', 'rs-latch', '1bit-memory', '8bit-memory', '8bit-counter']);
 
 /** Addressable bytes in a RAM gate — the full range of its 8-bit address pin. */
 export const RAM_SIZE = 256;
@@ -120,7 +120,6 @@ export type BuiltInGateType =
   | '1bit-memory'
   | '8bit-memory'
   | '8bit-counter'
-  | '8bit-counter-reset'
   | 'ram'
   | 'tristate'
   | '8bit-tristate'

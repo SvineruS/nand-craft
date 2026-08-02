@@ -56,15 +56,14 @@ export const SeqOp = {
   DELAY: 1,
   RS_LATCH: 2,
   MEMORY: 3,        // '1bit-memory' and '8bit-memory'
-  COUNTER: 4,
-  COUNTER_RESET: 5,
+  COUNTER_SET: 4,   // '8bit-counter': increments, or takes V when O is high
   /**
    * Unlike the others, a RAM gate is *also* evaluated combinationally (Op.RAM): its output
    * depends on the address wire, so it cannot be seeded as a source before propagation.
    * Only the write-back happens here. buildRoleLists keys this list off sequentialOpcodeFor
    * rather than isSequentialGate, which is what lets a gate be in both roles.
    */
-  RAM: 6,
+  RAM: 5,
 } as const;
 
 function opcodeFor(type: GateType): number {
@@ -116,8 +115,7 @@ function sequentialOpcodeFor(type: GateType): number {
     case 'delay': return SeqOp.DELAY;
     case 'rs-latch': return SeqOp.RS_LATCH;
     case '1bit-memory': case '8bit-memory': return SeqOp.MEMORY;
-    case '8bit-counter': return SeqOp.COUNTER;
-    case '8bit-counter-reset': return SeqOp.COUNTER_RESET;
+    case '8bit-counter': return SeqOp.COUNTER_SET;
     case 'ram': return SeqOp.RAM;
     default: return 0;
   }

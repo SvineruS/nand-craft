@@ -336,18 +336,12 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     svg: SVG.BOX_2x2_FULL,
   },
   '8bit-counter': {
-    label: 'CTR', description: '8-bit counter', width: 3, height: 2,    color: '#3a3a4a', stroke: '#7a7aad',
-    pins: [
-      { kind: 'output', x: 3, y: 1, label: 'Q', bitWidth: 8 },
-    ],
-    svg: SVG.COUNTER,
-  },
-  '8bit-counter-reset': {
-    label: 'CTRS', description: '8-bit counter with set', width: 2, height: 2,
+    label: 'CTR+S', description: '8-bit counter + set', width: 2, height: 2,
     color: '#3a3a4a', stroke: '#7a7aad',
+    // Flag on top, value below — the same order as the registers and RAM.
     pins: [
-      { kind: 'input', x: 0, y: 0, label: 'V', bitWidth: 8 },
-      { kind: 'input', x: 0, y: 2, label: 'O', bitWidth: 1 },
+      { kind: 'input', x: 0, y: 0, label: 'O', bitWidth: 1 },
+      { kind: 'input', x: 0, y: 2, label: 'V', bitWidth: 8 },
       { kind: 'output', x: 2, y: 1, label: 'Q', bitWidth: 8 },
     ],
     svg: SVG.COUNTER,

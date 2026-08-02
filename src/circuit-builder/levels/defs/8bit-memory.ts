@@ -13,8 +13,9 @@ const level: Level = {
   ],
   outputs: [{ name: 'Q' }],
   predefinedGates: [
-    { type: 'input-8bit', pos: { x: -15, y: -3 }, label: 'V', canRemove: false },
-    { type: 'input', pos: { x: -15, y: 1 }, label: 'S', canRemove: false },
+    // Flag above value, the same way round as the MEM8 gate's own pins.
+    { type: 'input', pos: { x: -15, y: -3 }, label: 'S', canRemove: false },
+    { type: 'input-8bit', pos: { x: -15, y: 1 }, label: 'V', canRemove: false },
     { type: 'output-8bit', pos: { x: 12, y: -1 }, label: 'Q', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'nor', 'mux', 'delay', 'rs-latch', '1bit-memory', 'splitter', 'joiner'] },

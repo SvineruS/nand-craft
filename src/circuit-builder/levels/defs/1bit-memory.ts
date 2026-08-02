@@ -17,8 +17,9 @@ const level: Level = {
   ],
   outputs: [{ name: 'Q' }],
   predefinedGates: [
-    { type: 'input', pos: { x: -10, y: -3 }, label: 'V', canRemove: false },
-    { type: 'input', pos: { x: -10, y: 1 }, label: 'S', canRemove: false },
+    // Flag above value, the same way round as the MEM gate's own pins.
+    { type: 'input', pos: { x: -10, y: -3 }, label: 'S', canRemove: false },
+    { type: 'input', pos: { x: -10, y: 1 }, label: 'V', canRemove: false },
     { type: 'output', pos: { x: 8, y: -1 }, label: 'Q', canRemove: false },
   ],
   gateConstraints: { allow: ['nand', 'not', 'and', 'or', 'mux', 'delay', 'rs-latch', 'tristate'] },

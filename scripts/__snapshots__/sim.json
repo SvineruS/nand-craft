@@ -10176,6 +10176,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 0,
     "sink:in:0": 0
    },
@@ -10192,6 +10194,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 1,
     "sink:in:0": 1
    },
@@ -10208,6 +10212,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 2,
     "sink:in:0": 2
    },
@@ -10224,6 +10230,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 3,
     "sink:in:0": 3
    },
@@ -10240,6 +10248,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 4,
     "sink:in:0": 4
    },
@@ -10256,6 +10266,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 5,
     "sink:in:0": 5
    },
@@ -10272,6 +10284,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 6,
     "sink:in:0": 6
    },
@@ -10288,6 +10302,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 7,
     "sink:in:0": 7
    },
@@ -10304,6 +10320,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 8,
     "sink:in:0": 8
    },
@@ -10320,6 +10338,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 9,
     "sink:in:0": 9
    },
@@ -10336,6 +10356,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 10,
     "sink:in:0": 10
    },
@@ -10352,6 +10374,8 @@
    "errorSegments": [],
    "shortCircuitGates": [],
    "pins": {
+    "ctr:in:0": null,
+    "ctr:in:1": null,
     "ctr:out:0": 11,
     "sink:in:0": 11
    },
@@ -10361,7 +10385,7 @@
    }
   }
  ],
- "counter-reset-seq": [
+ "counter-set-seq": [
   {
    "outputs": {
     "sink": 0
@@ -10372,16 +10396,16 @@
    "pins": {
     "value:out:0": 7,
     "override:out:0": 1,
-    "ctr:in:0": 7,
-    "ctr:in:1": 1,
+    "ctr:in:0": 1,
+    "ctr:in:1": 7,
     "ctr:out:0": 0,
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "7/8",
-    "node#1": "7/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "7/8",
+    "node#3": "7/8",
     "node#4": "0/8",
     "node#5": "0/8"
    }
@@ -10402,10 +10426,10 @@
     "sink:in:0": 7
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "7/8",
     "node#5": "7/8"
    }
@@ -10426,10 +10450,10 @@
     "sink:in:0": 8
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "8/8",
     "node#5": "8/8"
    }
@@ -10444,16 +10468,16 @@
    "pins": {
     "value:out:0": 200,
     "override:out:0": 1,
-    "ctr:in:0": 200,
-    "ctr:in:1": 1,
+    "ctr:in:0": 1,
+    "ctr:in:1": 200,
     "ctr:out:0": 9,
     "sink:in:0": 9
    },
    "nodes": {
-    "node#0": "200/8",
-    "node#1": "200/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "200/8",
+    "node#3": "200/8",
     "node#4": "9/8",
     "node#5": "9/8"
    }
@@ -10474,10 +10498,10 @@
     "sink:in:0": 200
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "200/8",
     "node#5": "200/8"
    }
@@ -10498,10 +10522,10 @@
     "sink:in:0": 201
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "201/8",
     "node#5": "201/8"
    }
@@ -10516,16 +10540,16 @@
    "pins": {
     "value:out:0": 255,
     "override:out:0": 1,
-    "ctr:in:0": 255,
-    "ctr:in:1": 1,
+    "ctr:in:0": 1,
+    "ctr:in:1": 255,
     "ctr:out:0": 202,
     "sink:in:0": 202
    },
    "nodes": {
-    "node#0": "255/8",
-    "node#1": "255/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
     "node#4": "202/8",
     "node#5": "202/8"
    }
@@ -10546,10 +10570,10 @@
     "sink:in:0": 255
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "255/8",
     "node#5": "255/8"
    }
@@ -10570,10 +10594,10 @@
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "0/8",
     "node#5": "0/8"
    }
@@ -10588,16 +10612,16 @@
    "pins": {
     "value:out:0": 0,
     "override:out:0": 1,
-    "ctr:in:0": 0,
-    "ctr:in:1": 1,
+    "ctr:in:0": 1,
+    "ctr:in:1": 0,
     "ctr:out:0": 1,
     "sink:in:0": 1
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "1/1",
-    "node#3": "1/1",
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "1/8",
     "node#5": "1/8"
    }
@@ -10618,10 +10642,10 @@
     "sink:in:0": 0
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "0/8",
     "node#5": "0/8"
    }
@@ -10642,10 +10666,10 @@
     "sink:in:0": 1
    },
    "nodes": {
-    "node#0": "0/8",
-    "node#1": "0/8",
-    "node#2": "0/1",
-    "node#3": "0/1",
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
     "node#4": "1/8",
     "node#5": "1/8"
    }
@@ -11142,8 +11166,6 @@
     "8bit-memory:out:0": 0,
     "8bit-counter:in:0": 0,
     "8bit-counter:out:0": 0,
-    "8bit-counter-reset:in:0": 0,
-    "8bit-counter-reset:out:0": 0,
     "ram:in:0": null,
     "ram:out:0": 0,
     "wire:in:0": null,

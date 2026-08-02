@@ -65,7 +65,7 @@ const level: Level = {
       { inputs: { A: 1, V: 0, R: 1, W: 0 }, expected: { Q: 0 } },
     ],
   },
-  prerequisites: [lid('8bit-memory'), lid('3bit-decoder'), lid('8bit-tristate')],
-  mapPosition: { x: 84, y: 11 },
+  prerequisites: [lid('8bit-memory'), lid('3bit-decoder'), lid('switch')],
+  mapPosition: { x: 76, y: 11 },
 };
 export default level;

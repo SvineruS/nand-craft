@@ -125,10 +125,6 @@ function advanceSequentialState(program: CompiledProgram, values: SimulationStat
         break;
       }
 
-      case SeqOp.COUNTER:
-        gate.register = ((gate.register ?? 0) + 1) & 0xFF;
-        break;
-
       case SeqOp.RAM: {
         if (!readInput(values, base + 1)) break;
         // Allocated on first write so an untouched RAM costs nothing. The address is masked
@@ -138,10 +134,11 @@ function advanceSequentialState(program: CompiledProgram, values: SimulationStat
         break;
       }
 
-      case SeqOp.COUNTER_RESET: {
-        const value = readInput(values, base);
-        const override = readInput(values, base + 1);
-        // O=1 → override with V, O=0 → increment by 1
+      case SeqOp.COUNTER_SET: {
+        // Pin order is O then V — the flag sits above the value on every stateful gate.
+        const override = readInput(values, base);
+        const value = readInput(values, base + 1);
+        // O=1 → set to V, O=0 → increment by 1
         gate.register = override ? value : ((gate.register ?? 0) + 1) & 0xFF;
         break;
       }
