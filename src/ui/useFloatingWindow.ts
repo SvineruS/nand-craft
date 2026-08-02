@@ -43,10 +43,21 @@ export function useFloatingWindow(id: string) {
     // handles mousedown for its own selection.
     const onMouseDownCapture = () => raiseWindow(id);
     card.addEventListener('mousedown', onMouseDownCapture, true);
+
+    // The other way a window ends up out of reach: the browser window shrinks under it,
+    // with no remount to re-run the clamp above.
+    const onViewportResize = () => {
+      const rect = card.getBoundingClientRect();
+      applyGeometry(card, clampToViewport({
+        left: rect.left, top: rect.top, width: rect.width, height: rect.height,
+      }));
+    };
+    window.addEventListener('resize', onViewportResize);
     registerWindow(id, card);
 
     return () => {
       card.removeEventListener('mousedown', onMouseDownCapture, true);
+      window.removeEventListener('resize', onViewportResize);
       unregisterWindow(id);
     };
   }, [id]);
@@ -68,8 +79,16 @@ export function useFloatingWindow(id: string) {
     const origin = { x: e.clientX, y: e.clientY, left: rect.left, top: rect.top };
 
     trackPointer(e, move => {
-      card.style.left = `${origin.left + move.clientX - origin.x}px`;
-      card.style.top = `${origin.top + move.clientY - origin.y}px`;
+      // Clamped per move, not just on restore: a drag that ends past the edge would leave
+      // the header — the only thing that can drag it back — off screen.
+      const moved = clampToViewport({
+        left: origin.left + move.clientX - origin.x,
+        top: origin.top + move.clientY - origin.y,
+        width: rect.width,
+        height: rect.height,
+      });
+      card.style.left = `${moved.left}px`;
+      card.style.top = `${moved.top}px`;
     }, remember);
   };
 
@@ -92,12 +111,18 @@ export function useFloatingWindow(id: string) {
   return { cardRef, onHeaderMouseDown, onResizeMouseDown };
 }
 
-/** Keep enough of the header on screen to grab it again. */
+/**
+ * Keep enough of the header on screen to grab it again.
+ *
+ * Asymmetric on purpose: the grabbable part of the header is its left end — the right end
+ * is the actions and the close button, which onHeaderMouseDown ignores. So the window may
+ * hang off the right and the bottom, but its left edge and its header stay on screen.
+ */
 function clampToViewport(geometry: Geometry): Geometry {
   const VISIBLE_EDGE = 80;
   return {
     ...geometry,
-    left: Math.min(Math.max(geometry.left, VISIBLE_EDGE - geometry.width), window.innerWidth - VISIBLE_EDGE),
+    left: Math.min(Math.max(geometry.left, 0), window.innerWidth - VISIBLE_EDGE),
     top: Math.min(Math.max(geometry.top, 0), window.innerHeight - VISIBLE_EDGE),
   };
 }
