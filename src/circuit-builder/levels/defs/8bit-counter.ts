@@ -13,7 +13,7 @@ const level: Level = {
   inputs: [{ name: 'V' }, { name: 'O' }],
   outputs: [{ name: 'Q' }],
   predefinedGates: [
-    // Flag above value, the same way round as the CTR+S gate's own pins.
+    // Flag above value, the same way round as the CTR gate's own pins.
     { type: 'input', pos: { x: -15, y: -3 }, label: 'O', canRemove: false },
     { type: 'input-8bit', pos: { x: -15, y: 1 }, label: 'V', canRemove: false },
     { type: 'output-8bit', pos: { x: 12, y: -1 }, label: 'Q', canRemove: false },
