@@ -1,5 +1,6 @@
 import type { LevelId } from '../../editor/types.ts';
 import type { Level } from '../levelTypes.ts';
+import { SANDBOX_MAP_SIZE } from '../../editor/utils/mapBounds.ts';
 const lid = (s: string) => s as LevelId;
 
 const level: Level = {
@@ -25,6 +26,7 @@ const level: Level = {
   },
   prerequisites: [],
   mapPosition: { x: 0, y: 11 },
+  mapSize: SANDBOX_MAP_SIZE,
   customTests: true,
 };
 export default level;

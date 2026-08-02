@@ -1,6 +1,7 @@
 import {
   DEFAULT_MAP_HEIGHT, DEFAULT_MAP_WIDTH, GRID_SIZE,
   LEVEL_MAP_HEIGHT, LEVEL_MAP_WIDTH, PAN_MARGIN,
+  SANDBOX_MAP_HEIGHT, SANDBOX_MAP_WIDTH,
 } from '../consts.ts';
 import type { Camera } from '../../../engine/camera.ts';
 import type { Vec2 } from './vec2.ts';
@@ -27,6 +28,12 @@ export const DEFAULT_MAP_SIZE: MapSize = {
 export const LEVEL_MAP_SIZE: MapSize = {
   width: LEVEL_MAP_WIDTH,
   height: LEVEL_MAP_HEIGHT,
+};
+
+/** Room for a whole machine — see the note on SANDBOX_MAP_WIDTH. */
+export const SANDBOX_MAP_SIZE: MapSize = {
+  width: SANDBOX_MAP_WIDTH,
+  height: SANDBOX_MAP_HEIGHT,
 };
 
 /** The map is centred on the origin — where the camera starts and where levels are laid out. */

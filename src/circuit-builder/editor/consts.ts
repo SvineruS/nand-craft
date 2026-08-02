@@ -22,6 +22,15 @@ export const DEFAULT_MAP_HEIGHT = 1000;
 export const LEVEL_MAP_WIDTH = 4000;
 export const LEVEL_MAP_HEIGHT = 3000;
 
+/**
+ * The sandbox is where a whole machine gets assembled — RAM, registers, an ALU and the
+ * wiring between them — rather than the one circuit a level asks for, so it gets far more
+ * room than a level does. Nothing is drawn per map area (the background follows the
+ * viewport), so the size costs only the space it invites the player to use.
+ */
+export const SANDBOX_MAP_WIDTH = 6000;
+export const SANDBOX_MAP_HEIGHT = 4000;
+
 /** How far past the map edge the camera may look, in screen pixels at the current zoom. */
 export const PAN_MARGIN = 60;
 
