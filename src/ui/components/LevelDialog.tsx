@@ -16,15 +16,20 @@ export function LevelDialog() {
   // Nothing to introduce when the editor is not on a level (component / level map).
   if (!visible || !level) return null;
 
+  const close = () => { levelDialogVisible.value = false; };
+
   return (
-    <FloatingWindow
-      id="goals"
-      class="window-goals"
-      title={level.name}
-      onClose={() => { levelDialogVisible.value = false; }}
-    >
+    <FloatingWindow id="goals" class="window-goals" title={level.name} onClose={close}>
       {/* Descriptions are Markdown, so a level can spell out a table or an opcode in `code`. */}
       <div class="markdown-body">{renderMarkdown(level.description)}</div>
+
+      {/*
+        The window opens by itself on entering a level, so it needs an obvious way out for a
+        player who has just read it — the ✕ is for closing something you went looking for.
+      */}
+      <div class="goals-footer">
+        <button class="window-btn is-primary" onClick={close}>Continue</button>
+      </div>
     </FloatingWindow>
   );
 }

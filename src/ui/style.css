@@ -1319,6 +1319,16 @@ body {
   }
 }
 
+/* ── Goals window ── */
+
+/* No rule above it: the description already ends in whitespace, and a divider across a
+   short goal reads as a section break where there is nothing to separate. */
+.goals-footer {
+  display: flex;
+  justify-content: center;
+  padding: 0 12px 14px;
+}
+
 /* ------------------------------------------------------------------ */
 /* File-backed editors (RAM programs, tests)                           */
 /* ------------------------------------------------------------------ */
