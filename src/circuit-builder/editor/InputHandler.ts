@@ -226,6 +226,7 @@ export class InputHandler {
   private handleContextMenu(e: PointerEvent): void {
     const state = this.getState();
     const world = e.world;
+    state.renderDirty = true; // Same reason as handleMouseDown.
 
     // Cancel stamp/paste mode
     if (state.mode.kind !== 'normal') {
@@ -281,6 +282,13 @@ export class InputHandler {
   private handleMouseDown(e: PointerEvent): void {
     const state = this.getState();
     const world = e.world;
+
+    // A press is human-rate and nearly always changes what is drawn or what is selected, so
+    // the frame is marked dirty here instead of in each branch below — a branch that only
+    // moves the selection (a wire, or a click on empty space) would otherwise show nothing
+    // until the next event happened to dirty the frame. Mouse *move* is deliberately not
+    // treated this way: rebuilding the scene on every move would cost a frame per pixel.
+    state.renderDirty = true;
 
     if (e.button === 1) {
       this.handleMiddleMouseDown(state, world);

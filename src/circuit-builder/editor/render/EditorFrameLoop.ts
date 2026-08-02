@@ -27,8 +27,8 @@ export class EditorFrameLoop {
   private animationId: number | null = null;
   private lastTime = 0;
   private scene: RenderScene | null = null;
-  /** Last selection handed to Preact, so hovering does not trigger re-renders. */
-  private notifiedSelection: unknown = null;
+  /** Last snapshot handed to Preact, so hovering does not trigger re-renders. */
+  private notifiedUi: UiSnapshot | null = null;
 
   constructor(renderer: Renderer, hooks: FrameLoopHooks) {
     this.renderer = renderer;
@@ -68,8 +68,9 @@ export class EditorFrameLoop {
     if (state.renderDirty || state.circuitDirty) {
       this.scene = buildScene(state, this.renderer.viewport(state.camera));
       // Only notify Preact for UI-relevant changes, not on every hover or mousemove
-      if (state.selection !== this.notifiedSelection || state.circuitDirty) {
-        this.notifiedSelection = state.selection;
+      const ui = uiSnapshot(state);
+      if (!sameUi(this.notifiedUi, ui) || state.circuitDirty) {
+        this.notifiedUi = ui;
         this.hooks.onStateChanged?.();
       }
       state.renderDirty = false;
@@ -79,4 +80,34 @@ export class EditorFrameLoop {
     // 3. Draw. The canvas is cleared every frame, so this repeats even when unchanged.
     if (this.scene) this.renderer.render(this.scene, state.camera);
   }
+}
+
+/**
+ * The parts of EditorState the Preact panels read: the selection (PropertiesPanel), the wire
+ * colour (the toolbar swatches) and the recent gate types (the Sidebar).
+ *
+ * All three are replaced rather than mutated, so identity comparison is enough. Anything a
+ * panel starts reading has to be added here, or that panel updates only when one of these
+ * happens to change — which is how picking a wire colour with Q used to leave the swatches
+ * showing the old one until the next click moved the selection.
+ */
+interface UiSnapshot {
+  selection: unknown;
+  wireColor: string;
+  recentGateTypes: unknown;
+}
+
+function uiSnapshot(state: EditorState): UiSnapshot {
+  return {
+    selection: state.selection,
+    wireColor: state.wireColor,
+    recentGateTypes: state.recentGateTypes,
+  };
+}
+
+function sameUi(a: UiSnapshot | null, b: UiSnapshot): boolean {
+  return a !== null
+    && a.selection === b.selection
+    && a.wireColor === b.wireColor
+    && a.recentGateTypes === b.recentGateTypes;
 }
