@@ -349,8 +349,13 @@ function evaluateGate(
       const index = (readInput(values, inBase + 2) << 2)
         | (readInput(values, inBase + 1) << 1)
         | readInput(values, inBase);
+      // DIS is the fourth input. Unwired reads as 0 (readInput folds high-Z to low), so a
+      // decoder nobody has connected it to behaves exactly as it did before the pin existed.
+      const disabled = readInput(values, inBase + 3) !== 0;
       const count = program.outputCount[gateIndex];
-      for (let i = 0; i < count; i++) values[outBase + i] = i === index ? 1 : 0;
+      for (let i = 0; i < count; i++) {
+        values[outBase + i] = !disabled && i === index ? 1 : 0;
+      }
       break;
     }
 
