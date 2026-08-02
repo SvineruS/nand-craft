@@ -10,6 +10,14 @@ import { GRID_SIZE } from "../consts.ts";
 
 
 const HIT_RADIUS = 10;       // pin / wire node click target
+/**
+ * The same target where it overlaps a gate body, which is competing for the press.
+ *
+ * A pin sits on its gate's edge, so on a 1×1 gate the full radius covers the whole body from
+ * both sides and the gate can never be clicked. Kept above the 5px a hovered pin is drawn at,
+ * so what looks grabbable still is.
+ */
+const HIT_RADIUS_OVER_GATE = 6;
 const WIRE_HIT_DIST = 8;     // wire segment click target
 const GATE_BUTTON_HIT_PADDING = 2;
 
@@ -123,10 +131,26 @@ export function sameGateButton(a: GateButtonRef | null, b: GateButtonRef | null)
   return a.gateId === b.gateId && a.kind === b.kind;
 }
 
+export interface EndpointHitOptions {
+  /** Node to ignore — the one already being dragged. */
+  exclude?: WireNodeId;
+  /**
+   * Whether a gate body under the cursor wants the same press.
+   *
+   * True when picking: a press chooses between grabbing a pin and taking the gate, so over a
+   * body the pin has to be hit precisely. False while wiring or dragging, where the gate body
+   * is not a candidate and the endpoint being aimed at should stay as easy to hit as ever.
+   */
+  gateBodyCompetes?: boolean;
+}
+
 /** Unified hit test — finds the closest pin or free wire node within radius. */
-export function hitTestEndpoint(pos: Vec2, state: EditorState, excludeNode?: WireNodeId): WireEndpoint | null {
+export function hitTestEndpoint(
+  pos: Vec2, state: EditorState, opts: EndpointHitOptions = {},
+): WireEndpoint | null {
+  const { exclude: excludeNode, gateBodyCompetes } = opts;
   let best: WireEndpoint | null = null;
-  let bestDist = HIT_RADIUS;
+  let bestDist = gateBodyCompetes && isOverGateBody(pos, state) ? HIT_RADIUS_OVER_GATE : HIT_RADIUS;
 
   // Check free wire nodes
   for (const node of state.circuit.wireNodes.values()) {
@@ -161,6 +185,18 @@ export function hitTestEndpoint(pos: Vec2, state: EditorState, excludeNode?: Wir
   }
 
   return best;
+}
+
+/**
+ * Is the cursor on a gate's body?
+ *
+ * The body itself, without GATE_HIT_PADDING: the ring just outside a gate is where a wire is
+ * pulled off a pin, and it stays pin territory.
+ */
+function isOverGateBody(pos: Vec2, state: EditorState): boolean {
+  for (const gate of state.circuit.gates.values())
+    if (posInRect(pos, gateBounds(gate))) return true;
+  return false;
 }
 
 export function hitTestWireSegment(pos: Vec2, state: EditorState): WireSegmentId | null {

@@ -21,6 +21,7 @@ import {
 } from './commands.ts';
 import {
   gateBounds,
+  type EndpointHitOptions,
   type GateButtonRef,
   hitTestEndpoint,
   hitTestGate,
@@ -40,6 +41,15 @@ import {
 } from './utils/mapBounds.ts';
 
 const MIN_WIRE_DRAG = 5;
+
+/**
+ * Endpoint lookups where the gate under the cursor wants the same press — every hover and
+ * press that has to decide between grabbing a pin and taking the gate.
+ *
+ * The lookups that ask "what am I about to drop this on?" deliberately do not pass it: there
+ * the gate body is not a candidate, so the target stays as easy to hit as it has always been.
+ */
+const PICK: EndpointHitOptions = { gateBodyCompetes: true };
 
 
 
@@ -237,7 +247,7 @@ export class InputHandler {
     }
 
     // Wire node?
-    const ep = hitTestEndpoint(world, state);
+    const ep = hitTestEndpoint(world, state, PICK);
     if (ep && ep.kind === 'node') {
       this.getHistory().execute(new RemoveWireNodeCommand(state, ep.nodeId));
       state.renderDirty = true;
@@ -318,7 +328,7 @@ export class InputHandler {
       return;
     }
 
-    const ep = hitTestEndpoint(world, state);
+    const ep = hitTestEndpoint(world, state, PICK);
     if (ep) {
       this.handleEndpointMouseDown(state, world, ep, isDblClick);
       return;
@@ -342,7 +352,7 @@ export class InputHandler {
   private handleMiddleMouseDown(state: EditorState, world: Vec2): void {
     // Wire node or pin → start dragging (merge on mouseup if no movement).
     // Checked before gates so a pin sitting on a gate body is still grabbable.
-    const ep = hitTestEndpoint(world, state);
+    const ep = hitTestEndpoint(world, state, PICK);
     if (ep) {
       if (this.startDetachDrag(state, world, ep)) return;
     }
@@ -362,7 +372,7 @@ export class InputHandler {
   }
 
   private handleShiftMouseDown(state: EditorState, world: Vec2): void {
-    const ep = hitTestEndpoint(world, state);
+    const ep = hitTestEndpoint(world, state, PICK);
     if (ep && ep.kind === 'node') {
       this.startNodeDrag(state, ep.nodeId, world);
       return;
@@ -502,7 +512,7 @@ export class InputHandler {
         nodeIds: [nodeId],
         detachedNodeIds: detachPin ? [nodeId] : [],
       };
-      state.hoveredEndpoint = hitTestEndpoint(world, state, nodeId);
+      state.hoveredEndpoint = hitTestEndpoint(world, state, { exclude: nodeId });
       state.renderDirty = true;
       return;
     }
@@ -555,7 +565,7 @@ export class InputHandler {
     // on a gate edge is highlighted as the grabbable thing, not the gate body.
     const hoveredButton = hitTestGateButton(world, state);
     state.hoveredGateButton = hoveredButton;
-    const hoveredEp = hoveredButton ? null : hitTestEndpoint(world, state);
+    const hoveredEp = hoveredButton ? null : hitTestEndpoint(world, state, PICK);
     state.hoveredEndpoint = hoveredEp;
     state.hoveredGate = hoveredEp || hoveredButton ? null : hitTestGate(world, state);
     state.renderDirty = true;
@@ -614,7 +624,7 @@ export class InputHandler {
     }
 
     const { nodeId, startPos, detachPin, dragged } = drag;
-    const target = hitTestEndpoint(world, state, nodeId);
+    const target = hitTestEndpoint(world, state, { exclude: nodeId });
     const moved = !Vec2.equal(finalPos, startPos);
 
     if (!moved && !detachPin) {
