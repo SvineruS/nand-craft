@@ -83,6 +83,20 @@ export class CanvasInput {
   private panning = false;
   private panLast: Vec2 = { x: 0, y: 0 };
 
+  /**
+   * Whether a button is down. While it is, moves and the release are followed on `window`
+   * rather than on the canvas, so a drag that wanders over the sidebar — or off the page —
+   * still ends where the player let go.
+   */
+  private pressed = false;
+
+  /**
+   * The last move we actually saw. A release outside the browser is never delivered, so the
+   * drag is closed at the position it was last drawn at rather than wherever the pointer
+   * happens to re-enter.
+   */
+  private lastMove: MouseEvent | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     handlers: CanvasInputHandlers,
@@ -102,7 +116,6 @@ export class CanvasInput {
   attach(): void {
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
     this.canvas.addEventListener('mousemove', this.handleMouseMove);
-    this.canvas.addEventListener('mouseup', this.handleMouseUp);
     this.canvas.addEventListener('wheel', this.handleWheel, { passive: false });
     window.addEventListener('keydown', this.handleKeyDown);
     this.canvas.addEventListener('contextmenu', this.handleContextMenu);
@@ -112,9 +125,9 @@ export class CanvasInput {
   }
 
   detach(): void {
+    this.endPress();
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
     this.canvas.removeEventListener('mousemove', this.handleMouseMove);
-    this.canvas.removeEventListener('mouseup', this.handleMouseUp);
     this.canvas.removeEventListener('wheel', this.handleWheel);
     window.removeEventListener('keydown', this.handleKeyDown);
     this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
@@ -127,17 +140,26 @@ export class CanvasInput {
 
   private handleMouseDown = (e: MouseEvent): void => {
     const p = this.pointer(e);
+    this.beginPress();
     if (this.shouldPan(p)) {
       this.panning = true;
-      this.panLast = { x: e.offsetX, y: e.offsetY };
+      this.panLast = p.screen;
       return;
     }
     this.handlers.onPointerDown?.(p);
   };
 
   private handleMouseMove = (e: MouseEvent): void => {
+    // A release outside the browser never reaches us. The first move back in reports no
+    // button held, which is the only sign we get that the drag is over.
+    if (this.pressed && e.buttons === 0) {
+      this.handleMouseUp(this.lastMove ?? e);
+      return;
+    }
+    this.lastMove = e;
+
     if (this.panning) {
-      const current = { x: e.offsetX, y: e.offsetY };
+      const current = this.screenPos(e);
       applyPan(this.getCamera(), { x: current.x - this.panLast.x, y: current.y - this.panLast.y });
       this.panLast = current;
       this.clampToWorld();
@@ -148,6 +170,7 @@ export class CanvasInput {
   };
 
   private handleMouseUp = (e: MouseEvent): void => {
+    this.endPress();
     if (this.panning) {
       this.panning = false;
       return;
@@ -155,9 +178,32 @@ export class CanvasInput {
     this.handlers.onPointerUp?.(this.pointer(e));
   };
 
+  /**
+   * Follow the pointer on `window` for the rest of the press.
+   *
+   * The canvas listener is swapped out rather than kept alongside, so a move over the canvas
+   * is not delivered twice.
+   */
+  private beginPress(): void {
+    if (this.pressed) return;
+    this.pressed = true;
+    this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+    window.addEventListener('mousemove', this.handleMouseMove);
+    window.addEventListener('mouseup', this.handleMouseUp);
+  }
+
+  private endPress(): void {
+    if (!this.pressed) return;
+    this.pressed = false;
+    this.lastMove = null;
+    window.removeEventListener('mousemove', this.handleMouseMove);
+    window.removeEventListener('mouseup', this.handleMouseUp);
+    this.canvas.addEventListener('mousemove', this.handleMouseMove);
+  }
+
   private handleWheel = (e: globalThis.WheelEvent): void => {
     e.preventDefault();
-    const screen = { x: e.offsetX, y: e.offsetY };
+    const screen = this.screenPos(e);
     const factor = e.deltaY < 0 ? this.zoomFactor : 1 / this.zoomFactor;
     applyZoom(
       this.getCamera(), screen, factor,
@@ -214,8 +260,20 @@ export class CanvasInput {
     return screenToWorld(screen, cam, this.canvas.clientWidth, this.canvas.clientHeight);
   }
 
+  /**
+   * Position within the canvas, in CSS pixels.
+   *
+   * Derived from the canvas rect rather than `offsetX`/`offsetY`, which are relative to
+   * whatever element the event hit — during a drag that can be the sidebar, a window, or
+   * anything else the pointer crosses.
+   */
+  private screenPos(e: MouseEvent): Vec2 {
+    const rect = this.canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
   private pointer(e: MouseEvent): PointerEvent {
-    const screen = { x: e.offsetX, y: e.offsetY };
+    const screen = this.screenPos(e);
     return {
       world: this.toWorld(screen),
       screen,
@@ -228,7 +286,7 @@ export class CanvasInput {
   }
 
   private dragEvent(e: globalThis.DragEvent): DragDropEvent {
-    const screen = { x: e.offsetX, y: e.offsetY };
+    const screen = this.screenPos(e);
     return { world: this.toWorld(screen), screen, raw: e, dataTransfer: e.dataTransfer };
   }
 

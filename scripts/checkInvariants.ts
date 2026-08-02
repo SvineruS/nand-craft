@@ -33,6 +33,7 @@ import { QueueTestRunner, type TestGateLabels } from '../src/circuit-builder/edi
 import {
   raiseWindow, registerWindow, unregisterWindow, WINDOW_Z_BASE,
 } from '../src/ui/windowStacking.ts';
+import { CanvasInput } from '../src/engine/input.ts';
 import type { TestCommand } from '../src/circuit-builder/testing/dslParser.ts';
 import type { GateType } from '../src/circuit-builder/simulation/gateTypes.ts';
 
@@ -593,3 +594,84 @@ console.log('RAM chip OK');
 }
 
 console.log('window stacking OK');
+
+// ---------------------------------------------------------------------------
+// Pointer drag lifecycle
+//
+// A press must be followed to wherever it is released — over the sidebar, or off the page
+// entirely. The browser delivers no mouseup for a release outside itself, so the only sign
+// is the next move reporting no button held; miss that and the canvas behaves as if the
+// button were still down. Driven here against a stand-in EventTarget, since the rules are
+// about listener bookkeeping rather than anything visual.
+// ---------------------------------------------------------------------------
+
+{
+  class FakeTarget {
+    listeners = new Map<string, Set<(e: unknown) => void>>();
+    addEventListener(type: string, fn: (e: unknown) => void) {
+      if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+      this.listeners.get(type)!.add(fn);
+    }
+    removeEventListener(type: string, fn: (e: unknown) => void) {
+      this.listeners.get(type)?.delete(fn);
+    }
+    dispatch(type: string, e: unknown) {
+      for (const fn of [...(this.listeners.get(type) ?? [])]) fn(e);
+    }
+    count(type: string) { return this.listeners.get(type)?.size ?? 0; }
+  }
+
+  const canvas = Object.assign(new FakeTarget(), {
+    clientWidth: 800, clientHeight: 600,
+    getBoundingClientRect: () => ({ left: 100, top: 50 }),
+  });
+  const fakeWindow = new FakeTarget();
+  const globals = globalThis as Record<string, unknown>;
+  const hadWindow = 'window' in globals;
+  globals.window = fakeWindow;
+
+  const log: string[] = [];
+  const input = new CanvasInput(canvas as never, {
+    onPointerDown: e => log.push(`down ${e.screen.x},${e.screen.y}`),
+    onPointerMove: e => log.push(`move ${e.screen.x},${e.screen.y}`),
+    onPointerUp: e => log.push(`up ${e.screen.x},${e.screen.y}`),
+  }, { getCamera: () => ({ pos: { x: 0, y: 0 }, zoom: 1 }) });
+  input.attach();
+
+  const ev = (x: number, y: number, buttons = 1) =>
+    ({ clientX: x, clientY: y, buttons, button: 0, ctrlKey: false, shiftKey: false, altKey: false });
+
+  canvas.dispatch('mousedown', ev(200, 150));
+  check('a press follows the pointer on window',
+    fakeWindow.count('mousemove') === 1 && fakeWindow.count('mouseup') === 1
+    && canvas.count('mousemove') === 0);
+
+  fakeWindow.dispatch('mousemove', ev(300, 250));
+  check('a move while pressed is delivered once', log.filter(l => l.startsWith('move')).length === 1,
+    log.join(' | '));
+
+  // Released outside the browser, then the pointer comes back over the page.
+  fakeWindow.dispatch('mousemove', ev(700, 500, 0));
+  check('a release outside the browser ends the drag', log.filter(l => l.startsWith('up')).length === 1,
+    log.join(' | '));
+  check('...at the position it was last drawn, not where the pointer returned',
+    log[log.length - 1] === 'up 200,200', log[log.length - 1]);
+  check('...and the listeners go back to the canvas',
+    canvas.count('mousemove') === 1 && fakeWindow.count('mousemove') === 0
+    && fakeWindow.count('mouseup') === 0);
+
+  log.length = 0;
+  canvas.dispatch('mousedown', ev(200, 150));
+  fakeWindow.dispatch('mouseup', ev(900, 700));
+  check('a release off the canvas still ends the drag',
+    log.join('|') === 'down 100,100|up 800,650', log.join('|'));
+
+  input.detach();
+  check('detach leaves no listeners behind',
+    canvas.count('mousemove') === 0 && fakeWindow.count('mousemove') === 0
+    && fakeWindow.count('mouseup') === 0 && fakeWindow.count('keydown') === 0);
+
+  if (!hadWindow) delete globals.window;
+}
+
+console.log('pointer drag lifecycle OK');

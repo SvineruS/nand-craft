@@ -115,13 +115,22 @@ function trackPointer(
 ): void {
   start.preventDefault();
 
-  const onMouseMove = (move: MouseEvent) => onMove(move);
-  const onMouseUp = () => {
+  const onMouseMove = (move: MouseEvent) => {
+    // A release outside the browser never reaches us; the first move back in reports no
+    // button held. Without this the window would keep following the cursor.
+    if (move.buttons === 0) {
+      finish();
+      return;
+    }
+    onMove(move);
+  };
+
+  const finish = () => {
     window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
+    window.removeEventListener('mouseup', finish);
     onDone();
   };
 
   window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
+  window.addEventListener('mouseup', finish);
 }
