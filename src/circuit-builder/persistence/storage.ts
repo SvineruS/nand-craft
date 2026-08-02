@@ -7,6 +7,9 @@ import {
 } from '../editor/render/backgroundPattern.ts';
 import { type PaletteId, DEFAULT_PALETTE_ID, isPaletteId } from '../editor/palettes.ts';
 
+/** How often an editor screen writes the player's work back to storage. */
+export const AUTOSAVE_INTERVAL_MS = 30_000;
+
 const PREFIX = 'nand-craft';
 const SOLVED_KEY = `${PREFIX}:solved`;
 const BACKGROUND_GRID_KEY = `${PREFIX}:backgroundGrid`;

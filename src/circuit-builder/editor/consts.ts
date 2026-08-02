@@ -27,6 +27,9 @@ export const LEVEL_MAP_HEIGHT = 3000;
  * wiring between them — rather than the one circuit a level asks for, so it gets far more
  * room than a level does. Nothing is drawn per map area (the background follows the
  * viewport), so the size costs only the space it invites the player to use.
+ *
+ * The component editor shares it, for the same reason: a component is a sub-machine built
+ * the same way, and the alternative was the default level map, a quarter of the area.
  */
 export const SANDBOX_MAP_WIDTH = 6000;
 export const SANDBOX_MAP_HEIGHT = 4000;

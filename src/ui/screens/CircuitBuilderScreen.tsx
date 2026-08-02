@@ -14,8 +14,7 @@ import { useCanvasEditor } from '../useCanvasEditor.ts';
 import { EditorContext } from '../editorContext.ts';
 import { notifyStateChange, openGateWindow, openLevelIndex, saveError } from '../editorStore.ts';
 import { switchToLevelMap } from '../screenManager.ts';
-
-const AUTOSAVE_INTERVAL_MS = 30_000;
+import { AUTOSAVE_INTERVAL_MS } from '../../circuit-builder/persistence/storage.ts';
 
 export function CircuitBuilderScreen() {
   const levelIndex = openLevelIndex.value ?? 0;
