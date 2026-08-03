@@ -3,9 +3,27 @@ import { pinRefKey } from '../editor/types.ts';
 import type { Gate } from "./gateTypes.ts";
 import { type BuildResult, HIGH_Z, type SimulationState, type TickResult } from "./types.ts";
 import { build } from "./buildCircuit.ts";
-import { latchCircuit, propagateCircuit } from "./tickCircuit.ts";
+import { latchCircuit, propagateCircuit, type ResolvePass } from "./tickCircuit.ts";
 
 const NO_SEGMENTS: ReadonlySet<WireSegmentId> = new Set();
+
+/**
+ * A component gate's inner circuit plus the boundary it is driven through.
+ *
+ * Everything but `circuit` is fixed for the life of the instance: which inner gates back
+ * the component's pins is a property of its definition. Deriving it per tick meant scanning
+ * every inner gate and allocating three objects on each of the two passes a registered
+ * component makes, so it is resolved once here instead. `inputs` is reused rather than
+ * rebuilt — propagate() only reads it.
+ */
+export interface ComponentInstance {
+  circuit: Circuit;
+  /** Inner input gates, positionally matched to the component's input pins. */
+  inputIds: GateId[];
+  /** Inner output gates, positionally matched to the component's output pins. */
+  outputIds: GateId[];
+  inputs: Map<GateId, number>;
+}
 
 /**
  * The circuit graph plus its simulation state.
@@ -46,7 +64,7 @@ export class Circuit {
    * program and typed arrays, which used to end up in the save file when gates were
    * serialized. Keyed by gate id so instances survive a topology rebuild.
    */
-  componentInstances = new Map<GateId, Circuit>();
+  componentInstances = new Map<GateId, ComponentInstance>();
 
   /** Pin values indexed by the compiled program's slots. Sized by buildCircuit(). */
   simState: SimulationState = new Int32Array(0);
@@ -56,11 +74,23 @@ export class Circuit {
   contentionSeen = new Uint8Array(0);
 
   cachedBuild: BuildResult | null = null;
+  /**
+   * Refilled in place by every propagate, never replaced — a component's inner circuit
+   * propagates on each tick of its owner, so allocating these was the single largest
+   * per-component cost. See the note on TickResult before holding on to any of them.
+   */
   tickResult: TickResult = {
     outputs: new Map<GateId, number | null>(),
     contentionNets: [],
     errorSegmentIds: new Set<string>(),
     netValues: new Int32Array(0),
+  };
+  /** Accumulators threaded through the resolve pass, reused for the same reason. */
+  resolvePass: ResolvePass = {
+    values: this.simState,
+    netValues: this.netValues,
+    contentionNets: [],
+    contentionSeen: this.contentionSeen,
   };
 
 
@@ -234,7 +264,7 @@ export class Circuit {
     if (!this.cachedBuild) this.buildCircuit(this);
     this.simState.fill(HIGH_Z);
     this.contentionSeen.fill(0);
-    this.tickResult = propagateCircuit(this, this.cachedBuild!, inputs);
+    propagateCircuit(this, this.cachedBuild!, inputs);
   }
 
   /** Phase two: commit stored state from the values propagate() left behind. */
@@ -250,6 +280,10 @@ export class Circuit {
     this.simState = new Int32Array(program.slotCount);
     this.netValues = new Int32Array(program.netCount);
     this.contentionSeen = new Uint8Array(program.netCount);
+    // The reused pass holds these arrays directly, so it has to follow the new ones.
+    this.resolvePass.values = this.simState;
+    this.resolvePass.netValues = this.netValues;
+    this.resolvePass.contentionSeen = this.contentionSeen;
     return this.cachedBuild;
   }
 

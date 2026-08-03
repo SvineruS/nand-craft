@@ -1,6 +1,6 @@
 import type { ComponentId, GateId } from "../editor/types.ts";
-import { type BuildResult, HIGH_Z, type SimulationState, type TickResult } from "./types.ts";
-import { Circuit } from "./circuit.ts";
+import { type BuildResult, HIGH_Z, type SimulationState } from "./types.ts";
+import { Circuit, type ComponentInstance } from "./circuit.ts";
 import { isInputGate, isOutputGate, RAM_ADDRESS_MASK, RAM_SIZE } from "./gateTypes.ts";
 import { type CompiledProgram, Op, LatchOp, SrcOp } from "./program.ts";
 import { getComponent } from "../components/componentRegistry.ts";
@@ -20,24 +20,22 @@ export function propagateCircuit(
   circuit: Circuit,
   buildResult: BuildResult,
   inputs: Map<GateId, number>,
-): TickResult {
+): void {
   const { program } = buildResult;
   const values = circuit.simState;
+  const result = circuit.tickResult;
 
   setSourceOutputs(program, values, inputs);
-  const contentionNets = propagate(circuit, program, {
-    values,
-    netValues: circuit.netValues,
-    contentionNets: [],
-    contentionSeen: circuit.contentionSeen,
-  });
+  circuit.resolvePass.contentionNets.length = 0;
+  const contentionNets = propagate(circuit, program, circuit.resolvePass);
 
-  return {
-    outputs: collectOutputs(program, values),
-    contentionNets: contentionNets.map(netIndex => program.netIds[netIndex] as string),
-    errorSegmentIds: buildErrorSegments(program, buildResult, contentionNets),
-    netValues: circuit.netValues,
-  };
+  collectOutputs(program, values, result.outputs);
+  result.contentionNets.length = 0;
+  for (const netIndex of contentionNets) {
+    result.contentionNets.push(program.netIds[netIndex] as string);
+  }
+  fillErrorSegments(program, buildResult, contentionNets, result.errorSegmentIds);
+  result.netValues = circuit.netValues;
 }
 
 /** Phase two: commit stored state from the values propagation left behind. */
@@ -154,12 +152,14 @@ function latchState(
   }
 }
 
+/** Refills `outputs` in place. The gate set only changes on a rebuild, so keys are stable. */
 function collectOutputs(
   program: CompiledProgram,
   values: SimulationState,
-): Map<GateId, number | null> {
-  const outputs = new Map<GateId, number | null>();
+  outputs: Map<GateId, number | null>,
+): void {
   const { outputGates, gates, inputBase, inputCount } = program;
+  outputs.clear();
 
   for (let i = 0; i < outputGates.length; i++) {
     const gateIndex = outputGates[i];
@@ -170,15 +170,18 @@ function collectOutputs(
     const value = values[inputBase[gateIndex]];
     outputs.set(gates[gateIndex].id, value === HIGH_Z ? null : value);
   }
-  return outputs;
 }
 
 // ---------------------------------------------------------------------------
 // Propagation
 // ---------------------------------------------------------------------------
 
-/** Mutable accumulators threaded through one tick's resolve pass. */
-interface ResolvePass {
+/**
+ * Mutable accumulators threaded through one tick's resolve pass. Owned by the Circuit and
+ * reused; `values`/`netValues`/`contentionSeen` are re-pointed whenever a rebuild resizes
+ * them, and `contentionNets` is cleared at the start of each propagate.
+ */
+export interface ResolvePass {
   values: SimulationState;
   /** Resolved value per net — also the value the renderer draws on the wire. */
   netValues: Int32Array;
@@ -193,7 +196,26 @@ interface ResolvePass {
  * Returns the net indices found in contention.
  */
 function propagate(circuit: Circuit, program: CompiledProgram, pass: ResolvePass): number[] {
-  const { order, resolveAfterOffset, resolveAfterNets, initialNets, unresolvedNets } = program;
+  const { prologue, order, resolveAfterOffset, resolveAfterNets, initialNets, unresolvedNets } = program;
+
+  // Gates that read nothing propagation produces — registers and constants. Evaluating them
+  // up front lets their nets resolve in the initialNets batch instead of one call per step.
+  //
+  // Those two opcodes are inlined rather than dispatched through evaluateGate: each is a
+  // single store, and its per-gate preamble (three more typed-array reads, for an input base
+  // and a mask neither one uses) measured as the larger cost on register-heavy circuits.
+  // Anything else here — an all-registered component — still takes the general path.
+  for (let i = 0; i < prologue.length; i++) {
+    const gateIndex = prologue[i];
+    const opcode = program.opcode[gateIndex];
+    if (opcode === Op.REGISTER) {
+      pass.values[program.outputBase[gateIndex]] = program.gates[gateIndex].register ?? 0;
+    } else if (opcode === Op.CONSTANT) {
+      pass.values[program.outputBase[gateIndex]] = program.gates[gateIndex].value ?? 0;
+    } else {
+      evaluateGate(circuit, program, pass.values, gateIndex);
+    }
+  }
 
   resolveRange(program, pass, initialNets, 0, initialNets.length);
 
@@ -456,14 +478,15 @@ function evaluateComponent(
   values: SimulationState,
   gateIndex: number,
 ): void {
-  const run = propagateComponent(circuit, program, values, gateIndex);
-  if (!run) return;
+  const instance = propagateComponent(circuit, program, values, gateIndex);
+  if (!instance) return;
 
   // Read inner circuit output gate values → component output pins
   const outBase = program.outputBase[gateIndex];
   const outCount = program.outputCount[gateIndex];
-  const { inner, outputIds } = run;
-  for (let i = 0; i < outputIds.length && i < outCount; i++) {
+  const { circuit: inner, outputIds } = instance;
+  const count = Math.min(outputIds.length, outCount);
+  for (let i = 0; i < count; i++) {
     const value = inner.tickResult.outputs.get(outputIds[i]) ?? null;
     values[outBase + i] = value === null ? HIGH_Z : value;
   }
@@ -488,13 +511,7 @@ function latchComponent(
   needsPropagate: boolean,
 ): void {
   if (needsPropagate) propagateComponent(circuit, program, values, gateIndex);
-  circuit.componentInstances.get(program.gates[gateIndex].id)?.latch();
-}
-
-interface ComponentRun {
-  inner: Circuit;
-  /** Inner output gates, in the order they map onto the component's output pins. */
-  outputIds: GateId[];
+  circuit.componentInstances.get(program.gates[gateIndex].id)?.circuit.latch();
 }
 
 /** Feed the gate's current input slots into its inner circuit and propagate it. */
@@ -503,46 +520,65 @@ function propagateComponent(
   program: CompiledProgram,
   values: SimulationState,
   gateIndex: number,
-): ComponentRun | null {
+): ComponentInstance | null {
   const gate = program.gates[gateIndex];
   const compId = gate.type as ComponentId;
-  const def = getComponent(compId);
-  if (!def) return null; // Not a component gate — unknown type, silently skip
+
+  const instance = getComponentInstance(circuit, gate.id, compId);
+  if (!instance) return null;
 
   // Circular reference check
   if (evaluatingComponents.has(compId)) return null;
   evaluatingComponents.add(compId);
 
   try {
-    // Get or create this gate's inner circuit instance, kept on the owning Circuit
-    let inner = circuit.componentInstances.get(gate.id);
-    if (!inner) {
-      inner = deserializeCircuit(def.circuit);
-      circuit.componentInstances.set(gate.id, inner);
-    }
-
-    // Collect inner IO gates in iteration order (same order as buildComponentDefinition,
-    // and the same order analyzeComponent numbered the registered inputs in)
-    const innerInputIds: GateId[] = [];
-    const outputIds: GateId[] = [];
-    for (const innerGate of inner.gates.values()) {
-      if (isInputGate(innerGate.type)) innerInputIds.push(innerGate.id);
-      else if (isOutputGate(innerGate.type)) outputIds.push(innerGate.id);
-    }
-
     // Map component input pins → inner circuit input gate values
+    const { inputIds, inputs } = instance;
     const inBase = program.inputBase[gateIndex];
-    const inCount = program.inputCount[gateIndex];
-    const inputs = new Map<GateId, number>();
-    for (let i = 0; i < def.inputs.length && i < innerInputIds.length && i < inCount; i++) {
-      inputs.set(innerInputIds[i], readInput(values, inBase + i));
+    const count = Math.min(inputIds.length, program.inputCount[gateIndex]);
+    for (let i = 0; i < count; i++) {
+      inputs.set(inputIds[i], readInput(values, inBase + i));
     }
 
-    inner.propagate(inputs);
-    return { inner, outputIds: outputIds.slice(0, def.outputs.length) };
+    instance.circuit.propagate(inputs);
+    return instance;
   } finally {
     evaluatingComponents.delete(compId);
   }
+}
+
+/**
+ * The gate's instance, built on first use and reused after. The IO gate lists come out of
+ * `gates.values()` in the same order buildComponentDefinition numbered the pins in, and the
+ * same order analyzeComponent numbered the registered inputs in.
+ */
+function getComponentInstance(
+  circuit: Circuit,
+  gateId: GateId,
+  compId: ComponentId,
+): ComponentInstance | null {
+  const existing = circuit.componentInstances.get(gateId);
+  if (existing) return existing;
+
+  const def = getComponent(compId);
+  if (!def) return null; // Not a component gate — unknown type, silently skip
+
+  const inner = deserializeCircuit(def.circuit);
+  const inputIds: GateId[] = [];
+  const outputIds: GateId[] = [];
+  for (const innerGate of inner.gates.values()) {
+    if (isInputGate(innerGate.type)) inputIds.push(innerGate.id);
+    else if (isOutputGate(innerGate.type)) outputIds.push(innerGate.id);
+  }
+
+  const instance: ComponentInstance = {
+    circuit: inner,
+    inputIds: inputIds.slice(0, def.inputs.length),
+    outputIds: outputIds.slice(0, def.outputs.length),
+    inputs: new Map(),
+  };
+  circuit.componentInstances.set(gateId, instance);
+  return instance;
 }
 
 // ---------------------------------------------------------------------------
@@ -550,16 +586,17 @@ function propagateComponent(
 // ---------------------------------------------------------------------------
 
 /** Short-circuit segments are static; contention segments come from this tick. */
-function buildErrorSegments(
+function fillErrorSegments(
   program: CompiledProgram,
   buildResult: BuildResult,
   contentionNets: number[],
-): Set<string> {
-  const segments = new Set(program.shortCircuitSegmentIds);
+  segments: Set<string>,
+): void {
+  segments.clear();
+  for (const segmentId of program.shortCircuitSegmentIds) segments.add(segmentId);
   for (const netIndex of contentionNets) {
     const net = buildResult.nets.get(program.netIds[netIndex]);
     if (!net) continue;
     for (const segmentId of net.segmentIds) segments.add(segmentId as string);
   }
-  return segments;
 }

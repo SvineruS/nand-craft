@@ -21,7 +21,13 @@ export interface BuildResult {
   program: CompiledProgram;
 }
 
-/** Per-tick simulation output — everything the renderer and UI need. */
+/**
+ * Per-tick simulation output — everything the renderer and UI need.
+ *
+ * One instance per Circuit, refilled in place by each propagate rather than rebuilt. Read
+ * it right after ticking and do not retain the containers: a component's inner circuit
+ * propagates on every tick of the outer one, so its result is overwritten constantly.
+ */
 export interface TickResult {
   outputs: Map<GateId, number | null>;
   contentionNets: string[];

@@ -2,7 +2,7 @@ import type { GateId, Net, NetId, WireNodeId } from '../editor/types.ts';
 import { getGatePinMeta, getPinBitWidth, isBuiltInGateType } from '../editor/gates.ts';
 import type { Circuit } from './circuit.ts';
 import { type Gate, type GateType, isInputGate, isOutputGate } from './gateTypes.ts';
-import { hasRegisteredInput } from './registeredInputs.ts';
+import { getRegisteredInputs, hasRegisteredInput } from './registeredInputs.ts';
 
 // ---------------------------------------------------------------------------
 // Opcodes
@@ -200,7 +200,9 @@ export interface CompiledProgram {
   netWidthMismatch: Uint8Array;
 
   // --- evaluation schedule ---
-  /** Topologically ordered gate indices. */
+  /** Gates evaluated once before the loop, depending on nothing propagation resolves. */
+  prologue: Int32Array;
+  /** Topologically ordered gate indices, minus the prologue. */
   order: Int32Array;
   /** Combinational opcode per gate index. */
   opcode: Uint8Array;
@@ -410,11 +412,31 @@ function toCsr(rows: number[][]): { offset: Int32Array; values: Int32Array } {
 // ---------------------------------------------------------------------------
 
 interface Schedule {
+  prologue: Int32Array;
   order: Int32Array;
   initialNets: Int32Array;
   resolveAfterOffset: Int32Array;
   resolveAfterNets: Int32Array;
   unresolvedNets: Int32Array;
+}
+
+/**
+ * Whether a gate can be evaluated before the propagation loop, because it reads no pin that
+ * propagation resolves: registers (every pin registered) and constants (no pins at all).
+ * Their nets then join `initialNets` and resolve in one batch, so they cost neither a
+ * per-step resolve nor a slot in the loop.
+ *
+ * Purely a scheduling optimization, and derived rather than declared — leaving one of these
+ * in the loop would still be correct, just slower. It is what a register earns by having all
+ * its pins registered, and it replaces the seeding phase the old source/sequential split had.
+ */
+function isPrologueGate(type: GateType): boolean {
+  const registered = getRegisteredInputs(type);
+  const inputCount = getGatePinMeta(type).inputCount;
+  for (let i = 0; i < inputCount; i++) {
+    if (!registered[i]) return false;
+  }
+  return true;
 }
 
 /**
@@ -431,12 +453,25 @@ function buildSchedule(
   netTables: NetTables,
   evaluationOrder: GateId[],
 ): Schedule {
-  const order = new Int32Array(evaluationOrder.length);
+  // Prologue gates have no incoming edges, so they already sort to the front; pulling them
+  // out preserves the topological order of everything that remains.
+  const prologue: number[] = [];
+  const loopGates: number[] = [];
+  const inPrologue = new Uint8Array(slots.gates.length);
+  for (const gateId of evaluationOrder) {
+    const gateIndex = slots.gateIndexById.get(gateId)!;
+    if (isPrologueGate(slots.gates[gateIndex].type)) {
+      prologue.push(gateIndex);
+      inPrologue[gateIndex] = 1;
+    } else {
+      loopGates.push(gateIndex);
+    }
+  }
+
+  const order = Int32Array.from(loopGates);
   const stepOfGate = new Int32Array(slots.gates.length).fill(-1);
-  for (let step = 0; step < evaluationOrder.length; step++) {
-    const gateIndex = slots.gateIndexById.get(evaluationOrder[step])!;
-    order[step] = gateIndex;
-    stepOfGate[gateIndex] = step;
+  for (let step = 0; step < order.length; step++) {
+    stepOfGate[order[step]] = step;
   }
 
   // Output slot -> owning gate index, for walking a net back to its drivers
@@ -447,7 +482,7 @@ function buildSchedule(
 
   const initialNets: number[] = [];
   const unresolvedNets: number[] = [];
-  const resolveAfter: number[][] = Array.from({ length: evaluationOrder.length }, () => []);
+  const resolveAfter: number[][] = Array.from({ length: order.length }, () => []);
 
   for (let netIndex = 0; netIndex < netTables.netCount; netIndex++) {
     let lastStep = -1;
@@ -461,6 +496,8 @@ function buildSchedule(
       const step = stepOfGate[gateIndex];
       if (step >= 0) {
         if (step > lastStep) lastStep = step;
+      } else if (inPrologue[gateIndex]) {
+        // Already evaluated by the time initialNets resolve — nothing to wait for.
       } else if (isEvaluated(slots.gates[gateIndex].type)) {
         hasStrandedDriver = true;
       }
@@ -474,6 +511,7 @@ function buildSchedule(
 
   const resolveCsr = toCsr(resolveAfter);
   return {
+    prologue: Int32Array.from(prologue),
     order,
     initialNets: Int32Array.from(initialNets),
     resolveAfterOffset: resolveCsr.offset,
