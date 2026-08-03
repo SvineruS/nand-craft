@@ -8,7 +8,7 @@
  * built and fail in dev. The cost is preparing audio ahead — see the scheduler in `music.ts`.
  */
 import { MusicPlayer } from './player.ts';
-import { MUSIC_THEMES } from './themes.ts';
+import { themeOf } from './themes.ts';
 import type { MusicChunk, MusicRequest } from './musicProtocol.ts';
 
 // DedicatedWorkerGlobalScope: adding the WebWorker lib would change what all of `src` sees.
@@ -22,15 +22,19 @@ let player: MusicPlayer | null = null;
 self.onmessage = event => {
   const request = event.data;
   switch (request.kind) {
-    case 'init':
-      player = new MusicPlayer(request.sampleRate, MUSIC_THEMES[request.theme], request.seed);
+    case 'init': {
+      const { soundtrack, mood } = request.selection;
+      player = new MusicPlayer(request.sampleRate, themeOf(soundtrack, mood), request.seed);
       return;
+    }
     case 'render':
       render(request.frames);
       return;
-    case 'theme':
-      player?.setTheme(MUSIC_THEMES[request.theme], request.seed);
+    case 'theme': {
+      const { soundtrack, mood } = request.selection;
+      player?.setTheme(themeOf(soundtrack, mood), request.seed);
       return;
+    }
     case 'params':
       player?.setParams(request.params);
   }

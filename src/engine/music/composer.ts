@@ -6,10 +6,10 @@
  */
 import { Random, hashSeed } from './dsp.ts';
 import type { PatchName } from './instruments.ts';
-import type { MusicTheme } from './themes.ts';
+import type { MusicLayer, MusicTheme } from './themes.ts';
 
-/** The instrument an event is for: a tuned patch, or one of the two drums. */
-export type EventKind = PatchName | 'kick' | 'hat';
+/** The instrument an event is for: a tuned patch, or one of the drums. */
+export type EventKind = PatchName | 'kick' | 'snare' | 'hat';
 
 /** One note about to start. Mutable and pooled, to allocate nothing while rendering. */
 export interface NoteEvent {
@@ -40,49 +40,20 @@ const BARS_PER_SECTION = 16;
 const BREATH_BARS = 4;
 const BREATH_INTENSITY_DROP = 0.18;
 
-/** How busy the music has to be before a layer joins — what makes one dial an arrangement. */
-const LAYER_THRESHOLD = {
-  pad: 0,
-  bell: 0.15,
-  bass: 0.22,
-  hat: 0.4,
-  kick: 0.5,
-  arp: 0.62,
-} as const satisfies Record<string, number>;
+/** Layers a section may leave out — never the pad, bass or snare, which hold it together. */
+const OPTIONAL_LAYERS: MusicLayer[] = ['bell', 'hat', 'arp', 'lead'];
 
-type Layer = keyof typeof LAYER_THRESHOLD;
+/** Layers that play a pitch. The rest are drums, which have no patch. */
+type TunedLayer = 'pad' | 'bass' | 'arp' | 'bell' | 'lead';
 
-/** Layers a section may leave out entirely — never the pad or the bass, which hold it together. */
-const OPTIONAL_LAYERS: Layer[] = ['bell', 'hat', 'arp'];
-
-/** One bar of sixteenths, `x` where it plays. Strings, because a pattern is a picture. */
-const KICK_PATTERNS = [
-  'x.......x.......',
-  'x.......x...x...',
-  'x.......x..x....',
-  'x...x...x...x...',
-];
-
-const HAT_PATTERNS = [
-  '..x...x...x...x.',
-  '..x...x...x...xx',
-  '..x.x.x...x.x.x.',
-  '..x...x.....x.x.',
-];
-
-const BASS_PATTERNS = [
-  'x...............',
-  'x.........x.....',
-  'x.......x.......',
-  'x.....x...x.....',
-];
-
-const ARP_PATTERNS = [
-  '..x..x....x..x..',
-  '..x...x.x...x...',
-  '....x.....x...x.',
-  '..x..x..x..x..x.',
-];
+/** The patch each tuned layer plays unless the theme overrides it — a Record, so none is missed. */
+const DEFAULT_PATCH: Record<TunedLayer, PatchName> = {
+  pad: 'pad',
+  bass: 'bass',
+  arp: 'pluck',
+  bell: 'bell',
+  lead: 'lead',
+};
 
 /** Minor pentatonic: dropping the second and sixth lets one motif fit every chord in the loop. */
 const MELODY_DEGREES = [0, 2, 3, 4, 6];
@@ -94,14 +65,27 @@ const MELODY_STEPS = [0, 3, 4, 6, 8, 10, 12];
 const PAD_OCTAVE = 1;
 const ARP_OCTAVE = 2;
 const MELODY_OCTAVE = 2;
+const LEAD_OCTAVE = 2;
+
+/** Degrees a riff leaps to when it does not step: root, third, fifth, octave. */
+const RIFF_ACCENTS = [0, 2, 4, 7];
+/** How far a riff may wander from the chord root. */
+const RIFF_LOW = -3;
+const RIFF_HIGH = 7;
 
 /** The arrangement for one section, re-rolled every sixteen bars. */
 interface SectionPlan {
   progression: readonly number[];
   kick: string;
+  snare: string;
   hat: string;
   bass: string;
   arp: string;
+  lead: string;
+  /** Scale degrees the lead riff walks, relative to the chord root. */
+  riff: number[];
+  leadIndex: Int8Array;
+  leadHits: number;
   /** Chord tones in the order the arpeggio walks them. */
   arpShape: number[];
   /**
@@ -115,7 +99,7 @@ interface SectionPlan {
   /** The section's melodic figure: a step within the bar, and a degree of the key. */
   motif: { step: number; degree: number }[];
   /** Which optional layer sits this section out, if any. */
-  dropped: Layer | null;
+  dropped: MusicLayer | null;
   /** Whether chords take their seventh — a section of colour, then a section without. */
   seventh: boolean;
 }
@@ -171,8 +155,10 @@ export class Composer {
     if (this.plays('pad', level)) this.addPad(bar, stepInBar, chordRoot);
     if (this.plays('bass', level)) this.addBass(stepInBar, chordRoot);
     if (this.plays('kick', level)) this.addKick(stepInBar);
+    if (this.plays('snare', level)) this.addSnare(stepInBar);
     if (this.plays('hat', level)) this.addHat(stepInBar, level);
     if (this.plays('arp', level)) this.addArp(bar, stepInBar, chordRoot);
+    if (this.plays('lead', level)) this.addLead(bar, stepInBar, chordRoot);
     if (this.plays('bell', level)) this.addBell(bar, stepInBar);
 
     return this.count;
@@ -190,16 +176,18 @@ export class Composer {
     // An octave above the bass; any lower and the chord fights it for the same few dozen hertz.
     const root = this.rootNear(chordRoot, this.theme.root + PAD_OCTAVE * 12);
     for (const interval of this.chordIntervals(chordRoot, this.plan.seventh)) {
-      this.emit('pad', root + interval, duration, 0.85, 0);
+      this.emit(this.patchFor('pad'), root + interval, duration, 0.85, 0);
     }
   }
 
   private addBass(stepInBar: number, chordRoot: number): void {
     if (this.plan.bass[stepInBar] !== 'x') return;
     const isDownbeat = stepInBar === 0;
+    // An octave up now and then off the beat: what stops a sixteenth line being one long note.
+    const octave = !isDownbeat && this.stepRandom.chance(0.22) ? 12 : 0;
     this.emit(
-      'bass',
-      this.rootNear(chordRoot, this.theme.root),
+      this.patchFor('bass'),
+      this.rootNear(chordRoot, this.theme.root) + octave,
       (isDownbeat ? 1.6 : 0.7) * this.beatDuration,
       isDownbeat ? 1 : 0.72,
       0,
@@ -209,6 +197,13 @@ export class Composer {
   private addKick(stepInBar: number): void {
     if (this.plan.kick[stepInBar] !== 'x') return;
     this.emit('kick', 0, 0, stepInBar === 0 ? 1 : 0.85, 0);
+  }
+
+  /** Backbeat, with the off-beat hits played as ghost notes. */
+  private addSnare(stepInBar: number): void {
+    if (this.plan.snare[stepInBar] !== 'x') return;
+    const onBeat = stepInBar % STEPS_PER_BEAT === 0;
+    this.emit('snare', 0, 0, onBeat ? 1 : this.stepRandom.range(0.45, 0.6), 0);
   }
 
   private addHat(stepInBar: number, level: number): void {
@@ -229,11 +224,31 @@ export class Composer {
     const intervals = this.chordIntervals(chordRoot, false);
     const root = this.rootNear(chordRoot, this.theme.root + ARP_OCTAVE * 12);
     this.emit(
-      'pluck',
+      this.patchFor('arp'),
       root + intervals[shape % intervals.length],
       this.stepDuration,
       this.stepRandom.range(0.7, 1),
       this.stepRandom.range(-0.4, 0.4),
+    );
+  }
+
+  /**
+   * The riff. Unlike the bell's motif it is a line, not an ornament: it runs every bar and its
+   * degrees are relative to the chord, so it transposes under the progression.
+   */
+  private addLead(bar: number, stepInBar: number, chordRoot: number): void {
+    const noteIndex = this.plan.leadIndex[stepInBar];
+    if (noteIndex < 0) return;
+
+    const { riff, leadHits } = this.plan;
+    const offset = riff[(bar * leadHits + noteIndex) % riff.length];
+    const root = this.rootNear(chordRoot, this.theme.root + LEAD_OCTAVE * 12);
+    this.emit(
+      this.patchFor('lead'),
+      root + this.degreeInterval(chordRoot, offset),
+      1.5 * this.stepDuration,
+      this.stepRandom.range(0.82, 1),
+      this.stepRandom.range(-0.15, 0.15),
     );
   }
 
@@ -243,7 +258,7 @@ export class Composer {
     for (const note of this.plan.motif) {
       if (note.step !== stepInBar) continue;
       this.emit(
-        'bell',
+        this.patchFor('bell'),
         this.noteOf(note.degree, MELODY_OCTAVE),
         2 * this.beatDuration,
         this.stepRandom.range(0.75, 1),
@@ -260,21 +275,55 @@ export class Composer {
   private planSection(section: number): SectionPlan {
     const random = new Random(hashSeed(this.seed, section, 0x9d2c));
     const progression = random.pick(this.theme.progressions);
-    const arp = random.pick(ARP_PATTERNS);
+    const arp = this.pickPattern(random, 'arp');
+    const lead = this.pickPattern(random, 'lead');
 
     return {
       progression,
-      kick: random.pick(KICK_PATTERNS),
-      hat: random.pick(HAT_PATTERNS),
-      bass: random.pick(BASS_PATTERNS),
+      kick: this.pickPattern(random, 'kick'),
+      snare: this.pickPattern(random, 'snare'),
+      hat: this.pickPattern(random, 'hat'),
+      bass: this.pickPattern(random, 'bass'),
       arp,
       arpIndex: countNoteIndexes(arp),
       arpHits: countHits(arp),
       arpShape: this.rollArpShape(random),
+      lead,
+      leadIndex: countNoteIndexes(lead),
+      leadHits: countHits(lead),
+      riff: this.rollRiff(random),
       motif: this.rollMotif(random),
       dropped: random.chance(0.35) ? random.pick(OPTIONAL_LAYERS) : null,
       seventh: random.chance(0.5),
     };
+  }
+
+  /** A rhythm for a layer, or an empty bar for a layer this theme does not have. */
+  private pickPattern(random: Random, layer: MusicLayer): string {
+    const patterns = this.theme.patterns[layer];
+    return patterns && patterns.length > 0 ? random.pick(patterns) : EMPTY_BAR;
+  }
+
+  /**
+   * Five to eight degrees, mostly stepping, occasionally leaping to a strong one.
+   *
+   * Its length is deliberately not the number of notes in the bar, so the figure phases across
+   * bars instead of repeating identically — a riff that develops out of one short cell.
+   */
+  private rollRiff(random: Random): number[] {
+    const length = 5 + random.int(4);
+    const riff: number[] = [];
+    let degree = 0;
+    for (let i = 0; i < length; i++) {
+      riff.push(degree);
+      degree = random.chance(0.25)
+        ? random.pick(RIFF_ACCENTS)
+        : degree + (random.chance(0.5) ? 1 : -1) * (1 + random.int(2));
+      degree = Math.max(RIFF_LOW, Math.min(RIFF_HIGH, degree));
+    }
+    // Land on the root, so the figure sounds finished rather than cut off.
+    riff[riff.length - 1] = 0;
+    return riff;
   }
 
   /** The order the arpeggio walks the chord, as indices: up, down, or up with a turn at the top. */
@@ -312,8 +361,20 @@ export class Composer {
     this.planIndex = section;
   }
 
-  private plays(layer: Layer, level: number): boolean {
-    return level >= LAYER_THRESHOLD[layer] && this.plan.dropped !== layer;
+  /** A layer plays if the theme has it, the intensity has reached it, and the section kept it. */
+  private plays(layer: MusicLayer, level: number): boolean {
+    const threshold = this.theme.layers[layer];
+    return threshold !== undefined && level >= threshold && this.plan.dropped !== layer;
+  }
+
+  /** The patch a layer plays: the theme's choice, or the default for that layer. */
+  private patchFor(layer: TunedLayer): PatchName {
+    return this.theme.voices?.[layer] ?? DEFAULT_PATCH[layer];
+  }
+
+  /** Semitones from a chord's root to the degree `offset` above it, staying in the key. */
+  private degreeInterval(chordRoot: number, offset: number): number {
+    return this.noteOf(chordRoot + offset, 0) - this.noteOf(chordRoot, 0);
   }
 
   /**
@@ -370,6 +431,9 @@ export class Composer {
     event.seed = this.stepRandom.next() * 0x7fffffff;
   }
 }
+
+/** A bar a layer sits out. */
+const EMPTY_BAR = '................';
 
 /** Notes in a one-bar pattern. */
 function countHits(pattern: string): number {

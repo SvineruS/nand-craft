@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'preact/hooks';
 import { navigateTo } from '../screenManager.ts';
 import {
   backgroundGrid, musicVolume, paletteId, setBackgroundGrid, setMusicVolume, setPaletteId,
-  setSoundVolume, soundVolume,
+  setSoundVolume, setSoundtrackId, soundVolume, soundtrackId,
 } from '../editorStore.ts';
+import { SOUNDTRACKS, SOUNDTRACK_IDS } from '../../engine/music/themes.ts';
 import {
   type GridPatternId, GRID_PATTERNS, drawBackground,
 } from '../../circuit-builder/editor/render/backgroundPattern.ts';
@@ -21,6 +22,7 @@ const SWATCH_KEYS: (keyof CanvasColors)[] = ['gateFill', 'wireDefault', 'wireAct
 export function SettingsScreen() {
   const grid = backgroundGrid.value;
   const palette = paletteId.value;
+  const soundtrack = soundtrackId.value;
 
   return (
     <div class="fullscreen-menu">
@@ -69,6 +71,18 @@ export function SettingsScreen() {
       <div class="settings-group">
         <div class="settings-label">Music</div>
         <VolumeSlider value={musicVolume.value} onChange={setMusicVolume} />
+        <div class="pattern-options">
+          {SOUNDTRACK_IDS.map(id => (
+            <button
+              key={id}
+              class={`palette-option${id === soundtrack ? ' pattern-option-selected' : ''}`}
+              onClick={() => setSoundtrackId(id)}
+            >
+              <span>{SOUNDTRACKS[id].label}</span>
+              <span class="palette-desc">{SOUNDTRACKS[id].description}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div class="menu-buttons">

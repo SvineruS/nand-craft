@@ -7,7 +7,7 @@
  */
 import { PingPongDelay, Reverb, softClip } from './dsp.ts';
 import {
-  CONTROL_BLOCK, HatVoice, KickVoice, PATCHES, SynthVoice, type Voice,
+  CONTROL_BLOCK, HatVoice, KickVoice, PATCHES, SnareVoice, SynthVoice, type Voice,
 } from './instruments.ts';
 import { Composer, createEventPool, type NoteEvent } from './composer.ts';
 import type { MusicTheme } from './themes.ts';
@@ -15,6 +15,7 @@ import type { MusicTheme } from './themes.ts';
 /** Tuned voices held at once. A pad chord is four, and chords overlap by design. */
 const SYNTH_VOICES = 24;
 const KICK_VOICES = 2;
+const SNARE_VOICES = 3;
 const HAT_VOICES = 4;
 /** Notes one sixteenth may start. A pad chord with a seventh plus drums is the busy case. */
 const MAX_EVENTS_PER_STEP = 12;
@@ -63,6 +64,7 @@ export class MusicPlayer {
 
   private synths: SynthVoice[] = [];
   private kicks: KickVoice[] = [];
+  private snares: SnareVoice[] = [];
   private hats: HatVoice[] = [];
   private voices: Voice[] = [];
 
@@ -110,8 +112,9 @@ export class MusicPlayer {
 
     for (let i = 0; i < SYNTH_VOICES; i++) this.synths.push(new SynthVoice());
     for (let i = 0; i < KICK_VOICES; i++) this.kicks.push(new KickVoice());
+    for (let i = 0; i < SNARE_VOICES; i++) this.snares.push(new SnareVoice());
     for (let i = 0; i < HAT_VOICES; i++) this.hats.push(new HatVoice());
-    this.voices = [...this.synths, ...this.kicks, ...this.hats];
+    this.voices = [...this.synths, ...this.kicks, ...this.snares, ...this.hats];
 
     this.applyTempo();
   }
@@ -184,6 +187,9 @@ export class MusicPlayer {
         this.takeKick().trigger(event.velocity, event.seed, this.sampleRate);
         // The sidechain: everything low is pushed aside for as long as the kick lasts.
         this.duckLevel = 1;
+        return;
+      case 'snare':
+        this.takeSnare().trigger(event.velocity, event.seed, this.sampleRate);
         return;
       case 'hat':
         this.takeHat().trigger(
@@ -341,6 +347,10 @@ export class MusicPlayer {
 
   private takeKick(): KickVoice {
     return this.kicks.find(voice => !voice.active) ?? this.kicks[0];
+  }
+
+  private takeSnare(): SnareVoice {
+    return this.snares.find(voice => !voice.active) ?? this.snares[0];
   }
 
   private takeHat(): HatVoice {

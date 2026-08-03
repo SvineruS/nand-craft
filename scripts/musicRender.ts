@@ -2,15 +2,20 @@
  * Renders the music to a wav, so it can be heard without a browser. Also reports how much faster
  * than real time it went, which is what says whether a thread can keep up.
  *
- *   npm run music:render                        # 90s of the puzzle theme
- *   npm run music:render -- --theme=menu --seconds=45 --seed=7 --out=/tmp/menu.wav
- *   npm run music:render -- --sweep             # turns every control, then changes theme
+ *   npm run music:render                                    # 90s of ambient/puzzle
+ *   npm run music:render -- --soundtrack=industrial
+ *   npm run music:render -- --mood=menu --seconds=45 --seed=7 --out=/tmp/menu.wav
+ *   npm run music:render -- --sweep             # turns every control, then changes mood
+ *   npm run music:render -- --all               # every soundtrack and mood, one file each
  */
 import { writeFileSync } from 'node:fs';
 import {
   DEFAULT_MUSIC_PARAMS, MusicPlayer, type MusicParams,
 } from '../src/engine/music/player.ts';
-import { MUSIC_THEMES, MUSIC_THEME_IDS, type MusicThemeId } from '../src/engine/music/themes.ts';
+import {
+  MOOD_IDS, SOUNDTRACK_IDS, themeOf,
+  type MoodId, type SoundtrackId,
+} from '../src/engine/music/themes.ts';
 
 const SAMPLE_RATE = 48000;
 /** Frames per render call — small, like the game's, so the timing below means something. */
@@ -18,44 +23,59 @@ const RENDER_BLOCK = 128;
 
 const options = parseArguments(process.argv.slice(2));
 
-const player = new MusicPlayer(SAMPLE_RATE, MUSIC_THEMES[options.theme], options.seed);
-const frames = Math.round(options.seconds * SAMPLE_RATE);
-const left = new Float32Array(frames);
-const right = new Float32Array(frames);
-
-const moves = options.sweep ? sweepMoves(options.theme) : [];
-let nextMove = 0;
-
-const startedAt = performance.now();
-const blockLeft = new Float32Array(RENDER_BLOCK);
-const blockRight = new Float32Array(RENDER_BLOCK);
-for (let offset = 0; offset < frames; offset += RENDER_BLOCK) {
-  const count = Math.min(RENDER_BLOCK, frames - offset);
-
-  // Turned mid-render, exactly as the game turns them mid-playback.
-  const seconds = offset / SAMPLE_RATE;
-  while (nextMove < moves.length && moves[nextMove].at <= seconds) {
-    const move = moves[nextMove++];
-    console.log(`  ${move.at.toFixed(0).padStart(3)}s  ${move.what}`);
-    move.apply();
+if (options.all) {
+  for (const soundtrack of SOUNDTRACK_IDS) {
+    for (const mood of MOOD_IDS) {
+      renderTrack(soundtrack, mood, `music-${soundtrack}-${mood}.wav`);
+    }
   }
-
-  player.render(blockLeft, blockRight, count);
-  left.set(blockLeft.subarray(0, count), offset);
-  right.set(blockRight.subarray(0, count), offset);
+} else {
+  renderTrack(options.soundtrack, options.mood, options.out);
 }
-const elapsedMs = performance.now() - startedAt;
 
-writeFileSync(options.out, encodeWav(left, right, SAMPLE_RATE));
+function renderTrack(soundtrack: SoundtrackId, mood: MoodId, out: string): void {
+  const player = new MusicPlayer(SAMPLE_RATE, themeOf(soundtrack, mood), options.seed);
+  const frames = Math.round(options.seconds * SAMPLE_RATE);
+  const left = new Float32Array(frames);
+  const right = new Float32Array(frames);
 
-const peak = Math.max(peakOf(left), peakOf(right));
-console.log(`wrote ${options.out}`);
-console.log(`  ${options.theme}, seed ${options.seed}, ${options.seconds}s`);
-console.log(`  peak ${peak.toFixed(3)}, rms ${rmsOf(left).toFixed(3)}`);
-console.log(
-  `  rendered in ${elapsedMs.toFixed(0)}ms — ${(options.seconds * 1000 / elapsedMs).toFixed(0)}x`
-  + ` real time, ${(elapsedMs / options.seconds / 10).toFixed(2)}% of one core`,
-);
+  const moves = options.sweep ? sweepMoves(player, mood) : [];
+  let nextMove = 0;
+
+  const startedAt = performance.now();
+  const blockLeft = new Float32Array(RENDER_BLOCK);
+  const blockRight = new Float32Array(RENDER_BLOCK);
+  for (let offset = 0; offset < frames; offset += RENDER_BLOCK) {
+    const count = Math.min(RENDER_BLOCK, frames - offset);
+
+    // Turned mid-render, exactly as the game turns them mid-playback.
+    const seconds = offset / SAMPLE_RATE;
+    while (nextMove < moves.length && moves[nextMove].at <= seconds) {
+      const move = moves[nextMove++];
+      console.log(`  ${move.at.toFixed(0).padStart(3)}s  ${move.what}`);
+      move.apply();
+    }
+
+    player.render(blockLeft, blockRight, count);
+    left.set(blockLeft.subarray(0, count), offset);
+    right.set(blockRight.subarray(0, count), offset);
+  }
+  const elapsedMs = performance.now() - startedAt;
+
+  writeFileSync(out, encodeWav(left, right, SAMPLE_RATE));
+
+  const theme = themeOf(soundtrack, mood);
+  const peak = Math.max(peakOf(left), peakOf(right));
+  console.log(`wrote ${out}`);
+  console.log(
+    `  ${soundtrack}/${mood}, ${theme.bpm}bpm, seed ${options.seed}, ${options.seconds}s`,
+  );
+  console.log(`  peak ${peak.toFixed(3)}, rms ${rmsOf(left).toFixed(3)}`);
+  console.log(
+    `  rendered in ${elapsedMs.toFixed(0)}ms — ${(options.seconds * 1000 / elapsedMs).toFixed(0)}x`
+    + ` real time, ${(elapsedMs / options.seconds / 10).toFixed(2)}% of one core`,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // The sweep
@@ -69,8 +89,8 @@ interface Move {
 }
 
 /** Everything that can be changed while the music plays, one at a time, with room to hear each. */
-function sweepMoves(from: MusicThemeId): Move[] {
-  const other: MusicThemeId = from === 'menu' ? 'puzzle' : 'menu';
+function sweepMoves(player: MusicPlayer, from: MoodId): Move[] {
+  const other: MoodId = from === 'menu' ? 'puzzle' : 'menu';
   const turn = (at: number, what: string, params: Partial<MusicParams>): Move => (
     { at, what, apply: () => player.setParams(params) }
   );
@@ -84,10 +104,10 @@ function sweepMoves(from: MusicThemeId): Move[] {
     turn(86, 'tempo 0.85 — slow down', { tempo: 0.85 }),
     {
       at: 100,
-      what: `theme -> ${other}, controls back to neutral — a new key, no break`,
+      what: `mood -> ${other}, controls back to neutral — a new key, no break`,
       apply: () => {
         player.setParams(DEFAULT_MUSIC_PARAMS);
-        player.setTheme(MUSIC_THEMES[other]);
+        player.setTheme(themeOf(options.soundtrack, other));
       },
     },
   ];
@@ -98,11 +118,13 @@ function sweepMoves(from: MusicThemeId): Move[] {
 // ---------------------------------------------------------------------------
 
 interface Options {
-  theme: MusicThemeId;
+  soundtrack: SoundtrackId;
+  mood: MoodId;
   seconds: number;
   seed: number;
   out: string;
   sweep: boolean;
+  all: boolean;
 }
 
 function parseArguments(args: string[]): Options {
@@ -113,19 +135,26 @@ function parseArguments(args: string[]): Options {
   }
   const sweep = flags.has('sweep');
 
-  const theme = flags.get('theme') ?? 'puzzle';
-  if (!MUSIC_THEME_IDS.includes(theme as MusicThemeId)) {
-    console.error(`unknown theme "${theme}" — one of: ${MUSIC_THEME_IDS.join(', ')}`);
+  const soundtrack = flags.get('soundtrack') ?? 'ambient';
+  if (!SOUNDTRACK_IDS.includes(soundtrack as SoundtrackId)) {
+    console.error(`unknown soundtrack "${soundtrack}" — one of: ${SOUNDTRACK_IDS.join(', ')}`);
+    process.exit(1);
+  }
+  const mood = flags.get('mood') ?? 'puzzle';
+  if (!MOOD_IDS.includes(mood as MoodId)) {
+    console.error(`unknown mood "${mood}" — one of: ${MOOD_IDS.join(', ')}`);
     process.exit(1);
   }
 
   return {
-    theme: theme as MusicThemeId,
+    soundtrack: soundtrack as SoundtrackId,
+    mood: mood as MoodId,
     // Long enough for the sweep to get through every move it makes.
     seconds: Number(flags.get('seconds') ?? (sweep ? 120 : 90)),
     seed: Number(flags.get('seed') ?? 1),
-    out: flags.get('out') ?? `music-${sweep ? 'sweep' : theme}.wav`,
+    out: flags.get('out') ?? `music-${sweep ? 'sweep-' : ''}${soundtrack}-${mood}.wav`,
     sweep,
+    all: flags.has('all'),
   };
 }
 

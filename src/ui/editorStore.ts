@@ -4,7 +4,9 @@ import type { ComponentId, GateId, LevelId } from '../circuit-builder/editor/typ
 import {
   getSolvedLevelIds, getBackgroundGrid, saveBackgroundGrid, getPaletteId, savePaletteId,
   getSoundVolume, saveSoundVolume, getMusicVolume, saveMusicVolume,
+  getSoundtrackId, saveSoundtrackId,
 } from '../circuit-builder/persistence/storage.ts';
+import type { SoundtrackId } from '../engine/music/themes.ts';
 // Renamed on import: `musicVolume` here is the setting, and the audio layer's is the bus gain.
 import { setSfxVolume, setMusicVolume as setAudioMusicVolume } from '../engine/audio.ts';
 import type { GridPatternId } from '../circuit-builder/editor/render/backgroundPattern.ts';
@@ -98,6 +100,14 @@ export const musicVolume = signal(getMusicVolume());
 export function setMusicVolume(volume: number): void {
   musicVolume.value = volume;
   saveMusicVolume(volume);
+}
+
+/** Which soundtrack plays (persisted). The director hands over without a break. */
+export const soundtrackId = signal(getSoundtrackId());
+
+export function setSoundtrackId(id: SoundtrackId): void {
+  soundtrackId.value = id;
+  saveSoundtrackId(id);
 }
 
 // Applies the stored volumes at startup and every change after, so the audio layer never has to

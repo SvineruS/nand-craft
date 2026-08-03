@@ -3,27 +3,42 @@
 A generated soundtrack. No audio files: every sample is computed from a seed and a handful of
 numbers. Three layers, each ignorant of the one above it.
 
-    themes.ts      what a mood is        — key, tempo, chord loops, density
+    themes.ts      the soundtracks       — key, tempo, chord loops, layers, rhythms
     composer.ts    which notes, when     — reads a theme, emits NoteEvents
     instruments.ts how a note sounds     — oscillators, filters, envelopes
     player.ts      the clock and mixer   — notes into samples
     dsp.ts         the primitives
     musicWorker.ts renders off-thread
     music.ts       schedules chunks onto the audio clock
-    ui/musicDirector.ts   which theme plays on which screen
+    ui/musicDirector.ts   which mood plays on which screen
 
-## Themes
+## Soundtracks and moods
 
-A theme is the entire specification of one mood:
+A **soundtrack** is one style in three **moods** — `menu`, `map`, `puzzle`. The player picks the
+soundtrack in Settings; the screen picks the mood. `MOOD_BY_VIEW` is exhaustive over `ViewMode`, so
+a new screen cannot be silent by accident (the legacy factory screen borrows `map`).
 
-| | bpm | key | bars/chord | intensity | reverb |
+A theme is a whole style, not just a key and a tempo: it also names **which layers exist** and the
+intensity each needs, **the rhythms** they choose between, and **which patch** plays them.
+
+| `ambient` | bpm | key | bars/chord | intensity | reverb |
 |---|---|---|---|---|---|
 | `menu` | 84 | A natural minor | 4 | 0.2 | 0.5 |
 | `map` | 88 | G dorian | 2 | 0.38 | 0.46 |
 | `puzzle` | 92 | A natural minor | 2 | 0.55 | 0.42 |
 
-The legacy factory screen borrows `map`. `THEME_BY_VIEW` is exhaustive over `ViewMode`, so a new
-screen cannot be silent by accident.
+| `industrial` | bpm | key | bars/chord | intensity | reverb |
+|---|---|---|---|---|---|
+| `menu` | 112 | E natural minor | 4 | 0.3 | 0.34 |
+| `map` | 126 | E natural minor | 2 | 0.55 | 0.28 |
+| `puzzle` | 138 | D natural minor | 2 | 0.78 | 0.24 |
+
+`ambient` is pads, bells and a soft kick. `industrial` is after the Impulse Tracker music of
+late-90s shooters: a driving sixteenth bass, a backbeat with ghost notes, chord stabs instead of a
+wash, and a detuned lead riff — drier, and with the drums arriving much earlier in the intensity
+range.
+
+Adding a soundtrack means adding an entry to `SOUNDTRACKS`. No other file needs to change.
 
 ## How the notes are chosen
 
@@ -40,10 +55,12 @@ written-out options*:
 **Randomness picks the arrangement, never the notes.** Nothing chooses a pitch freely — the seed
 only selects among options written in the source. That is the whole reason it stays listenable.
 
-Which layers play comes from one number against thresholds:
+Which layers play comes from one number against the theme's own thresholds:
 
-    pad 0    bell 0.15    bass 0.22    hat 0.4    kick 0.5    arp 0.62
+    ambient      pad 0   bell 0.15   bass 0.22   hat 0.4    kick 0.5    arp 0.62
+    industrial   pad 0   bass 0.1    kick 0.25   hat 0.35   snare 0.45  lead 0.58   arp 0.72
 
+A layer the theme does not list never plays — `ambient` has no snare or lead, `industrial` no bell.
 The first 4 bars of every section subtract 0.18, so drums drop out and rebuild every 16 bars.
 
 ### Voice leading is not optional
@@ -53,19 +70,30 @@ root, pad an octave up, arp two). Read literally, i–VII–VI–iv in A minor c
 because the VII is a G a *seventh above* the tonic. The anchor rule makes it step down
 A2→G2→F2→D2. Without it the music sounds wrong in a way that is hard to name.
 
+### The lead is not the bell
+
+Two different devices. The bell's **motif** is an ornament: 2–3 pentatonic notes every fourth bar,
+anchored to the key. The **riff** is a line: 5–8 degrees running every bar, relative to the chord so
+it transposes under the progression, and deliberately a different length from the bar's note count
+so it phases across bars instead of repeating identically.
+
 ## Instruments
 
-Pad, bass, pluck and bell are one voice class and four patches; kick and hat are separate, being
-different signal paths rather than another patch.
+The tuned patches are one voice class and seven sets of numbers; kick, snare and hat are separate,
+being different signal paths rather than another patch.
 
 - **pad** — 3 saws detuned 11 cents, 1.1 s attack, 2.8 s release, filtered at 780 Hz
 - **bass** — triangle plus a sine an octave down, mostly sub
 - **pluck** — short filtered square, heavily into the delay
 - **bell** — sine phase-modulated at ratio 3.5, clang decaying in 0.35 s
+- **stab** — chords as short hits, for a style with a backbeat
+- **drive** — short square bass for sixteenth lines, where a sub would smear into one note
+- **lead** — 3 saws detuned 19 cents, resonant filter wide open at the attack
 - **kick** — sine falling 132→47 Hz in 28 ms, plus a 4 ms noise click
+- **snare** — a band of noise for the crack plus a fast sine for the body; noise alone is a hiss
 - **hat** — noise through a highpass at 7–8.6 kHz
 
-24 tuned voices, 2 kicks, 4 hats; the quietest is stolen when they run out. Everything mixes into
+24 tuned voices, 2 kicks, 3 snares, 4 hats; the quietest is stolen when they run out. All mix into
 a dry bus plus two sends: a ping-pong delay spaced to a dotted eighth (pulling against the beat)
 and a Freeverb. The kick ducks pad and bass by 34%, which is what leaves room for it. Master gain
 0.62, then `tanh`.
@@ -102,26 +130,30 @@ defaults meaning "the theme as written", which is what lets them outlive a theme
 glides over ~2 s. `brightness` is read per block, not stored per note, so turning it moves the
 eleven-second pad already sounding.
 
-`playMusic(theme)` — hands over at the end of the current chord, with no fade. The old key's notes
-are *released* over 0.5 s rather than cut, and the new theme's bar 0 is itself a chord boundary,
-which fills the gap (and is why the chord must not also be triggered by hand — it would play
-twice, 6 dB loud).
+`playMusic(soundtrack, mood)` — hands over at the end of the current chord, with no fade. The old
+key's notes are *released* over 0.5 s rather than cut, and the new theme's bar 0 is itself a chord
+boundary, which fills the gap (and is why the chord must not also be triggered by hand — it would
+play twice, 6 dB loud). Changing soundtrack in Settings goes through the same path, so it is the
+same seamless hand-over even though tempo, key, layers and patches all change at once.
 
 Both are heard about a second later, since that much audio is already queued. Fine for mood
 following game state; wrong for a sound answering a click — that is what `sfx.ts` is for.
 
 ## Tools
 
-    npm run music:render                    # 90s of puzzle to a wav
-    npm run music:render -- --sweep         # turns every control, then changes theme
-    npm run music:render -- --theme=menu --seconds=45 --seed=7 --out=/tmp/menu.wav
+    npm run music:render                          # 90s of ambient/puzzle to a wav
+    npm run music:render -- --all                 # every soundtrack and mood, one file each
+    npm run music:render -- --soundtrack=industrial --sweep
+    npm run music:render -- --mood=menu --seconds=45 --seed=7 --out=/tmp/menu.wav
 
 The seed is fixed (`0x1a7e`), so it is the same piece every session and the renderer writes exactly
 what a player hears. `--sweep` is how the live controls get judged by ear.
 
-`npm run check:invariants` phase 9 pins what a generated soundtrack has no golden output for: every
-theme renders finite, audible, unclipped stereo; one seed is one piece of music; the clock keeps
-time over eight bars whatever block size it is rendered in; and changing the music mid-render
-leaves no 100 ms window below −46 dB.
+`npm run check:invariants` phase 9 pins what a generated soundtrack has no golden output for. Over
+every soundtrack × mood: renders finite, audible, unclipped stereo, and every layer it declares has
+a rhythm (one without would silently never play). Plus: one seed is one piece of music; the clock
+keeps time over eight bars whatever block size it is rendered in; and changing the music mid-render
+— including across soundtracks, the switch with the most to go wrong — leaves no 100 ms window
+below −46 dB.
 
 Volumes live on separate buses — defaults are music 20%, effects 60%, both persisted.

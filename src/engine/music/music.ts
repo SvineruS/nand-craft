@@ -7,9 +7,9 @@
  */
 import { getAudioContext, getMusicBus } from '../audio.ts';
 import MusicWorker from './musicWorker.ts?worker';
-import type { MusicChunk, MusicRequest } from './musicProtocol.ts';
+import type { MusicChunk, MusicRequest, MusicSelection } from './musicProtocol.ts';
 import type { MusicParams } from './player.ts';
-import type { MusicThemeId } from './themes.ts';
+import type { MoodId, SoundtrackId } from './themes.ts';
 
 /** Fixed, so it is the same piece every session and `music:render` renders what players hear. */
 const MUSIC_SEED = 0x1a7e;
@@ -45,20 +45,24 @@ let pending = 0;
 /** Scheduled sources, so stopping can silence what is already queued. */
 const sources = new Set<AudioBufferSourceNode>();
 
-/** What the game last asked for, so a theme set before the worker exists is not lost. */
-let wanted: { theme: MusicThemeId; seed: number } | null = null;
+/** What the game last asked for, so a selection made before the worker exists is not lost. */
+let wanted: { selection: MusicSelection; seed: number } | null = null;
 /** Controls set so far, replayed to a worker that starts after they were turned. */
 const wantedParams: Partial<MusicParams> = {};
 
 /**
- * Play a theme, or switch to it. Calling it with what is already playing is not a restart; a
- * switch lands at the end of the current chord, so it arrives a second or two later.
+ * Play a soundtrack's mood, or switch to it. Calling it with what is already playing is not a
+ * restart; a switch lands at the end of the current chord, so it arrives a second or two later.
  */
-export function playMusic(theme: MusicThemeId, seed = MUSIC_SEED): void {
+export function playMusic(
+  soundtrack: SoundtrackId, mood: MoodId, seed = MUSIC_SEED,
+): void {
   const already = wanted;
-  wanted = { theme, seed };
+  wanted = { selection: { soundtrack, mood }, seed };
   if (worker) {
-    if (already?.theme !== theme || already.seed !== seed) send({ kind: 'theme', theme, seed });
+    const same = already?.selection.soundtrack === soundtrack
+      && already.selection.mood === mood && already.seed === seed;
+    if (!same) send({ kind: 'theme', selection: wanted.selection, seed });
     return;
   }
   start();
@@ -118,7 +122,12 @@ function start(): void {
     stopMusic();
   };
 
-  send({ kind: 'init', sampleRate: context.sampleRate, theme: wanted.theme, seed: wanted.seed });
+  send({
+    kind: 'init',
+    sampleRate: context.sampleRate,
+    selection: wanted.selection,
+    seed: wanted.seed,
+  });
   if (Object.keys(wantedParams).length > 0) send({ kind: 'params', params: wantedParams });
   queuedUntil = context.currentTime + START_DELAY_SECONDS;
   rampTo(fade, 1, START_FADE_SECONDS);

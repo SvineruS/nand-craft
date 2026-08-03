@@ -6,6 +6,9 @@ import {
   type GridPatternId, DEFAULT_GRID_PATTERN, isGridPatternId,
 } from '../editor/render/backgroundPattern.ts';
 import { type PaletteId, DEFAULT_PALETTE_ID, isPaletteId } from '../editor/palettes.ts';
+import {
+  type SoundtrackId, DEFAULT_SOUNDTRACK, SOUNDTRACK_IDS,
+} from '../../engine/music/themes.ts';
 
 /** How often an editor screen writes the player's work back to storage. */
 export const AUTOSAVE_INTERVAL_MS = 30_000;
@@ -16,6 +19,7 @@ const BACKGROUND_GRID_KEY = `${PREFIX}:backgroundGrid`;
 const PALETTE_KEY = `${PREFIX}:palette`;
 const SOUND_VOLUME_KEY = `${PREFIX}:soundVolume`;
 const MUSIC_VOLUME_KEY = `${PREFIX}:musicVolume`;
+const SOUNDTRACK_KEY = `${PREFIX}:soundtrack`;
 
 function circuitKey(levelId: LevelId): string {
   return `${PREFIX}:circuit:${levelId}`;
@@ -135,6 +139,22 @@ export function getMusicVolume(): number {
 
 export function saveMusicVolume(volume: number): void {
   saveVolume(MUSIC_VOLUME_KEY, volume);
+}
+
+/** Stored soundtrack, falling back when absent or no longer a known id. */
+export function getSoundtrackId(): SoundtrackId {
+  const stored = localStorage.getItem(SOUNDTRACK_KEY);
+  return SOUNDTRACK_IDS.includes(stored as SoundtrackId)
+    ? (stored as SoundtrackId)
+    : DEFAULT_SOUNDTRACK;
+}
+
+export function saveSoundtrackId(id: SoundtrackId): void {
+  try {
+    localStorage.setItem(SOUNDTRACK_KEY, id);
+  } catch (e) {
+    console.error('Failed to persist soundtrack:', e);
+  }
 }
 
 function getVolume(key: string, fallback: number): number {

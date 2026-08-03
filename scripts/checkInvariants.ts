@@ -801,7 +801,8 @@ console.log('sound files OK');
 
 {
   const { MusicPlayer } = await import('../src/engine/music/player.ts');
-  const { MUSIC_THEMES, MUSIC_THEME_IDS } = await import('../src/engine/music/themes.ts');
+  const { MOOD_IDS, SOUNDTRACK_IDS, themeOf } = await import('../src/engine/music/themes.ts');
+  type MusicTheme = ReturnType<typeof themeOf>;
   const { Composer, STEPS_PER_BAR } = await import('../src/engine/music/composer.ts');
 
   const RATE = 48000;
@@ -809,9 +810,14 @@ console.log('sound files OK');
   /** An awkward block size on purpose: chunk edges must not be where the music changes. */
   const BLOCK = 373;
 
+  /** Every soundtrack in every mood — the whole matrix has to hold up, not just the default. */
+  const tracks = SOUNDTRACK_IDS.flatMap(
+    soundtrack => MOOD_IDS.map(mood => ({ soundtrack, mood, label: `${soundtrack}/${mood}` })),
+  );
+
   /** Render `seconds` of a theme the way the worker does, in blocks. */
-  const renderTheme = (theme: keyof typeof MUSIC_THEMES, seed: number, seconds: number) => {
-    const player = new MusicPlayer(RATE, MUSIC_THEMES[theme], seed);
+  const renderTheme = (theme: MusicTheme, seed: number, seconds: number) => {
+    const player = new MusicPlayer(RATE, theme, seed);
     const frames = Math.round(seconds * RATE);
     const left = new Float32Array(frames);
     const right = new Float32Array(frames);
@@ -826,8 +832,9 @@ console.log('sound files OK');
     return { left, right };
   };
 
-  for (const themeId of MUSIC_THEME_IDS) {
-    const { left, right } = renderTheme(themeId, 1, SECONDS);
+  for (const { soundtrack, mood, label } of tracks) {
+    const theme = themeOf(soundtrack, mood);
+    const { left, right } = renderTheme(theme, 1, SECONDS);
 
     let peak = 0;
     let sum = 0;
@@ -839,27 +846,35 @@ console.log('sound files OK');
     }
     const rms = Math.sqrt(sum / left.length);
 
-    check(`${themeId} renders finite samples`, finite);
+    check(`${label} renders finite samples`, finite);
     // The master softClip means a peak at 1 is not a clipped sample, but it is a mix pushed hard.
-    check(`${themeId} is audible`, rms > 0.01, `rms ${rms.toFixed(4)}`);
-    check(`${themeId} keeps headroom`, peak < 0.98, `peak ${peak.toFixed(3)}`);
+    check(`${label} is audible`, rms > 0.01, `rms ${rms.toFixed(4)}`);
+    check(`${label} keeps headroom`, peak < 0.98, `peak ${peak.toFixed(3)}`);
 
     // A collapsed stereo image is invisible in every other measure here.
     let difference = 0;
     for (let i = 0; i < left.length; i += 64) difference += Math.abs(left[i] - right[i]);
-    check(`${themeId} is in stereo`, difference > 0, `sum |L-R| ${difference.toFixed(2)}`);
+    check(`${label} is in stereo`, difference > 0, `sum |L-R| ${difference.toFixed(2)}`);
+
+    // A layer with a threshold but no rhythm never plays, and nothing else here would notice.
+    for (const layer of Object.keys(theme.layers)) {
+      if (layer === 'pad' || layer === 'bell') continue;
+      const patterns = theme.patterns[layer as keyof typeof theme.patterns];
+      check(`${label} gives ${layer} a rhythm`, (patterns?.length ?? 0) > 0);
+    }
   }
 
   // Same seed, same samples — or `music:render` is not rendering what the game plays.
-  const first = renderTheme('puzzle', 7, 4);
-  const second = renderTheme('puzzle', 7, 4);
+  const puzzle = themeOf('ambient', 'puzzle');
+  const first = renderTheme(puzzle, 7, 4);
+  const second = renderTheme(puzzle, 7, 4);
   let identical = true;
   for (let i = 0; i < first.left.length; i++) {
     if (first.left[i] !== second.left[i] || first.right[i] !== second.right[i]) identical = false;
   }
   check('the same seed renders the same music', identical);
 
-  const other = renderTheme('puzzle', 8, 4);
+  const other = renderTheme(puzzle, 8, 4);
   let differs = false;
   for (let i = 0; i < first.left.length; i++) if (first.left[i] !== other.left[i]) differs = true;
   check('a different seed renders different music', differs);
@@ -868,7 +883,7 @@ console.log('sound files OK');
   // pass every other check in this phase.
   {
     const WINDOW = 0.1;
-    const player = new MusicPlayer(RATE, MUSIC_THEMES.puzzle, 1);
+    const player = new MusicPlayer(RATE, puzzle, 1);
     const seconds = 24;
     const frames = Math.round(seconds * RATE);
     const mono = new Float32Array(frames);
@@ -879,7 +894,11 @@ console.log('sound files OK');
       const at = offset / RATE;
       if (at >= 4 && at < 4 + BLOCK / RATE) player.setParams({ energy: -0.4, brightness: -1.2 });
       if (at >= 10 && at < 10 + BLOCK / RATE) player.setParams({ energy: 0.4, tempo: 1.15 });
-      if (at >= 16 && at < 16 + BLOCK / RATE) player.setTheme(MUSIC_THEMES.map, 3);
+      // Across soundtracks, which is the switch with the most to go wrong: different tempo, key,
+      // layers and patches all at once.
+      if (at >= 16 && at < 16 + BLOCK / RATE) {
+        player.setTheme(themeOf('industrial', 'puzzle'), 3);
+      }
 
       const count = Math.min(BLOCK, frames - offset);
       player.render(blockLeft, blockRight, count);
@@ -916,8 +935,8 @@ console.log('sound files OK');
   }
 
   // N bars of samples must be N bars of steps: no drift, and no dependence on the block size.
-  for (const themeId of MUSIC_THEME_IDS) {
-    const theme = MUSIC_THEMES[themeId];
+  for (const { soundtrack, mood, label } of tracks) {
+    const theme = themeOf(soundtrack, mood);
     const composer = new Composer(theme, 1);
     const bars = 8;
     const expected = bars * STEPS_PER_BAR;
@@ -931,7 +950,7 @@ console.log('sound files OK');
     }
     // One either side: step 0 lands on sample 0, and the last boundary may fall in a part block.
     check(
-      `${themeId} keeps time over ${bars} bars`,
+      `${label} keeps time over ${bars} bars`,
       Math.abs(player.stepsPlayed - expected) <= 1,
       `${player.stepsPlayed} steps for ${expected} sixteenths`,
     );

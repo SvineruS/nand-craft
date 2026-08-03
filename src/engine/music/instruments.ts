@@ -92,6 +92,31 @@ export const PATCHES = {
     cutoffHz: 4200, cutoffEnv: 0, cutoffDecay: 1, q: 0.7,
     gain: 0.17, delaySend: 0.42, reverbSend: 0.5, ducked: false,
   },
+
+  /** Chords as stabs rather than a wash — the pad of something with a backbeat. */
+  stab: {
+    wave: 'saw', unison: 2, detuneCents: 15, spread: 0.45, sub: 0.1,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.005, hold: 0.16, release: 0.45,
+    cutoffHz: 1150, cutoffEnv: 1.2, cutoffDecay: 0.28, q: 1.5,
+    gain: 0.115, delaySend: 0.16, reverbSend: 0.28, ducked: true,
+  },
+  /** Short square bass for sixteenth-note lines, where a sub would smear into one note. */
+  drive: {
+    wave: 'square', unison: 1, detuneCents: 0, spread: 0, sub: 0.45,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.003, hold: 0.5, release: 0.085,
+    cutoffHz: 300, cutoffEnv: 1.7, cutoffDecay: 0.06, q: 1.9,
+    gain: 0.4, delaySend: 0, reverbSend: 0.04, ducked: true,
+  },
+  /** Detuned saws with the filter wide open at the attack — a riff meant to be the hook. */
+  lead: {
+    wave: 'saw', unison: 3, detuneCents: 19, spread: 0.5, sub: 0.15,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.006, hold: 0.75, release: 0.2,
+    cutoffHz: 1500, cutoffEnv: 1.5, cutoffDecay: 0.16, q: 2.2,
+    gain: 0.16, delaySend: 0.3, reverbSend: 0.2, ducked: false,
+  },
 } as const satisfies Record<string, Patch>;
 
 export type PatchName = keyof typeof PATCHES;
@@ -279,6 +304,60 @@ export class KickVoice implements Voice {
       const body = Math.sin(this.phase * Math.PI * 2) * this.amp.next();
       const click = (this.noise.next() * 2 - 1) * this.clickAmp.next();
       const out = softClip((body + click) * 1.4) * this.gain;
+      left[i] = out;
+      right[i] = out;
+    }
+    if (!this.amp.active) this.active = false;
+  }
+}
+
+/**
+ * Snare: a band of noise for the crack, a fast sine for the body. Both are needed — noise alone
+ * is a hiss, and the body alone is a tom.
+ */
+export class SnareVoice implements Voice {
+  active = false;
+  delaySend = 0.06;
+  reverbSend = 0.18;
+  ducked = false;
+
+  private amp = new Envelope();
+  private bodyAmp = new Envelope();
+  private filter = new Svf();
+  private noise = new Random(1);
+  private phase = 0;
+  private sampleRate = 48000;
+  private gain = 0;
+
+  private static readonly BODY_HZ = 186;
+  private static readonly NOISE_HZ = 1900;
+
+  trigger(velocity: number, seed: number, sampleRate: number): void {
+    this.sampleRate = sampleRate;
+    this.amp.trigger(0.001 * sampleRate, 0.004 * sampleRate, 0.135 * sampleRate, velocity);
+    this.bodyAmp.trigger(0.001 * sampleRate, 0, 0.075 * sampleRate, velocity * 0.5);
+    this.filter.reset();
+    this.noise = new Random(seed);
+    this.phase = 0;
+    this.gain = 1;
+    this.active = true;
+  }
+
+  render(left: Float32Array, right: Float32Array, count: number, _brightness: number): void {
+    this.filter.setCutoff(SnareVoice.NOISE_HZ, 0.7, this.sampleRate);
+    const bodyIncrement = SnareVoice.BODY_HZ / this.sampleRate;
+
+    for (let i = 0; i < count; i++) {
+      if (!this.amp.active) {
+        left[i] = 0;
+        right[i] = 0;
+        continue;
+      }
+      this.filter.process(this.noise.next() * 2 - 1);
+      this.phase = (this.phase + bodyIncrement) % 1;
+      const crack = this.filter.band * this.amp.next();
+      const body = Math.sin(this.phase * Math.PI * 2) * this.bodyAmp.next();
+      const out = softClip((crack + body) * 1.3) * this.gain;
       left[i] = out;
       right[i] = out;
     }
