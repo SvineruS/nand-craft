@@ -188,7 +188,7 @@ function TestEditor() {
       }
       // Clear old table test data so summary doesn't show stale counts
       editor.tests.suite = { cases: [], inputNames: [], outputNames: [] };
-      editor.tests.mode = 'queue';
+      // startQueue switches the mode itself.
       editor.tests.startQueue(allCommands, caseBoundaries);
       notifyStateChange();
       setStatus({ kind: 'info', text: `Applied ${allCommands.length} queue commands` });

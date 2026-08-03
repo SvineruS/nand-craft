@@ -118,7 +118,6 @@ export interface EditorState {
 /** Shared clipboard that persists across level switches. */
 let sharedClipboard: ClipboardData | null = null;
 
-export function getSharedClipboard(): ClipboardData | null { return sharedClipboard; }
 export function setSharedClipboard(data: ClipboardData | null): void { sharedClipboard = data; }
 
 export function createEditorState(mapSize: MapSize = DEFAULT_MAP_SIZE): EditorState {

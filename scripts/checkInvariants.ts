@@ -44,7 +44,7 @@ const pick = <T>(xs: T[]): T | undefined => xs.length ? xs[Math.floor(rand() * x
 
 const state = createEditorState();
 state.circuit = new Circuit();
-const history = new CommandHistory();
+const history = new CommandHistory(state);
 
 /** Recompute both indexes by brute force and compare with what Circuit reports. */
 function verify(step: string): void {
@@ -194,7 +194,7 @@ function freshScene(): { state: ReturnType<typeof createEditorState>; history: C
     gateA: GateId; gateB: GateId; nodeA: WireNodeId; nodeB: WireNodeId; segment: WireSegmentId } {
   const st = createEditorState();
   st.circuit = new Circuit();
-  const hist = new CommandHistory();
+  const hist = new CommandHistory(st);
 
   const addA = new AddGateCommand(st, 'nand', { x: 100, y: 100 });
   hist.execute(addA);
@@ -424,9 +424,9 @@ function buildEchoCircuit(): { circuit: Circuit; labels: TestGateLabels } {
 
 function runQueue(commands: TestCommand[], maxTicks = 50): QueueTestRunner {
   const { circuit, labels } = buildEchoCircuit();
-  const runner = new QueueTestRunner(labels);
-  runner.start(circuit, commands, []);
-  for (let i = 0; i < maxTicks && !runner.tick(circuit); i++) { /* keep ticking */ }
+  const runner = new QueueTestRunner(() => circuit, labels);
+  runner.start(commands, []);
+  for (let i = 0; i < maxTicks && !runner.tick(); i++) { /* keep ticking */ }
   return runner;
 }
 

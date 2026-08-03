@@ -3,6 +3,10 @@ import type { QueueCommandResult } from '../levels/levelTypes.ts';
 import type { TestCommand } from '../testing/dslParser.ts';
 import type { Circuit } from '../simulation/circuit.ts';
 import { clearGateState } from '../simulation/gateTypes.ts';
+import type { TestRunner } from './testRunner.ts';
+
+/** Queue mode ticks at roughly frame rate: a tick is not a thing to watch, a handshake is. */
+const QUEUE_TICK_MS = 16;
 
 /** Where in a command list a `@case` group starts, for grouping the log. */
 export interface CaseBoundary {
@@ -33,22 +37,26 @@ type CommandOutcome = 'satisfied' | 'waiting' | 'failed';
  * cannot step commands on its own schedule: it ticks, sees which gates asserted enable, and
  * advances as far through the command list as the handshake allows.
  *
- * Kept separate from the table-driven runner in LevelTests: the two share only the label
- * maps, and previously lived in one class with two disjoint sets of fields.
+ * Kept separate from TableTestRunner: the two share only the label maps and the TestRunner
+ * surface, and previously lived in one class with two disjoint sets of fields.
  */
-export class QueueTestRunner {
+export class QueueTestRunner implements TestRunner {
+  readonly stepIntervalMs = QUEUE_TICK_MS;
+
   commands: TestCommand[] = [];
   results: QueueCommandResult[] = [];
-  /** Index of the command being awaited; -1 before the first startQueue. */
+  /** Index of the command being awaited; -1 before the first start. */
   commandIndex = -1;
   tickCount = 0;
 
+  private getCircuit: () => Circuit;
   private labels: TestGateLabels;
   private caseBoundaries: CaseBoundary[] = [];
   /** Pending write values per input gate, consumed front-first. */
   private pendingWrites = new Map<GateId, number[]>();
 
-  constructor(labels: TestGateLabels) {
+  constructor(getCircuit: () => Circuit, labels: TestGateLabels) {
+    this.getCircuit = getCircuit;
     this.labels = labels;
   }
 
@@ -65,8 +73,35 @@ export class QueueTestRunner {
     return this.results.some(r => r.status === 'failed');
   }
 
+  // --- TestRunner ---
+
+  get canResume(): boolean {
+    return this.commandIndex >= 0 && !this.done && !this.failed;
+  }
+
+  get allPassed(): boolean {
+    return this.done && !this.failed;
+  }
+
+  step(): boolean {
+    return !this.tick();
+  }
+
+  restart(): void {
+    this.start(this.commands);
+  }
+
+  /**
+   * Nothing to re-apply: the queue's inputs are whatever its pending writes hold, and a
+   * value-only edit elsewhere on the board does not change where the run has got to. A plain
+   * tick keeps the wires showing the edit.
+   */
+  retick(): void {
+    this.getCircuit().tick(new Map());
+  }
+
   /** (Re)start execution. Boundaries are kept when not supplied. */
-  start(circuit: Circuit, commands: TestCommand[], caseBoundaries?: CaseBoundary[]): void {
+  start(commands: TestCommand[], caseBoundaries?: CaseBoundary[]): void {
     this.commands = commands;
     if (caseBoundaries !== undefined) this.caseBoundaries = caseBoundaries;
     this.results = this.buildPendingResults();
@@ -84,7 +119,7 @@ export class QueueTestRunner {
     }
 
     // Sequential levels must start from a known state; the player's constants stay.
-    for (const gate of circuit.gates.values()) clearGateState(gate);
+    for (const gate of this.getCircuit().gates.values()) clearGateState(gate);
 
     this.markRunning();
   }
@@ -97,9 +132,10 @@ export class QueueTestRunner {
   }
 
   /** Tick the circuit once and advance as far as the handshake allows. Returns true if done. */
-  tick(circuit: Circuit): boolean {
+  tick(): boolean {
     if (this.commandIndex < 0 || this.commandIndex >= this.commands.length) return true;
 
+    const circuit = this.getCircuit();
     circuit.tick(this.buildInputs());
     this.tickCount++;
 

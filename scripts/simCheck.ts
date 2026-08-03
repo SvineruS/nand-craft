@@ -290,7 +290,7 @@ function bench(): void {
   for (let i = 0; i < BUILD_RUNS; i++) {
     circuit.invalidateBuild();
     const start = performance.now();
-    circuit.buildCircuit(circuit);
+    circuit.rebuild();
     buildMs += performance.now() - start;
   }
   console.log(`nets:     ${circuit.getBuild()!.nets.size}`);

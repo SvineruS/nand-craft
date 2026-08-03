@@ -392,7 +392,7 @@ export const THEME: { gateStyle: Palette['gateStyle'] } = {
  * draws in `COLORS.wireDefault` — and the rest are real choices.
  *
  * The same list on every board, deliberately. A wire's colour is recognised as "no override"
- * by comparing it to the sentinel (see `InputHandler.getActiveWireColor`) and is stored
+ * by comparing it to the sentinel (see `customWireColor`) and is stored
  * verbatim in saved circuits, so a per-palette list would change the meaning of colours
  * already on the board: switch to another palette and the wires you drew would repaint, and
  * new ones would silently carry an explicit override. Both a white and an ink slot are
@@ -410,6 +410,18 @@ export const WIRE_COLORS: readonly string[] = [
   '#ffffff', // white — the high-contrast pick on a dark board
   '#1c1c1c', // ink — the high-contrast pick on a light board
 ];
+
+/**
+ * A wire colour as it is *stored*: undefined when the swatch is the default sentinel.
+ *
+ * The sentinel-means-nothing rule was written out at three call sites — the two that store a
+ * colour on a segment and the one that paints the wire being dragged — so a fourth reader
+ * had no single place to learn it from. The painter still needs its own fallback, since
+ * `undefined` has no colour: `customWireColor(c) ?? COLORS.wireDefault`.
+ */
+export function customWireColor(color: string): string | undefined {
+  return color === WIRE_COLORS[0] ? undefined : color;
+}
 
 export function applyCanvasColors(palette: Palette): void {
   Object.assign(COLORS, palette.canvas);

@@ -1,23 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { InputHandler } from '../../circuit-builder/editor/InputHandler.ts';
+import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import type { Editor } from '../../circuit-builder/editor/Editor.ts';
-import { useCanvasEditor } from '../useCanvasEditor.ts';
-import { useTestControls } from '../useTestControls.ts';
 import { EditorContext, useEditor } from '../editorContext.ts';
 import { componentEditorName, createComponentEditor } from '../componentNav.ts';
-import { notifyStateChange, openComponentId, openGateWindow, testEditorVisible } from '../editorStore.ts';
+import { notifyStateChange, openComponentId, testEditorVisible } from '../editorStore.ts';
 import { navigateTo } from '../screenManager.ts';
-import { Sidebar } from '../components/Sidebar.tsx';
-import { TestPanel } from '../components/TestPanel.tsx';
-import { TestEditorDialog } from '../components/TestEditorDialog.tsx';
-import { RamWindows } from '../components/RamWindows.tsx';
+import { CircuitWorkspace } from '../components/CircuitWorkspace.tsx';
 import { WireSwatches } from '../components/WireSwatches.tsx';
 import { buildComponentDefinition } from '../../circuit-builder/components/componentBuilder.ts';
 import { saveComponent, deleteComponent } from '../../circuit-builder/components/componentRegistry.ts';
 import { clearComponentDefCache } from '../../circuit-builder/editor/gates.ts';
-import { AUTOSAVE_INTERVAL_MS } from '../../circuit-builder/persistence/storage.ts';
 import type { ComponentId } from '../../circuit-builder/editor/types.ts';
-import type { Command } from '../../circuit-builder/editor/commands.ts';
 
 export function ComponentEditorScreen() {
   const requested = openComponentId.value;
@@ -42,24 +34,9 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const containerRef = useCanvasEditor({
-    getState: () => editor.getState(),
-    createInput: (canvas) => new InputHandler(
-      canvas,
-      () => editor.getState(),
-      () => editor.getHistory(),
-      openGateWindow,
-    ),
-    onCircuitDirty: () => { editor.onCircuitChanged(); notifyStateChange(); },
-    onValueDirty: () => { editor.retick(); notifyStateChange(); },
-    onStateChanged: () => notifyStateChange(),
-    // A run left going would keep ticking a circuit this screen no longer shows.
-    onTeardown: () => editor.tests.cancelRunAll(),
-  });
-
-  // Through refs, because the autosave timer below is bound once: a closure over the state
-  // would keep saving under the name the editor opened with and — with componentId still
-  // null — file every autosave as another new component.
+  // Through refs, because the autosave timer is bound once: a closure over the state would
+  // keep saving under the name the editor opened with and — with componentId still null —
+  // file every autosave as another new component.
   const nameRef = useRef(name);
   nameRef.current = name;
   const componentIdRef = useRef(componentId);
@@ -93,23 +70,7 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
     }
   }, [editor]);
 
-  // Auto-save: periodically, when the tab is hidden, when it closes, and on the way out —
-  // the same triggers CircuitBuilderScreen uses, so a component is no easier to lose than a
-  // level circuit.
-  useEffect(() => {
-    const saveNow = () => { persist(); };
-    const onVisibilityChange = () => { if (document.hidden) saveNow(); };
-    window.addEventListener('beforeunload', saveNow);
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    const interval = setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
-
-    return () => {
-      window.removeEventListener('beforeunload', saveNow);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      clearInterval(interval);
-      saveNow(); // Leaving via Back unmounts the screen without any other trigger firing.
-    };
-  }, [persist]);
+  const save = useCallback(() => { persist(); }, [persist]);
 
   function handleSave() {
     setSaveStatus(persist() === null ? 'saved' : 'error');
@@ -128,70 +89,53 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
   function handleUndo() { editor.undo(); notifyStateChange(); }
   function handleRedo() { editor.redo(); notifyStateChange(); }
   function handleColorChange(color: string) { editor.getState().wireColor = color; notifyStateChange(); }
-  function handleDragEnd() { editor.getState().mode = { kind: 'normal' }; }
-  function handleExecuteCommand(cmd: Command) { editor.executeCommand(cmd); }
 
-  // Test panel callbacks — the level editor's, minus the level-solved bookkeeping.
-  const tests = useTestControls();
+  const toolbar = (
+    <div class="toolbar">
+      <button class="toolbar-btn" onClick={() => navigateTo('levelSelect')}>Back</button>
 
-  return (
-    <>
-      <div class="toolbar">
-        <button class="toolbar-btn" onClick={() => navigateTo('levelSelect')}>Back</button>
+      <div class="toolbar-separator" />
 
-        <div class="toolbar-separator" />
+      <button class="toolbar-btn" onClick={handleUndo}>Undo</button>
+      <button class="toolbar-btn" onClick={handleRedo}>Redo</button>
 
-        <button class="toolbar-btn" onClick={handleUndo}>Undo</button>
-        <button class="toolbar-btn" onClick={handleRedo}>Redo</button>
+      <div class="toolbar-separator" />
 
-        <div class="toolbar-separator" />
+      <span class="toolbar-color-label">Wire:</span>
+      <WireSwatches selected={editor.getState().wireColor} onSelect={handleColorChange} />
 
-        <span class="toolbar-color-label">Wire:</span>
-        <WireSwatches selected={editor.getState().wireColor} onSelect={handleColorChange} />
+      <div class="toolbar-spacer" />
 
-        <div class="toolbar-spacer" />
+      <button class="toolbar-btn" onClick={() => { testEditorVisible.value = !testEditorVisible.value; }}>Tests</button>
 
-        <button class="toolbar-btn" onClick={() => { testEditorVisible.value = !testEditorVisible.value; }}>Tests</button>
+      <div class="toolbar-separator" />
 
-        <div class="toolbar-separator" />
-
-        {/* Next to Save, because the name is what Save files the component under. */}
-        <input
-          type="text"
-          class="toolbar-name-input"
-          value={name}
-          onInput={(e) => setName((e.target as HTMLInputElement).value)}
-          placeholder="Component name"
-        />
-        <button
-          class="toolbar-btn"
-          style={{
-            fontWeight: 'bold',
-            background: saveStatus === 'saved' ? 'var(--pass)' : saveStatus === 'error' ? 'var(--fail)' : undefined,
-            transition: saveStatus === 'idle' ? 'background 600ms ease-out' : 'none',
-          }}
-          title={saveStatus === 'error' ? saveError ?? undefined : undefined}
-          onClick={handleSave}
-        >
-          Save
-        </button>
-        {componentId && (
-          <button class="toolbar-btn" style={{ color: 'var(--fail)' }} onClick={handleDelete}>Delete</button>
-        )}
-      </div>
-      <div class="main-row">
-        <TestPanel
-          onReset={tests.handleReset}
-          onStep={tests.handleStep}
-          onRunAll={tests.handleRunAll}
-          onPause={tests.handlePause}
-          onExecuteCommand={handleExecuteCommand}
-        />
-        <div id="editor-container" ref={containerRef} />
-        <Sidebar onDragEnd={handleDragEnd} />
-      </div>
-      <TestEditorDialog />
-      <RamWindows />
-    </>
+      {/* Next to Save, because the name is what Save files the component under. */}
+      <input
+        type="text"
+        class="toolbar-name-input"
+        value={name}
+        onInput={(e) => setName((e.target as HTMLInputElement).value)}
+        placeholder="Component name"
+      />
+      <button
+        class="toolbar-btn"
+        style={{
+          fontWeight: 'bold',
+          background: saveStatus === 'saved' ? 'var(--pass)' : saveStatus === 'error' ? 'var(--fail)' : undefined,
+          transition: saveStatus === 'idle' ? 'background 600ms ease-out' : 'none',
+        }}
+        title={saveStatus === 'error' ? saveError ?? undefined : undefined}
+        onClick={handleSave}
+      >
+        Save
+      </button>
+      {componentId && (
+        <button class="toolbar-btn" style={{ color: 'var(--fail)' }} onClick={handleDelete}>Delete</button>
+      )}
+    </div>
   );
+
+  // No onAllPassed: a component has nothing to unlock when its tests go green.
+  return <CircuitWorkspace toolbar={toolbar} save={save} />;
 }

@@ -119,7 +119,7 @@ export const OUTPUT_8BIT_SW  = OUTPUT_SW_BODY + OUTPUT_8BIT_MARKS;
 // --- Selectors and bus shapes ---
 
 // Decoders and muxes render as layer arrays: one path per selected input/output.
-export const DECODER_2   = buildTrapezoid(0.7, 1.3, 1.7, 0.3);
+const DECODER_2          = buildTrapezoid(0.7, 1.3, 1.7, 0.3);
 export const DECODER_2_0 = DECODER_2 + DEC_LINE_0;
 export const DECODER_2_1 = DECODER_2 + DEC_LINE_1;
 // Left edge covers the three input rows at the top, right edge all eight outputs. The

@@ -7,7 +7,6 @@
  */
 import type { Circuit } from '../simulation/circuit.ts';
 import {
-  generateId,
   type PinRef,
   type Vec2,
   type WireNode,
@@ -20,15 +19,13 @@ import { cleanupOrphanNodes } from './utils/geometry.ts';
 
 // ---------------------------------------------------------------------------
 // Add
+//
+// Ids come from the caller rather than being generated here: a command has to add the same
+// node back under the same id on every redo.
 // ---------------------------------------------------------------------------
 
-export function addWireNode(circuit: Circuit, pos: Vec2, pin?: PinRef): WireNodeId {
-  const id = generateId('wn') as WireNodeId;
-  addWireNodeWithId(circuit, id, pos, pin);
-  return id;
-}
-
-export function addWireNodeWithId(circuit: Circuit, id: WireNodeId, pos: Vec2, pin?: PinRef): void {
+/** Optional fields are omitted rather than set to undefined, so the saved shape stays clean. */
+export function addWireNode(circuit: Circuit, id: WireNodeId, pos: Vec2, pin?: PinRef): void {
   const node: WireNode = pin
     ? { id, pos: V.copy(pos), pin }
     : { id, pos: V.copy(pos) };
@@ -36,15 +33,8 @@ export function addWireNodeWithId(circuit: Circuit, id: WireNodeId, pos: Vec2, p
 }
 
 export function addWireSegment(
-  circuit: Circuit, from: WireNodeId, to: WireNodeId, color?: string, label?: string,
-): WireSegmentId {
-  const id = generateId('ws') as WireSegmentId;
-  addWireSegmentWithId(circuit, id, from, to, color, label);
-  return id;
-}
-
-export function addWireSegmentWithId(
-  circuit: Circuit, id: WireSegmentId, from: WireNodeId, to: WireNodeId, color?: string, label?: string,
+  circuit: Circuit, id: WireSegmentId, from: WireNodeId, to: WireNodeId,
+  color?: string, label?: string,
 ): void {
   const seg: WireSegment = { id, from, to };
   if (color) seg.color = color;
@@ -63,7 +53,7 @@ export interface RemovedNode {
 }
 
 /** Remove a wire node and all its connected segments. Cleans up orphaned neighbors. */
-export function removeWireNode(circuit: Circuit, nodeId: WireNodeId): RemovedNode | null {
+export function removeWireNodeCascade(circuit: Circuit, nodeId: WireNodeId): RemovedNode | null {
   const node = circuit.wireNodes.get(nodeId);
   if (!node) return null;
   const nodeCopy: WireNode = { ...node, pos: V.copy(node.pos) };
@@ -89,7 +79,7 @@ export interface RemovedSegment {
 }
 
 /** Remove a wire segment. Optionally cleans up orphaned endpoint nodes. */
-export function removeWireSegment(
+export function removeWireSegmentCascade(
   circuit: Circuit, segId: WireSegmentId, cleanOrphans: boolean,
 ): RemovedSegment | null {
   const seg = circuit.wireSegments.get(segId);
@@ -110,13 +100,6 @@ export function setWireNodePos(circuit: Circuit, nodeId: WireNodeId, pos: Vec2):
   const old = V.copy(node.pos);
   node.pos = V.copy(pos);
   return old;
-}
-
-/** Set or clear a wire node's pin anchor. Returns the previous pin (or undefined). */
-export function setWireNodePin(
-  circuit: Circuit, nodeId: WireNodeId, pin: PinRef | undefined,
-): PinRef | undefined {
-  return circuit.setWireNodePin(nodeId, pin);
 }
 
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@
  * `palettes.ts` and are re-exported here — the rest of the editor keeps importing everything
  * it needs from one module.
  */
-export { COLORS, WIRE_COLORS } from './palettes.ts';
+export { COLORS, WIRE_COLORS, customWireColor } from './palettes.ts';
 
 /**
  * Playable area in world units, centred on the origin.

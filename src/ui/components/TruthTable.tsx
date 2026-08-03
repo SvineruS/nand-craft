@@ -14,7 +14,9 @@ function rowBg(passed?: boolean, isCurrent?: boolean): string {
 export function TruthTable() {
   stateVersion.value; // subscribe to updates
   const { tests } = useEditor();
-  const { suite, results, caseIndex } = tests;
+  const { suite } = tests;
+  // The table view reads the table engine directly — LevelTests no longer forwards it.
+  const { results, caseIndex } = tests.table;
 
   if (suite.cases.length === 0) return null;
 

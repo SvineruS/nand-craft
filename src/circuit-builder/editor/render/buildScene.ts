@@ -47,14 +47,16 @@ export function buildScene(
   };
 
   const lens = previewLens(state);
+  // Gates and their pins come out of one pass: same list, same cull, same geometry.
+  const { gates, pins } = buildGatesAndPins(state, bounds, lens);
 
   return {
     map: mapRectOf(state.mapSize),
     wireSegments: buildWireSegments(state, bounds, lens),
     wireNodes: buildWireNodes(state, bounds, lens),
-    gates: buildGates(state, bounds, lens),
+    gates,
     gateButtons: buildGateButtons(state, bounds, lens),
-    pins: buildPins(state, bounds, lens),
+    pins,
     pinLabels: buildPinLabels(state, lens),
     errorSegments: buildErrorSegments(state, bounds, lens),
     selection: buildSelection(state, lens),
@@ -113,6 +115,23 @@ function nodePos(lens: PreviewLens | null, node: WireNode): Vec2 {
 function gateOffset(lens: PreviewLens | null, gateId: GateId): Vec2 | null {
   if (!lens || !lens.gateIds.has(gateId)) return null;
   return lens.offset;
+}
+
+/** Where a gate is drawn and how big, drag offset applied. */
+interface GatePlacement {
+  gate: Gate;
+  /** Non-null only while a drag is carrying this gate — pin positions need it too. */
+  offset: Vec2 | null;
+  center: Vec2;
+  w: number;
+  h: number;
+}
+
+function placeGate(lens: PreviewLens | null, gate: Gate): GatePlacement {
+  const { w, h } = getGateDims(gate);
+  const offset = gateOffset(lens, gate.id);
+  const center = offset ? Vec2.add(gateCenter(gate), offset) : gateCenter(gate);
+  return { gate, offset, center, w, h };
 }
 
 // ---------------------------------------------------------------------------
@@ -280,74 +299,84 @@ function firstSegmentColor(circuit: Circuit, nodeId: WireNodeId): string | undef
 }
 
 // ---------------------------------------------------------------------------
-// Gates
+// Gates and pins
 // ---------------------------------------------------------------------------
 
-function buildGates(
+/**
+ * Every visible gate's body and its pins, in one walk of the gate list.
+ *
+ * These were two functions that iterated the same map, applied the same drag offset, derived
+ * the same centre and dimensions and ran the same cull — so every gate was placed and
+ * visibility-tested twice per dirty frame. The two arrays stay separate in the scene (the
+ * painter draws all bodies before any pin), and each keeps gate order, which is what the
+ * regression harness compares against the circuit index-for-index.
+ */
+function buildGatesAndPins(
   state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
-): RenderGate[] {
+): { gates: RenderGate[]; pins: RenderPin[] } {
   const { circuit } = state;
-  const result: RenderGate[] = [];
+  const gates: RenderGate[] = [];
+  const pins: RenderPin[] = [];
+  const hoveredPin = state.hoveredEndpoint?.kind === 'pin' ? state.hoveredEndpoint.pin : null;
 
   for (const gate of circuit.gates.values()) {
-    const { w, h } = getGateDims(gate);
-    const offset = gateOffset(lens, gate.id);
-    const center = offset ? Vec2.add(gateCenter(gate), offset) : gateCenter(gate);
-    if (!gateVisible(bounds, center, w, h)) continue;
-    const def = getGateDefinition(gate.type);
-
-    const status = state.gateStatuses?.get(gate.id);
-    const colors = status ? levelNodeColors(status) : gateColorsOf(def);
-    let fillColor = colors.fill;
-    let strokeColor = colors.stroke;
-
-    const labelX = (def.labelX ?? 0) * GRID_SIZE;
-    const labelY = (def.labelY ?? 0) * GRID_SIZE;
-
-    let label: string;
-    let labelFont: string;
-    let labelColor: string;
-    let labelPos: Vec2;
-    let valueLabel: RenderGate['valueLabel'] = null;
-
-    if (isInputGate(gate.type) || isConstantGate(gate.type)) {
-      label = gate.label ?? '';
-      labelFont = 'bold 10px monospace';
-      labelColor = COLORS.gateText;
-      labelPos = { x: labelX, y: labelY - 0.6 * GRID_SIZE };
-
-      const val = circuit.getPinValue(gate.id, 'output', 0);
-      const valText = val !== null ? String(val) : '?';
-      // Width-aware, or an 8-bit constant of 42 would print in the 1-bit "on" green.
-      const valColor = val !== null
-        ? signalColor(val, getPinBitWidth(gate.type, 'output', 0))
-        : COLORS.gateText;
-      valueLabel = { text: valText, color: valColor, pos: { x: labelX, y: labelY } };
-    } else {
-      label = gate.label ?? (def.hideLabel ? '' : def.label);
-      labelFont = 'bold 11px monospace';
-      labelColor = COLORS.gateText;
-      labelPos = { x: labelX, y: labelY };
-    }
-
-    label = fitGateLabel(label, w);
-
-    const errorGlow = circuit.getBuild()?.shortCircuitGates.includes(gate.id) ?? false;
-
-    result.push({
-      type: gate.type,
-      center, w, h,
-      rotation: gate.rotation,
-      fillColor, strokeColor,
-      hasSvg: !!def.svg,
-      svgLayers: getSvgLayers(gate, circuit),
-      label, labelPos, labelFont, labelColor,
-      valueLabel,
-      errorGlow,
-    });
+    const placement = placeGate(lens, gate);
+    if (!gateVisible(bounds, placement.center, placement.w, placement.h)) continue;
+    gates.push(buildGate(state, placement));
+    pushPins(pins, circuit, placement, hoveredPin);
   }
 
-  return result;
+  return { gates, pins };
+}
+
+function buildGate(state: EditorState, placement: GatePlacement): RenderGate {
+  const { circuit } = state;
+  const { gate, center, w, h } = placement;
+  const def = getGateDefinition(gate.type);
+
+  const status = state.gateStatuses?.get(gate.id);
+  const colors = status ? levelNodeColors(status) : gateColorsOf(def);
+
+  const labelX = (def.labelX ?? 0) * GRID_SIZE;
+  const labelY = (def.labelY ?? 0) * GRID_SIZE;
+
+  let label: string;
+  let labelFont: string;
+  let labelPos: Vec2;
+  let valueLabel: RenderGate['valueLabel'] = null;
+
+  if (isInputGate(gate.type) || isConstantGate(gate.type)) {
+    label = gate.label ?? '';
+    labelFont = 'bold 10px monospace';
+    labelPos = { x: labelX, y: labelY - 0.6 * GRID_SIZE };
+
+    const val = circuit.getPinValue(gate.id, 'output', 0);
+    const valText = val !== null ? String(val) : '?';
+    // Width-aware, or an 8-bit constant of 42 would print in the 1-bit "on" green.
+    const valColor = val !== null
+      ? signalColor(val, getPinBitWidth(gate.type, 'output', 0))
+      : COLORS.gateText;
+    valueLabel = { text: valText, color: valColor, pos: { x: labelX, y: labelY } };
+  } else {
+    label = gate.label ?? (def.hideLabel ? '' : def.label);
+    labelFont = 'bold 11px monospace';
+    labelPos = { x: labelX, y: labelY };
+  }
+
+  return {
+    type: gate.type,
+    center, w, h,
+    rotation: gate.rotation,
+    fillColor: colors.fill,
+    strokeColor: colors.stroke,
+    hasSvg: !!def.svg,
+    svgLayers: getSvgLayers(gate, circuit),
+    label: fitGateLabel(label, w),
+    labelPos, labelFont,
+    labelColor: COLORS.gateText,
+    valueLabel,
+    errorGlow: circuit.getBuild()?.shortCircuitGates.includes(gate.id) ?? false,
+  };
 }
 
 /** The on-body buttons of the gates that declare any, following an in-flight drag. */
@@ -373,37 +402,23 @@ function buildGateButtons(
   return result;
 }
 
-// ---------------------------------------------------------------------------
-// Pins
-// ---------------------------------------------------------------------------
-
-function buildPins(
-  state: EditorState, bounds: Viewport | null, lens: PreviewLens | null,
-): RenderPin[] {
-  const { circuit } = state;
-  const result: RenderPin[] = [];
-  const hoveredPin = state.hoveredEndpoint?.kind === 'pin' ? state.hoveredEndpoint.pin : null;
-
-  for (const gate of circuit.gates.values()) {
-    const { w, h } = getGateDims(gate);
-    const offset = gateOffset(lens, gate.id);
-    const center = offset ? Vec2.add(gateCenter(gate), offset) : gateCenter(gate);
-    if (!gateVisible(bounds, center, w, h)) continue;
-
-    // Indexed loops rather than iteratePinPositions: this runs for every gate on every
-    // dirty frame, and the generator allocates a PinRef and a tuple per pin.
-    const { inputs, outputs } = getPinPositions(gate);
-    for (let i = 0; i < inputs.length; i++) {
-      const pos = offset ? Vec2.add(inputs[i], offset) : inputs[i];
-      result.push(buildPin(circuit, gate, 'input', i, pos, hoveredPin));
-    }
-    for (let i = 0; i < outputs.length; i++) {
-      const pos = offset ? Vec2.add(outputs[i], offset) : outputs[i];
-      result.push(buildPin(circuit, gate, 'output', i, pos, hoveredPin));
-    }
+function pushPins(
+  result: RenderPin[],
+  circuit: Circuit,
+  { gate, offset }: GatePlacement,
+  hoveredPin: PinRef | null,
+): void {
+  // Indexed loops rather than iteratePinPositions: this runs for every gate on every
+  // dirty frame, and the generator allocates a PinRef and a tuple per pin.
+  const { inputs, outputs } = getPinPositions(gate);
+  for (let i = 0; i < inputs.length; i++) {
+    const pos = offset ? Vec2.add(inputs[i], offset) : inputs[i];
+    result.push(buildPin(circuit, gate, 'input', i, pos, hoveredPin));
   }
-
-  return result;
+  for (let i = 0; i < outputs.length; i++) {
+    const pos = offset ? Vec2.add(outputs[i], offset) : outputs[i];
+    result.push(buildPin(circuit, gate, 'output', i, pos, hoveredPin));
+  }
 }
 
 function buildPin(
@@ -547,9 +562,7 @@ function buildSelection(state: EditorState, lens: PreviewLens | null): RenderSel
     if (item.type === 'gate') {
       const gate = circuit.gates.get(item.id);
       if (!gate) continue;
-      const { w, h } = getGateDims(gate);
-      const offset = gateOffset(lens, gate.id);
-      const center = offset ? Vec2.add(gateCenter(gate), offset) : gateCenter(gate);
+      const { center, w, h } = placeGate(lens, gate);
       result.push({ kind: 'gate', center, w, h, rotation: gate.rotation });
     } else if (item.type === 'wireNode') {
       const node = circuit.wireNodes.get(item.id);

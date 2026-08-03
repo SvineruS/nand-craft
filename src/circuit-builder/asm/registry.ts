@@ -14,7 +14,7 @@ const preprocessors = new Map<string, Preprocessor>();
 
 export const DEFAULT_PREPROCESSOR_ID = defaultPreprocessor.id;
 
-export function registerPreprocessor(preprocessor: Preprocessor): void {
+function registerPreprocessor(preprocessor: Preprocessor): void {
   preprocessors.set(preprocessor.id, preprocessor);
 }
 

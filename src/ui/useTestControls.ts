@@ -5,9 +5,9 @@ import { notifyStateChange } from './editorStore.ts';
 /**
  * The four TestPanel buttons, for whichever editor is open.
  *
- * Shared rather than written per screen because both modes have to be handled in one place:
- * a queue suite has no table cases, so the table-mode calls (`step`, `runAllAnimated`) return
- * without doing anything and the buttons look dead.
+ * No longer aware that there are two test modes: `editor.tests` picks the engine from its
+ * mode and these four call it. This hook used to branch on `tests.mode` to choose between
+ * two pairs of methods — a second copy of a decision LevelTests was already making.
  *
  * `onAllPassed` fires when a run finishes green — the level editor marks the level solved,
  * the component editor has nothing to do.
@@ -22,29 +22,13 @@ export function useTestControls(onAllPassed?: () => void) {
 
   const handleStep = useCallback(() => {
     const { tests } = editor;
-    tests.cancelRunAll();
-    if (tests.mode === 'queue') {
-      stepQueueOnce(tests);
-    } else {
-      const result = tests.step();
-      if (result) {
-        if (tests.allPassed()) onAllPassed?.();
-      } else if (tests.finished) {
-        tests.reset();
-        tests.step();
-      }
-    }
+    tests.step();
+    if (tests.allPassed()) onAllPassed?.();
     notifyStateChange();
   }, [editor, onAllPassed]);
 
   const handleRunAll = useCallback(() => {
-    const { tests } = editor;
-    const onComplete = () => onAllPassed?.();
-    if (tests.mode === 'queue') {
-      tests.runQueueAnimated(() => notifyStateChange(), onComplete);
-    } else {
-      tests.runAllAnimated(() => notifyStateChange(), onComplete);
-    }
+    editor.tests.runAnimated(() => notifyStateChange(), () => onAllPassed?.());
   }, [editor, onAllPassed]);
 
   const handlePause = useCallback(() => {
@@ -53,11 +37,4 @@ export function useTestControls(onAllPassed?: () => void) {
   }, [editor]);
 
   return { handleReset, handleStep, handleRunAll, handlePause };
-}
-
-/** Advance a queue run by one tick, restarting it first if it has finished or not begun. */
-function stepQueueOnce(tests: ReturnType<typeof useEditor>['tests']): void {
-  if (tests.queueDone || tests.queueFailed) tests.reset();
-  if (tests.queueCommandIndex < 0) tests.startQueue(tests.queueCommands);
-  tests.tickQueue();
 }

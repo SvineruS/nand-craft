@@ -73,7 +73,7 @@ export class Circuit {
   /** Scratch flags keeping contentionNets free of duplicates. Sized by buildCircuit(). */
   contentionSeen = new Uint8Array(0);
 
-  cachedBuild: BuildResult | null = null;
+  private cachedBuild: BuildResult | null = null;
   /**
    * Refilled in place by every propagate, never replaced — a component's inner circuit
    * propagates on each tick of its owner, so allocating these was the single largest
@@ -260,11 +260,10 @@ export class Circuit {
    * and latches it later, in the outer circuit's own latch phase.
    */
   propagate(inputs: Map<GateId, number>) {
-    // Rebuild if invalidated
-    if (!this.cachedBuild) this.buildCircuit(this);
+    const build = this.cachedBuild ?? this.rebuild();
     this.simState.fill(HIGH_Z);
     this.contentionSeen.fill(0);
-    propagateCircuit(this, this.cachedBuild!, inputs);
+    propagateCircuit(this, build, inputs);
   }
 
   /** Phase two: commit stored state from the values propagate() left behind. */
@@ -272,10 +271,10 @@ export class Circuit {
     if (this.cachedBuild) latchCircuit(this, this.cachedBuild);
   }
 
-  /** Rebuild structural analysis. Called automatically by tick() if invalidated. */
-  buildCircuit(circuit: Circuit): BuildResult {
+  /** Rebuild structural analysis. Called automatically by propagate() if invalidated. */
+  rebuild(): BuildResult {
     this.pruneComponentInstances();
-    this.cachedBuild = build(circuit);
+    this.cachedBuild = build(this);
     const { program } = this.cachedBuild;
     this.simState = new Int32Array(program.slotCount);
     this.netValues = new Int32Array(program.netCount);

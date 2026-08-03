@@ -13,9 +13,6 @@ let nextId = 0;
 export function generateId(prefix: string): string {
   return prefix + '_' + (nextId++);
 }
-export function setNextId(value: number): void {
-  nextId = value;
-}
 /** Only increase the ID counter, never decrease. Safe for component deserialization. */
 export function bumpNextId(value: number): void {
   if (value > nextId) nextId = value;
@@ -41,8 +38,8 @@ export interface WireNode {
    * Pin this node is anchored to, if any.
    *
    * Readonly after construction: Circuit indexes nodes by pin, so reassignment has to go
-   * through Circuit.setWireNodePin (or setWireNodePin in circuitMutations) to keep the
-   * index in step. Writing it directly used to be possible and silently invisible.
+   * through Circuit.setWireNodePin to keep the index in step. Writing it directly used to
+   * be possible and silently invisible.
    */
   readonly pin?: PinRef;
 }

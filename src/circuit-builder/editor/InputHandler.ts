@@ -1,8 +1,7 @@
 import type { GateId, PinRef, Vec2 as Vec2Type, WireNodeId, WireSegmentId } from './types.ts';
-import type { EditorState, PlaceableType } from './EditorState.ts';
+import type { EditorState, PlaceableType, SelectionItem } from './EditorState.ts';
 import { emptyDragPreview, getSelectedIds } from './EditorState.ts';
 import { rotateBy, type WireEndpoint } from './utils/geometry.ts';
-import { findNodeForPin, getAnchoredNodeIds } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
 import { getGateDefinition, getPinBitWidth } from './gates.ts';
 import { isConstantGate } from '../simulation/gateTypes.ts';
@@ -35,7 +34,7 @@ import {
 import { clampPasteCenter, copySelection, pasteClipboard } from './clipboard.ts';
 import { CanvasInput, type PointerEvent, type DragDropEvent } from '../../engine/input.ts';
 import { KeyMap } from '../../engine/keymap.ts';
-import { GRID_SIZE, WIRE_COLORS } from "./consts.ts";
+import { customWireColor, GRID_SIZE, WIRE_COLORS } from "./consts.ts";
 import {
   clampCamera, clampGatePos, clampGroupOffset, clampPoint, type MapRect,
 } from './utils/mapBounds.ts';
@@ -136,13 +135,9 @@ export class InputHandler {
       onDragLeave: (e) => this.handleDragLeave(e),
     }, {
       getCamera: () => getState().camera,
-      shouldPan: (e) => {
-        if (e.button === 1) {
-          const state = getState();
-          return !hitTestGate(e.world, state) && !hitTestEndpoint(e.world, state) && !hitTestWireSegment(e.world, state);
-        }
-        return false;
-      },
+      // Middle-drag pans, unless it landed on something middle-drag does its own thing with
+      // (see handleMiddleMouseDown).
+      shouldPan: (e) => e.button === 1 && isEmptyBoard(e.world, getState()),
       clampCamera: (camera, viewport) => clampCamera(camera, getState().mapSize, viewport),
       onCameraChange: () => { getState().renderDirty = true; },
     });
@@ -427,17 +422,10 @@ export class InputHandler {
       }
     }
 
-    const alreadySelected = state.selection.some(
-      (s) => s.type === 'gate' && s.id === gateHit,
-    );
-    if (e.ctrl) {
-      if (alreadySelected) {
-        state.selection = state.selection.filter(item => !(item.type === 'gate' && item.id === gateHit));
-      } else {
-        state.selection = [...state.selection, { type: 'gate', id: gateHit }];
-      }
-    } else if (!alreadySelected) {
-      state.selection = [{ type: 'gate', id: gateHit }];
+    // A press on an already-selected gate keeps the whole selection, so a group can be
+    // dragged by any of its members.
+    if (e.ctrl || !isSelected(state, { type: 'gate', id: gateHit })) {
+      applySelectionClick(state, { type: 'gate', id: gateHit }, e.ctrl);
     }
     this.startGatesDrag(state, world, false);
   }
@@ -449,16 +437,7 @@ export class InputHandler {
       this.startSplitDrag(state, segHit, world);
       return;
     }
-    if (e.ctrl) {
-      const alreadySel = state.selection.some(s => s.type === 'wireSegment' && s.id === segHit);
-      if (alreadySel) {
-        state.selection = state.selection.filter(item => !(item.type === 'wireSegment' && item.id === segHit));
-      } else {
-        state.selection = [...state.selection, { type: 'wireSegment', id: segHit }];
-      }
-    } else {
-      state.selection = [{ type: 'wireSegment', id: segHit }];
-    }
+    applySelectionClick(state, { type: 'wireSegment', id: segHit }, e.ctrl);
   }
 
   private handleEmptyMouseDown(state: EditorState, world: Vec2, isDblClick: boolean, e: PointerEvent): void {
@@ -546,7 +525,7 @@ export class InputHandler {
         nodeIds,
         // A disconnect drag leaves the wires where they are, so the anchored nodes
         // must not follow the gate.
-        detachedNodeIds: disconnected ? getAnchoredNodeIds(state.circuit, gateIds) : [],
+        detachedNodeIds: disconnected ? state.circuit.anchoredNodesOf(gateIds) : [],
         split: null,
       };
       state.renderDirty = true;
@@ -686,7 +665,7 @@ export class InputHandler {
     }
 
     const target = hitTestEndpoint(world, state);
-    const wireColor = this.getActiveWireColor(state);
+    const wireColor = customWireColor(state.wireColor);
 
     if (target) {
       // Endpoint → endpoint
@@ -785,15 +764,12 @@ export class InputHandler {
 
   private applyWireColor(connected: boolean): void {
     const state = this.getState();
-    const selectedSegs = state.selection
-      .filter((s): s is { type: 'wireSegment'; id: WireSegmentId } => s.type === 'wireSegment')
-      .map((s) => s.id);
+    const selectedSegs = getSelectedIds(state, 'wireSegment');
     if (selectedSegs.length === 0) return;
 
-    const color = state.wireColor;
-    const colorValue = color === WIRE_COLORS[0] ? undefined : color;
     const segIds = connected ? this.getConnectedSegments(state, selectedSegs) : selectedSegs;
-    this.getHistory().execute(new ChangeWireCommand(state, segIds, { color: colorValue }));
+    const color = customWireColor(state.wireColor);
+    this.getHistory().execute(new ChangeWireCommand(state, segIds, { color }));
   }
 
   private eyedrop(): void {
@@ -892,7 +868,7 @@ export class InputHandler {
   private ensureWireNode(state: EditorState, ep: WireEndpoint): WireNodeId | null {
     if (ep.kind === 'node') return ep.nodeId;
     // Pin: find existing or create
-    const existing = findNodeForPin(state.circuit, ep.pin);
+    const existing = state.circuit.findNodeForPin(ep.pin);
     if (existing) return existing;
 
     const cmd = new AddWireNodeCommand(state, ep.pos, ep.pin);
@@ -913,11 +889,6 @@ export class InputHandler {
   private addSegmentIfNew(state: EditorState, from: WireNodeId, to: WireNodeId, color?: string): void {
     if (from === to || this.segmentExists(state, from, to)) return;
     this.getHistory().execute(new AddWireSegmentCommand(state, from, to, color));
-  }
-
-  /** Get the active wire color, or undefined for default. */
-  private getActiveWireColor(state: EditorState): string | undefined {
-    return state.wireColor === WIRE_COLORS[0] ? undefined : state.wireColor;
   }
 
   /** Split a wire segment at pos. Returns the new node ID. */
@@ -1027,6 +998,34 @@ export class InputHandler {
     state.renderDirty = true;
   }
 
+}
+
+/** Nothing grabbable under the cursor — bare board. */
+function isEmptyBoard(world: Vec2, state: EditorState): boolean {
+  return !hitTestGate(world, state)
+    && !hitTestEndpoint(world, state)
+    && !hitTestWireSegment(world, state);
+}
+
+function isSelected(state: EditorState, item: SelectionItem): boolean {
+  return state.selection.some(s => s.type === item.type && s.id === item.id);
+}
+
+/**
+ * Selection after clicking one item: ctrl adds it to the selection or drops it back out,
+ * a plain click makes it the whole selection.
+ *
+ * Written out per element kind before, differing only in the discriminant — which is how the
+ * gate and wire-segment branches drifted into treating "already selected" differently.
+ */
+function applySelectionClick(state: EditorState, item: SelectionItem, ctrl: boolean): void {
+  if (!ctrl) {
+    state.selection = [item];
+    return;
+  }
+  state.selection = isSelected(state, item)
+    ? state.selection.filter(s => !(s.type === item.type && s.id === item.id))
+    : [...state.selection, item];
 }
 
 /** Where a gate of this type lands if placed at `world`: snapped, then held inside the map. */

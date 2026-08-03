@@ -1,7 +1,7 @@
 import { Circuit } from '../../simulation/circuit.ts';
 import type { GateId, PinRef, Rotation, WireNode, WireNodeId } from '../types.ts';
 import {
-  componentDefVersion, type Gate, type GateButtonKind, getGateDefinition, getPinCounts,
+  componentDefVersion, type Gate, type GateButtonKind, getGateDefinition,
 } from '../gates.ts';
 import { Vec2 } from './vec2.ts';
 import { GRID_SIZE } from "../consts.ts";
@@ -20,22 +20,6 @@ export function cameraBoundingBox(camera: { pos: Vec2; zoom: number }, canvasSiz
 // ---------------------------------------------------------------------------
 // Gate geometry helpers
 // ---------------------------------------------------------------------------
-
-/** All PinRefs for a gate (inputs then outputs). */
-export function getPinRefs(gate: Gate): PinRef[] {
-  const { inputs, outputs } = getPinCounts(gate.type);
-  const refs: PinRef[] = [];
-  for (let i = 0; i < inputs; i++)
-    refs.push({ gateId: gate.id, kind: 'input', index: i });
-  for (let i = 0; i < outputs; i++)
-    refs.push({ gateId: gate.id, kind: 'output', index: i });
-  return refs;
-}
-
-/** Check if two PinRefs refer to the same pin. */
-export function pinRefsEqual(a: PinRef, b: PinRef): boolean {
-  return a.gateId === b.gateId && a.kind === b.kind && a.index === b.index;
-}
 
 /** Get gate pixel dimensions from definition. */
 export function getGateDims(gate: Gate): { w: number; h: number } {
@@ -232,10 +216,6 @@ export type WireEndpoint =
   | { kind: 'pin'; pin: PinRef; pos: Vec2 }
   | { kind: 'node'; nodeId: WireNodeId; pos: Vec2 };
 
-export function findNodeForPin(circuit: Circuit, pin: PinRef): WireNodeId | null {
-  return circuit.findNodeForPin(pin);
-}
-
 /** Sync anchored wire-node positions to their gate's current pin positions. */
 export function updateAnchoredNodes(gate: Gate, circuit: Circuit): void {
   for (const [pinRef, pos] of iteratePinPositions(gate)) {
@@ -315,10 +295,6 @@ export function rotateGroup(
     node.pos = Vec2.snap(Vec2.rotateAround(node.pos, center, degrees));
   });
 
-}
-
-export function getAnchoredNodeIds(circuit: Circuit, gateIds: GateId[]): WireNodeId[] {
-  return circuit.anchoredNodesOf(gateIds);
 }
 
 /**

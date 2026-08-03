@@ -2,9 +2,7 @@ import type {
   GateId,
   PinRef,
   Rotation,
-  WireNode,
   WireNodeId,
-  WireSegment,
   WireSegmentId,
 } from './types.ts';
 import { generateId } from './types.ts';
@@ -12,8 +10,6 @@ import type { EditorState } from './EditorState.ts';
 import { type Gate, type GateType } from './gates.ts';
 import type { ReconnectedNode } from './utils/geometry.ts';
 import {
-  cleanupOrphanNodes,
-  getAnchoredNodeIds,
   reconnectPinNodes,
   rotateGroup,
   undoReconnectPinNodes,
@@ -21,13 +17,12 @@ import {
 } from './utils/geometry.ts';
 import { Vec2 } from './utils/vec2.ts';
 import {
-  addWireNodeWithId,
-  addWireSegmentWithId,
-  removeWireNode as removeWireNodePrim,
-  removeWireSegment as removeWireSegmentPrim,
+  addWireNode,
+  addWireSegment,
+  removeWireNodeCascade,
+  removeWireSegmentCascade,
   restoreRemovedNode,
   restoreRemovedSegment,
-  setWireNodePin,
   setWireNodePos,
   type RemovedNode,
   type RemovedSegment,
@@ -37,10 +32,22 @@ import {
 // Command interface & history stack
 // ---------------------------------------------------------------------------
 
+/**
+ * What running (or undoing) a command makes stale: the circuit's topology, or only the values
+ * on its wires. Names the matching EditorState dirty flag — see the frame loop.
+ */
+export type CommandEffect = 'circuit' | 'value';
+
 export interface Command {
   execute(): void;
   undo(): void;
   description: string;
+  /**
+   * Declared once per command instead of set by each execute()/undo() pair. Twenty-five
+   * `state.circuitDirty = true` statements used to state this, and forgetting one in either
+   * direction left the frame showing the state before the edit.
+   */
+  readonly effect: CommandEffect;
 }
 
 class BatchCommand implements Command {
@@ -49,6 +56,11 @@ class BatchCommand implements Command {
 
   constructor(description: string) {
     this.description = description;
+  }
+
+  /** The strongest effect in the batch: one topology change makes the whole batch one. */
+  get effect(): CommandEffect {
+    return this.commands.some(cmd => cmd.effect === 'circuit') ? 'circuit' : 'value';
   }
 
   add(cmd: Command): void {
@@ -68,16 +80,24 @@ class BatchCommand implements Command {
 }
 
 export class CommandHistory {
+  private readonly state: EditorState;
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
   private batch: BatchCommand | null = null;
 
+  constructor(state: EditorState) {
+    this.state = state;
+  }
+
   execute(cmd: Command): void {
     if (this.batch) {
+      // The batch is marked once, in endBatch. Nothing reads the flags before then: they are
+      // consumed by the next frame, and a batch is always opened and closed within one event.
       this.batch.add(cmd);
       return;
     }
     cmd.execute();
+    this.markDirty(cmd);
     this.undoStack.push(cmd);
     this.redoStack = [];
   }
@@ -90,6 +110,7 @@ export class CommandHistory {
     if (!this.batch) return;
     const batch = this.batch;
     this.batch = null;
+    this.markDirty(batch);
     this.undoStack.push(batch);
     this.redoStack = [];
   }
@@ -98,6 +119,7 @@ export class CommandHistory {
     const cmd = this.undoStack.pop();
     if (!cmd) return;
     cmd.undo();
+    this.markDirty(cmd);
     this.redoStack.push(cmd);
   }
 
@@ -105,7 +127,13 @@ export class CommandHistory {
     const cmd = this.redoStack.pop();
     if (!cmd) return;
     cmd.execute();
+    this.markDirty(cmd);
     this.undoStack.push(cmd);
+  }
+
+  private markDirty(cmd: Command): void {
+    if (cmd.effect === 'circuit') this.state.circuitDirty = true;
+    else this.state.valueDirty = true;
   }
 
   canUndo(): boolean {
@@ -122,6 +150,7 @@ export class CommandHistory {
 // ---------------------------------------------------------------------------
 
 export class AddGateCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description: string;
   private state: EditorState;
   private gateId: GateId;
@@ -150,14 +179,12 @@ export class AddGateCommand implements Command {
     const { circuit } = this.state;
     circuit.addGate(this.gate);
     this.reconnectedNodes = reconnectPinNodes(circuit, [this.gateId]);
-    this.state.circuitDirty = true;
   }
 
   undo(): void {
     const { circuit } = this.state;
     undoReconnectPinNodes(circuit, this.reconnectedNodes);
     circuit.removeGate(this.gateId);
-    this.state.circuitDirty = true;
   }
 
   getGateId(): GateId {
@@ -166,13 +193,17 @@ export class AddGateCommand implements Command {
 }
 
 export class RemoveGateCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description: string;
   private state: EditorState;
   private gateId: GateId;
   private gate: Gate | null = null;
-  private removedNodes: WireNode[] = [];
-  private removedSegments: WireSegment[] = [];
-  private removedOrphanNodes: WireNode[] = [];
+  /**
+   * One record per anchored node, in removal order. Undo replays them in reverse: a segment
+   * between two pins of this gate is recorded under whichever node went first, so its other
+   * endpoint has to be back before that record is restored.
+   */
+  private removedNodes: RemovedNode[] = [];
 
   constructor(state: EditorState, gateId: GateId) {
     this.state = state;
@@ -185,59 +216,31 @@ export class RemoveGateCommand implements Command {
     const gate = circuit.gates.get(this.gateId);
     if (!gate) return;
 
-    // Store gate for undo
     this.gate = { ...gate };
 
-    // Nodes anchored to this gate's pins, and the segments reaching them
+    // Each anchored node takes its own segments and any neighbour they orphaned with it —
+    // the same cascade RemoveWireNodeCommand uses, rather than a second copy of it here.
     this.removedNodes = [];
-    this.removedSegments = [];
-
-    const nodeIdsToRemove = new Set<WireNodeId>(circuit.anchoredNodesOf([this.gateId]));
-    const seenSegments = new Set<WireSegmentId>();
-    const neighborNodeIds = new Set<WireNodeId>();
-
-    for (const nodeId of nodeIdsToRemove) {
-      this.removedNodes.push({ ...circuit.getWireNode(nodeId) });
-      for (const segId of circuit.segmentsOf(nodeId)) {
-        if (seenSegments.has(segId)) continue;
-        seenSegments.add(segId);
-        const seg = circuit.getWireSegment(segId);
-        this.removedSegments.push({ ...seg });
-        // Other endpoints may be left dangling once the segment goes
-        if (!nodeIdsToRemove.has(seg.from)) neighborNodeIds.add(seg.from);
-        if (!nodeIdsToRemove.has(seg.to)) neighborNodeIds.add(seg.to);
-      }
+    for (const nodeId of circuit.anchoredNodesOf([this.gateId])) {
+      const removed = removeWireNodeCascade(circuit, nodeId);
+      // Already gone: an earlier node's cascade cleaned it up as an orphaned neighbour.
+      if (removed) this.removedNodes.push(removed);
     }
-
-    // Delete in order: segments, nodes, gate
-    for (const seg of this.removedSegments) circuit.removeWireSegment(seg.id);
-    for (const node of this.removedNodes) circuit.removeWireNode(node.id);
     circuit.removeGate(this.gateId);
 
-    // Clean up orphaned free neighbor nodes
-    this.removedOrphanNodes = cleanupOrphanNodes(circuit, neighborNodeIds);
-
-    this.state.circuitDirty = true;
   }
 
   undo(): void {
     const { circuit } = this.state;
-    // Restore orphaned nodes first
-    for (const node of this.removedOrphanNodes) {
-      circuit.addWireNode(node);
-    }
     if (this.gate) circuit.addGate(this.gate);
-    for (const node of this.removedNodes) {
-      circuit.addWireNode(node);
+    for (let i = this.removedNodes.length - 1; i >= 0; i--) {
+      restoreRemovedNode(circuit, this.removedNodes[i]);
     }
-    for (const seg of this.removedSegments) {
-      circuit.addWireSegment(seg);
-    }
-    this.state.circuitDirty = true;
   }
 }
 
 export class MoveGatesCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Move gates';
   private state: EditorState;
   private gateIds: GateId[];
@@ -281,7 +284,7 @@ export class MoveGatesCommand implements Command {
       gate.pos = Vec2.add(gate.pos, this.delta);
     }
 
-    const anchored = this.disconnected ? [] : getAnchoredNodeIds(circuit, this.gateIds);
+    const anchored = this.disconnected ? [] : circuit.anchoredNodesOf(this.gateIds);
     const allIds = new Set<WireNodeId>([...anchored, ...this.extraNodeIds]);
     this.movedNodeIds = [...allIds];
     for (const nodeId of this.movedNodeIds) {
@@ -290,7 +293,6 @@ export class MoveGatesCommand implements Command {
     }
 
     this.reconnectedNodes = reconnectPinNodes(circuit, this.gateIds);
-    this.state.circuitDirty = true;
   }
 
   undo(): void {
@@ -313,11 +315,11 @@ export class MoveGatesCommand implements Command {
       circuit.setWireNodePin(nodeId, pin);
     }
 
-    this.state.circuitDirty = true;
   }
 }
 
 export class RotateGatesCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Rotate selection';
   private state: EditorState;
   private gateIds: GateId[];
@@ -343,7 +345,6 @@ export class RotateGatesCommand implements Command {
 
     rotateGroup(this.state.circuit, gates, nodes, RotateGatesCommand.ROTATION_STEP);
 
-    this.state.circuitDirty = true;
   }
 
   undo(): void {
@@ -359,11 +360,11 @@ export class RotateGatesCommand implements Command {
     for (const gateId of this.gateIds) {
       updateAnchoredNodes(circuit.getGate(gateId), circuit);
     }
-    this.state.circuitDirty = true;
   }
 }
 
 export class AddWireNodeCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Add wire node';
   private state: EditorState;
   private nodeId: WireNodeId;
@@ -378,13 +379,11 @@ export class AddWireNodeCommand implements Command {
   }
 
   execute(): void {
-    addWireNodeWithId(this.state.circuit, this.nodeId, this.pos, this.pin);
-    this.state.circuitDirty = true;
+    addWireNode(this.state.circuit, this.nodeId, this.pos, this.pin);
   }
 
   undo(): void {
     this.state.circuit.removeWireNode(this.nodeId);
-    this.state.circuitDirty = true;
   }
 
   getNodeId(): WireNodeId {
@@ -393,6 +392,7 @@ export class AddWireNodeCommand implements Command {
 }
 
 export class RemoveWireNodeCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Remove wire node';
   private state: EditorState;
   private nodeId: WireNodeId;
@@ -404,17 +404,16 @@ export class RemoveWireNodeCommand implements Command {
   }
 
   execute(): void {
-    this.removed = removeWireNodePrim(this.state.circuit, this.nodeId);
-    this.state.circuitDirty = true;
+    this.removed = removeWireNodeCascade(this.state.circuit, this.nodeId);
   }
 
   undo(): void {
     if (this.removed) restoreRemovedNode(this.state.circuit, this.removed);
-    this.state.circuitDirty = true;
   }
 }
 
 export class AddWireSegmentCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Add wire segment';
   private state: EditorState;
   private from: WireNodeId;
@@ -434,13 +433,11 @@ export class AddWireSegmentCommand implements Command {
   }
 
   execute(): void {
-    addWireSegmentWithId(this.state.circuit, this.segmentId, this.from, this.to, this.color, this.label);
-    this.state.circuitDirty = true;
+    addWireSegment(this.state.circuit, this.segmentId, this.from, this.to, this.color, this.label);
   }
 
   undo(): void {
     this.state.circuit.removeWireSegment(this.segmentId);
-    this.state.circuitDirty = true;
   }
 
   getSegmentId(): WireSegmentId {
@@ -449,6 +446,7 @@ export class AddWireSegmentCommand implements Command {
 }
 
 export class RemoveWireSegmentCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Remove wire segment';
   private state: EditorState;
   private segmentId: WireSegmentId;
@@ -462,17 +460,16 @@ export class RemoveWireSegmentCommand implements Command {
   }
 
   execute(): void {
-    this.removed = removeWireSegmentPrim(this.state.circuit, this.segmentId, this.cleanOrphans);
-    this.state.circuitDirty = true;
+    this.removed = removeWireSegmentCascade(this.state.circuit, this.segmentId, this.cleanOrphans);
   }
 
   undo(): void {
     if (this.removed) restoreRemovedSegment(this.state.circuit, this.removed);
-    this.state.circuitDirty = true;
   }
 }
 
 export class MoveWireNodeCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Move wire node';
   private state: EditorState;
   private nodeId: WireNodeId;
@@ -490,19 +487,18 @@ export class MoveWireNodeCommand implements Command {
 
   execute(): void {
     this.oldPos = setWireNodePos(this.state.circuit, this.nodeId, this.newPos);
-    if (this.detachPin) setWireNodePin(this.state.circuit, this.nodeId, undefined);
-    this.state.circuitDirty = true;
+    if (this.detachPin) this.state.circuit.setWireNodePin(this.nodeId, undefined);
   }
 
   undo(): void {
     setWireNodePos(this.state.circuit, this.nodeId, this.oldPos);
-    if (this.detachPin) setWireNodePin(this.state.circuit, this.nodeId, this.detachPin);
-    this.state.circuitDirty = true;
+    if (this.detachPin) this.state.circuit.setWireNodePin(this.nodeId, this.detachPin);
   }
 }
 
 /** Set the output value of constant gates. */
 export class ChangeGateValueCommand implements Command {
+  readonly effect: CommandEffect = 'value';
   readonly description = 'Change gate value';
   private state: EditorState;
   private gateIds: GateId[];
@@ -520,14 +516,12 @@ export class ChangeGateValueCommand implements Command {
     for (const id of this.gateIds) {
       this.state.circuit.getGate(id).value = this.newValue;
     }
-    this.state.valueDirty = true;
   }
 
   undo(): void {
     for (let i = 0; i < this.gateIds.length; i++) {
       this.state.circuit.getGate(this.gateIds[i]).value = this.oldValues[i];
     }
-    this.state.valueDirty = true;
   }
 }
 
@@ -546,6 +540,7 @@ export interface RamContents {
  * cells and has to say so by repeating the boot image unchanged.
  */
 export class WriteRamCommand implements Command {
+  readonly effect: CommandEffect = 'value';
   readonly description = 'Write RAM';
   private state: EditorState;
   private gateId: GateId;
@@ -573,7 +568,6 @@ export class WriteRamCommand implements Command {
     const copy = copyContents(contents);
     gate.cells = copy.cells;
     gate.rom = copy.rom;
-    this.state.valueDirty = true;
   }
 }
 
@@ -586,6 +580,8 @@ function copyContents(contents: RamContents): RamContents {
 }
 
 export class ChangeGateLabelCommand implements Command {
+  // 'circuit' rather than 'value': the tests' label→gate maps are rebuilt by onCircuitChanged.
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Change gate label';
   private state: EditorState;
   private gateId: GateId;
@@ -601,13 +597,10 @@ export class ChangeGateLabelCommand implements Command {
 
   execute(): void {
     this.state.circuit.getGate(this.gateId).label = this.newLabel;
-    // circuitDirty (not renderDirty) to rebuild test label→gate maps via onCircuitChanged
-    this.state.circuitDirty = true;
   }
 
   undo(): void {
     this.state.circuit.getGate(this.gateId).label = this.oldLabel;
-    this.state.circuitDirty = true;
   }
 }
 
@@ -617,6 +610,7 @@ export interface WireChanges {
 }
 
 export class ChangeWireCommand implements Command {
+  readonly effect: CommandEffect = 'circuit';
   readonly description = 'Change wire property';
   private state: EditorState;
   private segmentIds: WireSegmentId[];
@@ -646,7 +640,6 @@ export class ChangeWireCommand implements Command {
       if (this.changeLabel) seg.label = this.changes.label;
       if (this.changeColor) seg.color = this.changes.color;
     }
-    this.state.circuitDirty = true;
   }
 
   undo(): void {
@@ -656,6 +649,5 @@ export class ChangeWireCommand implements Command {
       if (this.changeLabel) seg.label = old.label;
       if (this.changeColor) seg.color = old.color;
     }
-    this.state.circuitDirty = true;
   }
 }

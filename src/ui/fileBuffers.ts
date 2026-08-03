@@ -20,7 +20,7 @@ export interface FileBuffer {
   open: (path: string | null, content: string) => void;
 }
 
-export function createFileBuffer(): FileBuffer {
+function createFileBuffer(): FileBuffer {
   const openPath = signal<string | null>(null);
   const source = signal('');
   const dirty = signal(false);

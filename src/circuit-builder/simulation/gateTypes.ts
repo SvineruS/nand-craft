@@ -55,7 +55,7 @@ export const RAM_ADDRESS_MASK = RAM_SIZE - 1;
 export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(type); }
 export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
 export function isConstantGate(type: GateType): boolean { return CONSTANT_TYPES.has(type); }
-export function holdsRegister(type: GateType): boolean { return REGISTER_TYPES.has(type); }
+function holdsRegister(type: GateType): boolean { return REGISTER_TYPES.has(type); }
 export function isRamGate(type: GateType): boolean { return type === 'ram'; }
 
 /**

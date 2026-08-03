@@ -1,4 +1,3 @@
-import type { LevelId } from '../editor/types.ts';
 import type { Level } from "./levelTypes.ts";
 
 import wire from './defs/wire.ts';
@@ -68,7 +67,3 @@ export const LEVELS: Level[] = [
   counterSet8,
   ram,
 ];
-
-export function getLevelById(id: LevelId): Level | undefined {
-  return LEVELS.find(l => l.id === id);
-}

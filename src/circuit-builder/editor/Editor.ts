@@ -25,7 +25,7 @@ export class Editor {
 
   private constructor(circuit: Circuit, level: Level | null, mapSize?: MapSize) {
     this.state = createEditorState(mapSize);
-    this.history = new CommandHistory();
+    this.history = new CommandHistory(this.state);
     this.level = level;
     this.state.circuit = circuit;
     this.state.circuitDirty = true;
@@ -47,7 +47,7 @@ export class Editor {
   /** Reset to the level's default circuit, discarding user changes. */
   resetLevel(): void {
     if (!this.level) return;
-    this.history = new CommandHistory();
+    this.history = new CommandHistory(this.state);
     this.state.circuit = buildLevelCircuit(this.level);
     this.state.selection = [];
     this.state.mode = { kind: 'normal' };

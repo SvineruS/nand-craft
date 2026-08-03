@@ -18,8 +18,8 @@ const STATUS_COLORS: Record<QueueCommandStatus, string> = {
 
 export function QueueLog() {
   stateVersion.value;
-  const { tests } = useEditor();
-  const { queueResults } = tests;
+  // The queue view reads the queue engine directly — LevelTests no longer forwards it.
+  const queueResults = useEditor().tests.queue.results;
 
   if (queueResults.length === 0) return null;
 

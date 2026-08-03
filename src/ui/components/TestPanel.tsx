@@ -17,7 +17,9 @@ interface TestPanelProps {
 export function TestPanel({ onReset, onStep, onRunAll, onPause, onExecuteCommand }: TestPanelProps) {
   stateVersion.value; // subscribe to updates
   const editor = useEditor();
-  const { suite, results, queueResults } = editor.tests;
+  const { suite } = editor.tests;
+  const results = editor.tests.table.results;
+  const queueResults = editor.tests.queue.results;
   const isQueue = editor.tests.mode === 'queue';
   const warning = getWarning(editor)
 
@@ -107,13 +109,13 @@ function getWarning(editor: Editor): string | null {
   // Test failures
   const { tests } = editor;
   if (tests.mode === 'queue') {
-    const failed = tests.queueResults.find(r => r.status === 'failed');
+    const failed = tests.queue.results.find(r => r.status === 'failed');
     if (failed) {
       const detail = failed.error ? `: ${failed.error}` : '';
       warnings.push(`${failed.type} ${failed.label} ${failed.expected} failed${detail}`);
     }
   } else {
-    const failed = tests.results.find(r => !r.passed);
+    const failed = tests.table.results.find(r => !r.passed);
     if (failed) warnings.push(failed.message);
   }
 
