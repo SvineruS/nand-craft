@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { InputHandler } from '../../circuit-builder/editor/InputHandler.ts';
 import type { Editor } from '../../circuit-builder/editor/Editor.ts';
 import { useCanvasEditor } from '../useCanvasEditor.ts';
+import { useTestControls } from '../useTestControls.ts';
 import { EditorContext, useEditor } from '../editorContext.ts';
 import { componentEditorName, createComponentEditor } from '../componentNav.ts';
 import { notifyStateChange, openComponentId, openGateWindow, testEditorVisible } from '../editorStore.ts';
@@ -52,6 +53,8 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
     onCircuitDirty: () => { editor.onCircuitChanged(); notifyStateChange(); },
     onValueDirty: () => { editor.retick(); notifyStateChange(); },
     onStateChanged: () => notifyStateChange(),
+    // A run left going would keep ticking a circuit this screen no longer shows.
+    onTeardown: () => editor.tests.cancelRunAll(),
   });
 
   // Through refs, because the autosave timer below is bound once: a closure over the state
@@ -128,18 +131,8 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
   function handleDragEnd() { editor.getState().mode = { kind: 'normal' }; }
   function handleExecuteCommand(cmd: Command) { editor.executeCommand(cmd); }
 
-  // Test panel callbacks
-  function handleReset() { editor.tests.reset(); notifyStateChange(); }
-  function handleStep() {
-    const { tests } = editor;
-    tests.cancelRunAll();
-    tests.step();
-    notifyStateChange();
-  }
-  function handleRunAll() {
-    editor.tests.runAllAnimated(() => notifyStateChange(), () => {});
-  }
-  function handlePause() { editor.tests.cancelRunAll(); notifyStateChange(); }
+  // Test panel callbacks — the level editor's, minus the level-solved bookkeeping.
+  const tests = useTestControls();
 
   return (
     <>
@@ -188,10 +181,10 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
       </div>
       <div class="main-row">
         <TestPanel
-          onReset={handleReset}
-          onStep={handleStep}
-          onRunAll={handleRunAll}
-          onPause={handlePause}
+          onReset={tests.handleReset}
+          onStep={tests.handleStep}
+          onRunAll={tests.handleRunAll}
+          onPause={tests.handlePause}
           onExecuteCommand={handleExecuteCommand}
         />
         <div id="editor-container" ref={containerRef} />

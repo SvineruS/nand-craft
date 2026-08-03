@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'preact/hooks';
 import { useEditor } from './editorContext.ts';
+import { useTestControls } from './useTestControls.ts';
 import type { Command } from '../circuit-builder/editor/commands.ts';
 import { notifyStateChange, solvedLevelIds } from './editorStore.ts';
 import { navigateTo, switchToLevelMap } from './screenManager.ts';
@@ -66,54 +67,8 @@ export function useEditorCallbacks() {
     editor.executeCommand(cmd);
   }, [editor]);
 
-  // Test panel
-  const handleReset = useCallback(() => {
-    editor.tests.reset();
-    notifyStateChange();
-  }, [editor]);
-
-  const handleStep = useCallback(() => {
-    const { tests } = editor;
-    tests.cancelRunAll();
-    if (tests.mode === 'queue') {
-      // Queue mode: tick once
-      if (tests.queueDone || tests.queueFailed) {
-        tests.reset();
-      }
-      if (tests.queueCommandIndex < 0) {
-        // Re-init queue execution state
-        tests.startQueue(tests.queueCommands);
-      }
-      tests.tickQueue();
-    } else {
-      const result = tests.step();
-      if (result) {
-        if (tests.allPassed()) handleLevelComplete();
-      } else if (tests.finished) {
-        tests.reset();
-        tests.step();
-      }
-    }
-    notifyStateChange();
-  }, [editor]);
-
-  const handlePause = useCallback(() => {
-    editor.tests.cancelRunAll();
-    notifyStateChange();
-  }, [editor]);
-
-  const handleRunAll = useCallback(() => {
-    const { tests } = editor;
-    if (tests.mode === 'queue') {
-      // Queue mode: run with animated ticking
-      tests.runQueueAnimated(() => notifyStateChange(), handleLevelComplete);
-    } else {
-      tests.runAllAnimated(
-        () => notifyStateChange(),
-        handleLevelComplete,
-      );
-    }
-  }, [editor]);
+  // Test panel — shared with the component editor, which has the same four buttons.
+  const { handleReset, handleStep, handleRunAll, handlePause } = useTestControls(handleLevelComplete);
 
   return {
     showLevelComplete,
