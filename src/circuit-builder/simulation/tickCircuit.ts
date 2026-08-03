@@ -248,6 +248,23 @@ function resolveRange(
 /** Resolve one net's value from its drivers and write it to every receiver pin. */
 function resolveNet(program: CompiledProgram, pass: ResolvePass, netIndex: number): void {
   const { values } = pass;
+
+  // The common wire: one driver, one width, so no contention is possible and its value is
+  // simply that driver's. Counting active drivers to rediscover this every tick is what the
+  // general path below spends most of its time on. An idle driver reads high-Z, which is
+  // already the right answer, so this needs no undriven case either.
+  const directSlot = program.netDirectSlot[netIndex];
+  if (directSlot >= 0) {
+    const netValue = values[directSlot];
+    pass.netValues[netIndex] = netValue;
+    const from = program.netReceiverOffset[netIndex];
+    const to = program.netReceiverOffset[netIndex + 1];
+    for (let i = from; i < to; i++) {
+      values[program.netReceiverSlots[i]] = netValue;
+    }
+    return;
+  }
+
   const driverFrom = program.netDriverOffset[netIndex];
   const driverTo = program.netDriverOffset[netIndex + 1];
 

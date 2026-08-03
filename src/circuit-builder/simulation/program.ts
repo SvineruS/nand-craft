@@ -198,6 +198,11 @@ export interface CompiledProgram {
   netBitWidth: Int32Array;
   /** 1 when the net's pins disagree on bit width — a topology-only error. */
   netWidthMismatch: Uint8Array;
+  /**
+   * The net's only driver slot, or -1 when it needs the full resolve. Set only for a net
+   * that cannot possibly be in contention: exactly one driver, every pin the same width.
+   */
+  netDirectSlot: Int32Array;
 
   // --- evaluation schedule ---
   /** Gates evaluated once before the loop, depending on nothing propagation resolves. */
@@ -320,6 +325,7 @@ interface NetTables {
   netReceiverSlots: Int32Array;
   netBitWidth: Int32Array;
   netWidthMismatch: Uint8Array;
+  netDirectSlot: Int32Array;
 }
 
 function buildNetTables(
@@ -332,6 +338,7 @@ function buildNetTables(
 
   const netBitWidth = new Int32Array(netCount).fill(1);
   const netWidthMismatch = new Uint8Array(netCount);
+  const netDirectSlot = new Int32Array(netCount).fill(-1);
   const drivers: number[][] = [];
   const receivers: number[][] = [];
 
@@ -370,6 +377,11 @@ function buildNetTables(
     }
 
     netWidthMismatch[netIndex] = mismatch ? 1 : 0;
+    // One driver and no width disagreement means contention is impossible, so the net's
+    // value is that driver's slot verbatim — high-Z included, since an idle driver already
+    // reads high-Z. Both facts come from the layout, so the answer is fixed here rather
+    // than recomputed for every net on every tick. See resolveNet.
+    if (!mismatch && netDrivers.length === 1) netDirectSlot[netIndex] = netDrivers[0];
     drivers.push(netDrivers);
     receivers.push(netReceivers);
   }
@@ -386,6 +398,7 @@ function buildNetTables(
     netReceiverSlots: receiverCsr.values,
     netBitWidth,
     netWidthMismatch,
+    netDirectSlot,
   };
 }
 
