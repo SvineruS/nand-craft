@@ -35,6 +35,7 @@ import {
 } from '../src/ui/windowStacking.ts';
 import { CanvasInput } from '../src/engine/input.ts';
 import type { TestCommand } from '../src/circuit-builder/testing/dslParser.ts';
+import { defaultPreprocessor } from '../src/circuit-builder/asm/defaultPreprocessor.ts';
 import type { GateType } from '../src/circuit-builder/simulation/gateTypes.ts';
 
 // Deterministic PRNG so a failure is reproducible.
@@ -454,6 +455,31 @@ function runQueue(commands: TestCommand[], maxTicks = 50): QueueTestRunner {
 
   const grouped = runQueue([w('A', 1), r('B', 1)]);
   check('results carry case boundaries', grouped.results.every(x => x.caseStart === false));
+
+  // Applying a test document — and reopening a level that has one saved — loads the commands
+  // without starting them. It has to stay that way: `start` clears every gate's stored state, and
+  // doing that at load time would wipe a chip's bytes before the player ran anything.
+  {
+    const { circuit, labels } = buildEchoCircuit();
+    // A chip holding bytes nothing has flashed: an unsaved boot image is exactly what a reset
+    // has nothing to restore, so it is the state a premature clear would destroy.
+    const chipId = generateId('q') as GateId;
+    circuit.addGate({ id: chipId, type: 'ram', pos: { x: 400, y: 0 }, rotation: 0, cells: [1, 2, 3] });
+    const chip = circuit.getGate(chipId);
+
+    const runner = new QueueTestRunner(() => circuit, labels);
+    runner.load([w('A', 1), r('B', 1)], []);
+    check('a loaded queue has not started', !runner.canResume && runner.commandIndex === -1);
+    check('a loaded queue lists its commands as pending',
+      runner.results.length === 2 && runner.results.every(x => x.status === 'pending'),
+      runner.results.map(x => x.status).join(','));
+    check('loading leaves stored gate state alone', chip.cells?.[0] === 1);
+
+    // What the first Step does, since a loaded run cannot be resumed.
+    runner.restart();
+    check('starting clears stored gate state', chip.cells === undefined);
+    check('a started queue is on its first command', runner.commandIndex === 0);
+  }
 }
 
 console.log('queue test runner OK');
@@ -675,3 +701,72 @@ console.log('window stacking OK');
 }
 
 console.log('pointer drag lifecycle OK');
+
+// ---------------------------------------------------------------------------
+// Which line put which bytes where
+//
+// `AssembleResult.lineBytes` is the one fact behind two things in the program editor: the byte
+// offset shown in place of a line number, and the highlight that follows the chip's address pin
+// back to the line that wrote the byte being read. Both are wrong together if it is, and both
+// are wrong quietly — an offset column that is off by a line still looks like a column. So the
+// addresses and lengths are checked against where the bytes actually landed.
+// ---------------------------------------------------------------------------
+
+{
+  /** An include that always resolves, so a line from another file can be told apart. */
+  const included = { path: 'inc.asm', content: '  7 8\n' };
+  const assemble = (source: string, memorySize = 256) => defaultPreprocessor.assemble({
+    source, path: 'main.asm', readFile: () => included, memorySize,
+  });
+  /** The recorded lines as "file:line address +length", which is every field at once. */
+  const recorded = (source: string, memorySize = 256) => assemble(source, memorySize).lineBytes
+    .map(span => `${span.file}:${span.line} ${span.address} +${span.length}`)
+    .join(' / ');
+
+  check('a line is recorded at the address its bytes landed at',
+    recorded('  1 + 2\n') === 'main.asm:1 0 +1', recorded('  1 + 2\n'));
+
+  // The gutter shows one offset per line, so a line's values have to come back as one range —
+  // `LOADI(1, 42)` is two chunks in the assembler and one line to the player.
+  check('several values on one line are one range',
+    recorded('#define LOADI(r, v) 0x10 | r, v\n  LOADI(1, 42)\n') === 'main.asm:2 0 +2',
+    recorded('#define LOADI(r, v) 0x10 | r, v\n  LOADI(1, 42)\n'));
+
+  check('a string is recorded as its own bytes',
+    recorded('  "hi"\n') === 'main.asm:1 0 +2', recorded('  "hi"\n'));
+
+  check('lines that emit nothing are left out',
+    recorded('#define A 1\n; a comment\n\nlabel:\n') === '',
+    recorded('#define A 1\n; a comment\n\nlabel:\n'));
+
+  check('#org moves where the next line is recorded',
+    recorded('#define TOP 0x10\n#org TOP\n  0\n') === 'main.asm:3 16 +1',
+    recorded('#define TOP 0x10\n#org TOP\n  0\n'));
+
+  // The editor keeps only its own file's lines, since an included line's number belongs to a
+  // document it is not showing — so the file has to travel with the range.
+  check('an included line is recorded against the file it was written in',
+    recorded('  1\n#include "inc.asm"\n  2\n')
+      === 'main.asm:1 0 +1 / inc.asm:1 1 +2 / main.asm:3 3 +1',
+    recorded('  1\n#include "inc.asm"\n  2\n'));
+
+  // A length that overreaches would point the highlight at a byte the line never wrote.
+  check('only the bytes that fit are recorded',
+    recorded('#org 6\n  1 2 3 4\n', 8) === 'main.asm:2 6 +2', recorded('#org 6\n  1 2 3 4\n', 8));
+
+  // Every recorded range, walked against the image: what the lines claim between them must be
+  // exactly the addresses the program wrote, each claimed once.
+  const program = '#define NOP 0\n#define PAIR(a, b) a, b\nstart:\n  NOP\n  PAIR(3, 4)\n'
+    + '  "ok"\n#org 0x20\nend:\n  start, end\n';
+  const result = assemble(program);
+  const claimed: number[] = [];
+  for (const span of result.lineBytes) {
+    for (let i = 0; i < span.length; i++) claimed.push(span.address + i);
+  }
+  check('the ranges claim exactly the addresses the program wrote',
+    claimed.sort((a, b) => a - b).join(',') === '0,1,2,3,4,32,33', claimed.join(','));
+  check('no range reaches past the image',
+    claimed.every(address => address < result.bytes.length));
+}
+
+console.log('assembled line ranges OK');

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { stateVersion, testEditorVisible } from '../editorStore.ts';
 import { linter, type Diagnostic } from '@codemirror/lint';
 import { dslLanguage } from '../../circuit-builder/testing/dslHighlight.ts';
-import { parseDsl, convertToTestCases } from '../../circuit-builder/testing/dslParser.ts';
-import { compileTestFunction, enumerateInputs } from '../../circuit-builder/testing/codeSandbox.ts';
+import { parseDsl } from '../../circuit-builder/testing/dslParser.ts';
+import { applyTestSource } from '../../circuit-builder/testing/applyTests.ts';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { testFiles } from '../../circuit-builder/persistence/userFiles.ts';
@@ -16,8 +16,6 @@ import { FileEditorPane, HelpToggle } from './FileEditorPane.tsx';
 import type { Circuit } from '../../circuit-builder/simulation/circuit.ts';
 import { notifyStateChange } from '../editorStore.ts';
 import { isInputGate, isOutputGate } from '../../circuit-builder/simulation/gateTypes.ts';
-import { getPinBitWidth } from '../../circuit-builder/editor/gates.ts';
-import type { TestCase } from '../../circuit-builder/levels/levelTypes.ts';
 
 const PLACEHOLDER = `# Press ? for help
 @mode table
@@ -168,68 +166,9 @@ function TestEditor() {
     const doc = testBuffer.source.peek();
     if (!doc) return;
 
-    const result = parseDsl(doc);
-    if (result.errors.length > 0) {
-      setStatus({ kind: 'error', text: `Line ${result.errors[0].line}: ${result.errors[0].message}` });
-      return;
-    }
-
-    if (result.mode === 'queue') {
-      // Queue mode: flatten commands with case boundary markers
-      const allCommands = result.cases.flatMap(c => c.commands);
-      const caseBoundaries: { index: number; name?: string }[] = [];
-      let idx = 0;
-      for (const c of result.cases) {
-        if (c.commands.length > 0) {
-          caseBoundaries.push({ index: idx, name: c.description });
-        }
-        idx += c.commands.length;
-      }
-      // Clear old table test data so summary doesn't show stale counts
-      editor.tests.suite = { cases: [], inputNames: [], outputNames: [] };
-      // startQueue switches the mode itself.
-      editor.tests.startQueue(allCommands, caseBoundaries);
-      notifyStateChange();
-      setStatus({ kind: 'info', text: `Applied ${allCommands.length} queue commands` });
-      return;
-    }
-
-    let cases: TestCase[];
-    // Code mode enumerates its cases rather than writing them out, so there is no row per
-    // case to mark; table rows map one to one.
-    let caseLines: number[] | undefined;
-    try {
-      if (result.mode === 'code') {
-        cases = generateCodeTestCases(result, editor.getCircuit());
-      } else {
-        cases = convertToTestCases(result);
-        caseLines = result.cases.map(c => c.line);
-      }
-    } catch (e) {
-      setStatus({ kind: 'error', text: `Could not generate cases: ${(e as Error).message}` });
-      return;
-    }
-
-    // Extract input/output names from parse result or test cases
-    let inputNames: string[];
-    let outputNames: string[];
-    if (result.inputLabels && result.outputLabels) {
-      inputNames = result.inputLabels;
-      outputNames = result.outputLabels;
-    } else {
-      const inSet = new Set<string>();
-      const outSet = new Set<string>();
-      for (const tc of cases) {
-        for (const k of Object.keys(tc.inputs)) inSet.add(k);
-        for (const k of Object.keys(tc.expected)) outSet.add(k);
-      }
-      inputNames = [...inSet];
-      outputNames = [...outSet];
-    }
-
-    editor.tests.setSuite({ cases, inputNames, outputNames, caseLines });
-    notifyStateChange();
-    setStatus({ kind: 'info', text: `Applied ${cases.length} test cases` });
+    const result = applyTestSource(editor, doc);
+    setStatus({ kind: result.ok ? 'info' : 'error', text: result.message });
+    if (result.ok) notifyStateChange();
   };
 
   const actions = (
@@ -252,37 +191,6 @@ function TestEditor() {
       </FileEditorPane>
     </FloatingWindow>
   );
-}
-
-function generateCodeTestCases(result: ReturnType<typeof parseDsl>, circuit: Circuit): TestCase[] {
-  const { inputLabels, outputLabels, codeBody } = result;
-  if (!inputLabels || !outputLabels || !codeBody) return [];
-
-  // Get bit widths from circuit
-  const bitWidths = inputLabels.map(label => {
-    for (const gate of circuit.gates.values()) {
-      if (gate.label === label && isInputGate(gate.type)) {
-        return getPinBitWidth(gate.type, 'output', 0);
-      }
-    }
-    return 1;
-  });
-
-  const fn = compileTestFunction(codeBody, inputLabels.length);
-  const combos = enumerateInputs(bitWidths);
-
-  return combos.map(inputs => {
-    const outputs = fn(...inputs);
-    const inputRecord: Record<string, number> = {};
-    const expectedRecord: Record<string, number> = {};
-    for (let i = 0; i < inputLabels.length; i++) {
-      inputRecord[inputLabels[i]] = inputs[i];
-    }
-    for (let i = 0; i < outputLabels.length; i++) {
-      expectedRecord[outputLabels[i]] = outputs[i];
-    }
-    return { inputs: inputRecord, expected: expectedRecord };
-  });
 }
 
 function HelpPanel() {

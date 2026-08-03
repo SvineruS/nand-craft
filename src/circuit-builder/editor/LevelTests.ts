@@ -27,6 +27,13 @@ export class LevelTests {
   suite: TestSuite;
   mode: TestMode = 'table';
 
+  /**
+   * The `.test` document the player last applied, or null while the level's own cases are what
+   * is in force. Persisted with the circuit — beside it for a level, inside the definition for a
+   * component — so reopening does not mean applying again. See `applyTestSource`.
+   */
+  source: string | null = null;
+
   private editor: Editor;
   private interval: ReturnType<typeof setInterval> | null = null;
 
@@ -127,11 +134,17 @@ export class LevelTests {
     this.rebuild();
   }
 
-  /** Switch to queue mode and start executing the given commands. */
-  startQueue(commands: TestCommand[], caseBoundaries?: CaseBoundary[]): void {
+  /**
+   * Switch to queue mode with the given commands, without running them.
+   *
+   * Not started here: the first Step or Run All restarts a run that cannot be resumed anyway, and
+   * starting clears every gate's stored state — which, done at apply or load time, would wipe a
+   * chip's live bytes before the player asked for anything to run.
+   */
+  setQueue(commands: TestCommand[], caseBoundaries?: CaseBoundary[]): void {
     this.cancelRunAll();
     this.mode = 'queue';
-    this.queue.start(commands, caseBoundaries);
+    this.queue.load(commands, caseBoundaries);
   }
 
   /** Rebuild label→gateId maps after a circuit edit, then reset. */

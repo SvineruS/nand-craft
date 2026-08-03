@@ -55,7 +55,10 @@ function ComponentEditor({ initialId, initialName }: { initialId: ComponentId | 
       const def = buildComponentDefinition(
         editor.getCircuit(), nameRef.current, componentIdRef.current ?? undefined,
       );
-      saveComponent(def);
+      // The applied tests belong to the editing session, not to anything derived from the
+      // circuit, so they are attached here rather than inside the builder.
+      const tests = editor.tests.source;
+      saveComponent(tests === null ? def : { ...def, tests });
       clearComponentDefCache();
       // The ref is updated here rather than waiting for the re-render: the next autosave can
       // fire first, and it has to reuse this id instead of creating a second component.

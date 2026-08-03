@@ -19,6 +19,10 @@ function circuitKey(levelId: LevelId): string {
   return `${PREFIX}:circuit:${levelId}`;
 }
 
+function testsKey(levelId: LevelId): string {
+  return `${PREFIX}:tests:${levelId}`;
+}
+
 /**
  * Persist a circuit. Returns null on success, or a message describing the failure.
  *
@@ -45,6 +49,29 @@ export function loadCircuit(levelId: LevelId): Circuit | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * The `.test` document last applied in a level, beside that level's circuit.
+ *
+ * The text rather than the cases it produced: it is what the player wrote, it re-derives to the
+ * same definition through the one apply path, and a mode or a label list can never fall out of
+ * step with the source it came from. A component keeps its own inside its definition, since a
+ * component's tests belong to the component and travel with it.
+ *
+ * Quiet on failure, unlike `saveCircuit`: losing the tests is a re-Apply, losing the circuit is
+ * the player's work, so only one of the two is worth interrupting them about.
+ */
+export function saveAppliedTests(levelId: LevelId, source: string): void {
+  try {
+    localStorage.setItem(testsKey(levelId), source);
+  } catch (e) {
+    console.error(`Failed to save tests for level ${levelId}:`, e);
+  }
+}
+
+export function loadAppliedTests(levelId: LevelId): string | null {
+  return localStorage.getItem(testsKey(levelId));
 }
 
 export function getSolvedLevelIds(): Set<LevelId> {

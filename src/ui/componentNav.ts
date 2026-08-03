@@ -2,6 +2,7 @@ import { Editor } from '../circuit-builder/editor/Editor.ts';
 import { Circuit } from '../circuit-builder/simulation/circuit.ts';
 import { deserializeCircuit } from '../circuit-builder/persistence/serialize.ts';
 import { getComponent } from '../circuit-builder/components/componentRegistry.ts';
+import { applyTestSource } from '../circuit-builder/testing/applyTests.ts';
 import { SANDBOX_MAP_SIZE } from '../circuit-builder/editor/utils/mapBounds.ts';
 import { navigateTo } from './screenManager.ts';
 import { openComponentId } from './editorStore.ts';
@@ -29,7 +30,13 @@ export function editComponent(id: ComponentId): void {
  */
 export function createComponentEditor(id: ComponentId | null): Editor {
   const def = id ? getComponent(id) : undefined;
-  return Editor.create(def ? deserializeCircuit(def.circuit) : new Circuit(), SANDBOX_MAP_SIZE);
+  const editor = Editor.create(
+    def ? deserializeCircuit(def.circuit) : new Circuit(), SANDBOX_MAP_SIZE,
+  );
+  // The tests saved with the component, back in force without the player pressing Apply again.
+  // Ignored if they no longer apply — the text is still in the test editor to be fixed.
+  if (def?.tests) applyTestSource(editor, def.tests);
+  return editor;
 }
 
 /**

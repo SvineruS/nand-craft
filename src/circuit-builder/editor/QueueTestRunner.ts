@@ -111,15 +111,25 @@ export class QueueTestRunner implements TestRunner {
     this.getCircuit().tick(new Map());
   }
 
-  /** (Re)start execution. Boundaries are kept when not supplied. */
-  start(commands: TestCommand[], caseBoundaries?: CaseBoundary[]): void {
+  /**
+   * Take a command list without running it: every result pending, nothing latched or cleared.
+   *
+   * What applying a test document does, and what reopening a level with one saved does. Starting
+   * is the first Step's business — see `LevelTests.setQueue`.
+   */
+  load(commands: TestCommand[], caseBoundaries?: CaseBoundary[]): void {
     this.commands = commands;
     if (caseBoundaries !== undefined) this.caseBoundaries = caseBoundaries;
-    this.results = this.buildPendingResults();
-    this.commandIndex = 0;
+    this.reset();
     this.tickCount = 0;
+  }
 
-    this.pendingWrites.clear();
+  /** (Re)start execution. Boundaries are kept when not supplied. */
+  start(commands: TestCommand[], caseBoundaries?: CaseBoundary[]): void {
+    this.load(commands, caseBoundaries);
+    this.commandIndex = 0;
+
+    // `load` left the write queues empty; fill them from the commands about to run.
     for (const cmd of commands) {
       if (cmd.type !== 'write') continue;
       const gateId = this.labels.inputs.get(cmd.label);

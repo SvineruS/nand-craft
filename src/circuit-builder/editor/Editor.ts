@@ -10,7 +10,8 @@ import { LevelTests } from "./LevelTests.ts";
 import { GRID_SIZE } from "./consts.ts";
 import type { MapSize } from "./utils/mapBounds.ts";
 import { Circuit } from "../simulation/circuit.ts";
-import { saveCircuit } from "../persistence/storage.ts";
+import { loadAppliedTests, saveAppliedTests, saveCircuit } from "../persistence/storage.ts";
+import { applyTestSource } from "../testing/applyTests.ts";
 
 /**
  * Pure state + logic holder for the circuit editor.
@@ -36,7 +37,15 @@ export class Editor {
   static loadLevel(level: Level, savedCircuit?: Circuit): Editor {
     const circuit = savedCircuit ?? buildLevelCircuit(level);
     // A level can ask for a smaller (or larger) world than the default.
-    return new Editor(circuit, level, level.mapSize);
+    const editor = new Editor(circuit, level, level.mapSize);
+
+    // The tests the player last applied here, back in force without them pressing Apply again.
+    // A stored document that no longer applies is dropped in silence: the level's own cases are
+    // already loaded, and the text itself is still in the test editor to be fixed.
+    const stored = loadAppliedTests(level.id);
+    if (stored) applyTestSource(editor, stored);
+
+    return editor;
   }
 
   /** Create an editor without a level (component editor, level map editor). */
@@ -111,11 +120,16 @@ export class Editor {
   }
 
   /**
-   * Persist the circuit. Returns null on success, or a message describing the failure.
+   * Persist the circuit and the tests applied to it. Returns null on success, or a message
+   * describing the failure.
    * Circuits without a level (components, the level map) are saved by their own screens.
    */
   save(): string | null {
     if (!this.level) return null;
+    // Only when something is in force. A stored document that failed to re-apply on load leaves
+    // `source` null, and that must not be read as "the player cleared their tests" — it would
+    // erase the text that needs fixing.
+    if (this.tests.source !== null) saveAppliedTests(this.level.id, this.tests.source);
     return saveCircuit(this.level.id, this.getCircuit());
   }
 }

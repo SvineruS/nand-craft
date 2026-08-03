@@ -23,4 +23,11 @@ export interface ComponentDefinition {
   svg: import('../editor/gates.ts').SvgLayer[];
   /** All primitive gate types used (for constraint filtering) */
   usedGateTypes: GateType[];
+  /**
+   * The `.test` document last applied while editing this component, re-applied when it is opened
+   * again. Inside the definition rather than in a key of its own, because a new component has no
+   * id to key by until it is first saved — and because tests belong to the component, so they
+   * travel with it wherever the definition goes.
+   */
+  tests?: string;
 }

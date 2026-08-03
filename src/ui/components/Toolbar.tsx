@@ -32,9 +32,6 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
       <button class="toolbar-btn" title="Ctrl+Z" onClick={onUndo}>Undo</button>
       <button class="toolbar-btn" title="Ctrl+Shift+Z" onClick={onRedo}>Redo</button>
       <button class="toolbar-btn" title="Reset level to default" onClick={onResetLevel}>Reset</button>
-      {level?.customTests && (
-        <button class="toolbar-btn" title="Open test editor" onClick={() => { testEditorVisible.value = !testEditorVisible.value; }}>Tests</button>
-      )}
 
       <div class="toolbar-separator" />
 
@@ -49,6 +46,11 @@ export function Toolbar({ onUndo, onRedo, onColorChange, onShowLevels, onMenu, o
         </span>
       )}
 
+      {/* Past the spacer sit the buttons that open a window — Tests in the same place the
+          component editor's toolbar puts it, since it is the same window. */}
+      {level?.customTests && (
+        <button class="toolbar-btn" title="Open test editor" onClick={() => { testEditorVisible.value = !testEditorVisible.value; }}>Tests</button>
+      )}
       <button class="toolbar-btn" title="Show level description" onClick={() => { levelDialogVisible.value = true; }}>Goals</button>
       {level?.hints && level.hints.length > 0 && (
         <button class="toolbar-btn" onClick={() => setShowHints(!showHints)}>Hints</button>
