@@ -14,6 +14,7 @@ const PREFIX = 'nand-craft';
 const SOLVED_KEY = `${PREFIX}:solved`;
 const BACKGROUND_GRID_KEY = `${PREFIX}:backgroundGrid`;
 const PALETTE_KEY = `${PREFIX}:palette`;
+const SOUND_VOLUME_KEY = `${PREFIX}:soundVolume`;
 
 function circuitKey(levelId: LevelId): string {
   return `${PREFIX}:circuit:${levelId}`;
@@ -114,6 +115,21 @@ export function saveBackgroundGrid(grid: GridPatternId): void {
     localStorage.setItem(BACKGROUND_GRID_KEY, grid);
   } catch (e) {
     console.error('Failed to persist background grid:', e);
+  }
+}
+
+/** Stored sound volume, 0…1. Absent means full — sound is on until it is turned down. */
+export function getSoundVolume(): number {
+  const stored = Number(localStorage.getItem(SOUND_VOLUME_KEY));
+  if (!isFinite(stored) || localStorage.getItem(SOUND_VOLUME_KEY) === null) return 1;
+  return Math.min(1, Math.max(0, stored));
+}
+
+export function saveSoundVolume(volume: number): void {
+  try {
+    localStorage.setItem(SOUND_VOLUME_KEY, String(volume));
+  } catch (e) {
+    console.error('Failed to persist sound volume:', e);
   }
 }
 

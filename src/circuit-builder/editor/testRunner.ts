@@ -29,6 +29,9 @@ export interface TestRunner {
   /** Whether every case or command has been checked and passed. */
   readonly allPassed: boolean;
 
+  /** Whether a case or command has failed, which is also what stopped the run. */
+  readonly failed: boolean;
+
   /** Ticks spent so far, shown in the test panel header. */
   readonly tickCount: number;
 

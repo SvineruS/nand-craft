@@ -7,6 +7,7 @@ import { isGateAllowed, getGateCount, type GateConstraints } from '../../circuit
 import type { EditorState } from "../../circuit-builder/editor/EditorState.ts";
 import { getAllComponents, isComponentType } from '../../circuit-builder/components/componentRegistry.ts';
 import { gateColorsOf } from '../../circuit-builder/editor/gateColors.ts';
+import { playSfx } from '../../circuit-builder/sfx.ts';
 
 interface SidebarProps {
   onDragEnd: () => void;
@@ -138,11 +139,14 @@ function GateItem({ type, def, constraints, editorState, didDrag, onDragEnd }: G
         e.dataTransfer.setDragImage(empty, 0, 0);
         requestAnimationFrame(() => document.body.removeChild(empty));
         (e.currentTarget as HTMLElement).style.opacity = '0.6';
+        playSfx('dragStart');
         // onDragStart sets stamping mode; we set componentId directly to avoid race
         editorState.mode = { kind: 'stamping', gateType: type };
       }}
       onDragEnd={(e: DragEvent) => {
         (e.currentTarget as HTMLElement).style.opacity = '1';
+        // A drop on the board already sounded as a placed gate; `none` means it landed nowhere.
+        if (e.dataTransfer?.dropEffect === 'none') playSfx('dragCancel');
         onDragEnd();
       }}
       onClick={() => {

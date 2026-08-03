@@ -61,7 +61,9 @@ export function TestPanel({ onReset, onStep, onRunAll, onPause, onExecuteCommand
           <span class="test-panel-summary" style={{ color: 'var(--text-dim)' }}>{tickLabel}</span>
         </div>
         <div class="test-panel-btn-row">
-          <button class="test-panel-btn" title="Next test case" onClick={onStep}>
+          {/* Opts out of the generic click: stepping plays its own sound, and on this button
+              the two would be the same event heard twice. */}
+          <button class="test-panel-btn" title="Next test case" data-sfx="off" onClick={onStep}>
             {'\u25B6| Step'}
           </button>
           {editor.tests.running ? (

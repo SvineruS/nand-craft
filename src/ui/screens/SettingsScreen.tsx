@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { navigateTo } from '../screenManager.ts';
-import { backgroundGrid, paletteId, setBackgroundGrid, setPaletteId } from '../editorStore.ts';
+import {
+  backgroundGrid, paletteId, setBackgroundGrid, setPaletteId, setSoundVolume, soundVolume,
+} from '../editorStore.ts';
 import {
   type GridPatternId, GRID_PATTERNS, drawBackground,
 } from '../../circuit-builder/editor/render/backgroundPattern.ts';
@@ -55,6 +57,22 @@ export function SettingsScreen() {
               selected={pattern.id === grid}
             />
           ))}
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">Sound</div>
+        <div class="settings-row">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={Math.round(soundVolume.value * 100)}
+            onInput={e => setSoundVolume(Number((e.target as HTMLInputElement).value) / 100)}
+          />
+          <span class="settings-value">
+            {soundVolume.value === 0 ? 'Off' : `${Math.round(soundVolume.value * 100)}%`}
+          </span>
         </div>
       </div>
 

@@ -68,8 +68,11 @@ export class LevelTests {
   /**
    * Step on a timer until the run ends. Resumes a paused run rather than restarting it, so
    * Pause and then Run All continues from the same row.
+   *
+   * `onFinished` is told whether the run ended green, because both endings are worth reacting
+   * to — one unlocks a level, and either one is worth a sound.
    */
-  runAnimated(onStep: () => void, onComplete?: () => void): void {
+  runAnimated(onStep: () => void, onFinished?: (passed: boolean) => void): void {
     this.cancelRunAll();
     const runner = this.runner;
     if (!runner.canResume) runner.restart();
@@ -80,7 +83,7 @@ export class LevelTests {
       onStep();
       if (!keepGoing) {
         this.cancelRunAll();
-        if (runner.allPassed) onComplete?.();
+        onFinished?.(runner.allPassed);
       }
     }, runner.stepIntervalMs);
   }
@@ -116,6 +119,11 @@ export class LevelTests {
 
   allPassed(): boolean {
     return this.runner.allPassed;
+  }
+
+  /** Whether the run stopped on a failure — the other way a run can be over. */
+  get failed(): boolean {
+    return this.runner.failed;
   }
 
   /** Re-apply the current position after a value-only edit. */

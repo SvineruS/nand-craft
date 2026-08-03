@@ -3,7 +3,9 @@ import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import type { ComponentId, GateId, LevelId } from '../circuit-builder/editor/types.ts';
 import {
   getSolvedLevelIds, getBackgroundGrid, saveBackgroundGrid, getPaletteId, savePaletteId,
+  getSoundVolume, saveSoundVolume,
 } from '../circuit-builder/persistence/storage.ts';
+import { setMasterVolume } from '../engine/audio.ts';
 import type { GridPatternId } from '../circuit-builder/editor/render/backgroundPattern.ts';
 import type { PaletteId } from '../circuit-builder/editor/palettes.ts';
 import { applyPalette } from './theme.ts';
@@ -80,6 +82,18 @@ export function setPaletteId(id: PaletteId): void {
   paletteId.value = id;
   savePaletteId(id);
 }
+
+/** Sound volume, 0…1 (persisted in localStorage). 0 is how the sounds are turned off. */
+export const soundVolume = signal(getSoundVolume());
+
+export function setSoundVolume(volume: number): void {
+  soundVolume.value = volume;
+  saveSoundVolume(volume);
+}
+
+// Applies the stored volume at startup and every change after, so the audio layer never has to
+// be asked what the setting is.
+effect(() => { setMasterVolume(soundVolume.value); });
 
 // Applies the stored palette at startup and every change after. Canvases watch the same
 // signal to mark themselves dirty (see useCanvasEditor); the version bump covers the Preact

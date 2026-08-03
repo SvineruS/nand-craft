@@ -10,6 +10,7 @@
  * Run with `npm run check:invariants`. The seed is fixed, so failures reproduce.
  */
 import './localStorageShim.ts';
+import { existsSync } from 'node:fs';
 import { createEditorState } from '../src/circuit-builder/editor/EditorState.ts';
 import { Circuit } from '../src/circuit-builder/simulation/circuit.ts';
 import {
@@ -770,3 +771,22 @@ console.log('pointer drag lifecycle OK');
 }
 
 console.log('assembled line ranges OK');
+
+// ---------------------------------------------------------------------------
+// Every sound the game names has a file behind it
+//
+// `playSfx('gatePlace')` fails by going quiet: the load errors into the console and the
+// interaction carries on, which is right at runtime and useless as a warning. A renamed or
+// deleted file is caught here instead.
+// ---------------------------------------------------------------------------
+
+{
+  const { SOUND_NAMES, soundFile } = await import('../src/circuit-builder/sfx.ts');
+
+  check('the game names some sounds', SOUND_NAMES.length > 0);
+  for (const name of SOUND_NAMES) {
+    check(`${name} has a file`, existsSync(soundFile(name)), soundFile(name));
+  }
+}
+
+console.log('sound files OK');

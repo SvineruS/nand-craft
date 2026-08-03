@@ -32,6 +32,7 @@ import {
   snapGateCenter
 } from "./utils/hitTests.ts";
 import { clampPasteCenter, copySelection, pasteClipboard } from './clipboard.ts';
+import { playSfx } from '../sfx.ts';
 import { CanvasInput, type PointerEvent, type DragDropEvent } from '../../engine/input.ts';
 import { KeyMap } from '../../engine/keymap.ts';
 import { customWireColor, GRID_SIZE, WIRE_COLORS } from "./consts.ts";
@@ -106,6 +107,14 @@ export class InputHandler {
 
   private drag: DragState = { kind: 'none' };
   private wireStartWorld: Vec2 = { x: 0, y: 0 };
+  /**
+   * Whether the drag in progress has been heard to start.
+   *
+   * A press on a gate begins a drag whether or not the player goes on to move it, so the pick-up
+   * sound waits for the first actual movement — otherwise selecting a gate would sound like
+   * lifting one.
+   */
+  private dragSounded = false;
 
   // ---------------------------------------------------------------------------
   // Public interface
@@ -213,6 +222,7 @@ export class InputHandler {
     const gateType = e.dataTransfer.getData('text/plain') as PlaceableType;
     const cmd = new AddGateCommand(state, gateType, placementPos(state, gateType, e.world));
     this.getHistory().execute(cmd);
+    playSfx('gatePlace');
     trackRecentGate(state, gateType);
     state.dropPreview = null;
     state.renderDirty = true;
@@ -245,6 +255,7 @@ export class InputHandler {
     const ep = hitTestEndpoint(world, state, PICK);
     if (ep && ep.kind === 'node') {
       this.getHistory().execute(new RemoveWireNodeCommand(state, ep.nodeId));
+      playSfx('gateDelete');
       state.renderDirty = true;
       return;
     }
@@ -252,7 +263,10 @@ export class InputHandler {
     // Gate?
     const gateHit = hitTestGate(world, state);
     if (gateHit) {
-      if (state.circuit.getGate(gateHit).canRemove === false) return;
+      if (state.circuit.getGate(gateHit).canRemove === false) {
+        playSfx('blocked');
+        return;
+      }
       state.selection = [{ type: 'gate', id: gateHit }];
       this.deleteSelected(state);
       return;
@@ -268,6 +282,7 @@ export class InputHandler {
         for (const sid of allSegs)
           this.getHistory().execute(new RemoveWireSegmentCommand(state, sid));
         this.getHistory().endBatch();
+        playSfx('gateDelete');
       } else {
         state.selection = [{ type: 'wireSegment', id: segHit }];
         this.deleteSelected(state);
@@ -319,6 +334,8 @@ export class InputHandler {
     // A gate's own buttons win over everything on its body — they are drawn on top of it.
     const buttonHit = hitTestGateButton(world, state);
     if (buttonHit) {
+      // Drawn on a gate rather than in the DOM, so the delegated UI listener never sees it.
+      playSfx('uiClick');
       this.onGateButton?.(buttonHit);
       return;
     }
@@ -384,6 +401,7 @@ export class InputHandler {
     const { gateType } = state.mode;
     const cmd = new AddGateCommand(state, gateType, placementPos(state, gateType, world));
     this.getHistory().execute(cmd);
+    playSfx('gatePlace');
     trackRecentGate(state, gateType);
   }
 
@@ -406,6 +424,7 @@ export class InputHandler {
     // Single click → start wiring
     this.wireStartWorld = Vec2.copy(world);
     state.mode = { kind: 'wiring', start: ep };
+    playSfx('wireStart');
     state.renderDirty = true;
   }
 
@@ -417,10 +436,15 @@ export class InputHandler {
         const bitWidth = getPinBitWidth(gate.type, 'output', 0);
         const mask = ((1 << bitWidth) >>> 0) - 1;
         gate.value = (((gate.value ?? 0) + 1) & mask) >>> 0;
+        playSfx('toggleValue');
         state.valueDirty = true;
         return;
       }
     }
+
+    // Heard whether or not the selection changes: the player pressed a gate, and a press that
+    // turns into a drag is only heard again once it actually moves.
+    playSfx('select');
 
     // A press on an already-selected gate keeps the whole selection, so a group can be
     // dragged by any of its members.
@@ -438,6 +462,7 @@ export class InputHandler {
       return;
     }
     applySelectionClick(state, { type: 'wireSegment', id: segHit }, e.ctrl);
+    playSfx('select');
   }
 
   private handleEmptyMouseDown(state: EditorState, world: Vec2, isDblClick: boolean, e: PointerEvent): void {
@@ -449,6 +474,7 @@ export class InputHandler {
       const newNodeId = cmd.getNodeId();
       this.wireStartWorld = Vec2.copy(world);
       state.mode = { kind: 'wiring', start: { kind: 'node', nodeId: newNodeId, pos: snapPos } };
+      playSfx('wireStart');
       state.renderDirty = true;
       return;
     }
@@ -484,7 +510,11 @@ export class InputHandler {
     if (this.drag.kind === 'wireNode') {
       const { nodeId, startPos, detachPin } = this.drag;
       const nodePos = clampPoint(Vec2.snap(world), state.mapSize);
-      if (!Vec2.equal(nodePos, startPos)) this.drag.dragged = true;
+      if (!Vec2.equal(nodePos, startPos)) {
+        // Heard the first time the node leaves its cell: a press that never moves is a click.
+        if (!this.drag.dragged) playSfx('dragStart');
+        this.drag.dragged = true;
+      }
       state.dragPreview = {
         ...emptyDragPreview(),
         offset: Vec2.sub(nodePos, startPos),
@@ -518,6 +548,10 @@ export class InputHandler {
     if (this.drag.kind === 'gates') {
       const { gateIds, nodeIds, disconnected, startWorld } = this.drag;
       const wanted = Vec2.snap(Vec2.sub(world, startWorld));
+      if (!this.dragSounded && (wanted.x !== 0 || wanted.y !== 0)) {
+        this.dragSounded = true;
+        playSfx('dragStart');
+      }
       state.dragPreview = {
         // The group is held inside the map as one body, so the layout survives the clamp.
         offset: clampGroupOffset(wanted, draggedBounds(state, gateIds, nodeIds), state.mapSize),
@@ -597,6 +631,7 @@ export class InputHandler {
         this.getHistory().execute(new MoveWireNodeCommand(state, newNodeId, finalPos));
       }
       this.getHistory().endBatch();
+      playSfx('dragDrop');
       state.selection = [];
       state.renderDirty = true;
       return;
@@ -615,12 +650,17 @@ export class InputHandler {
         return;
       }
       // Pure click on a pinned/multi-segment node, or a move back to the start: no-op
+      // A drag that came back to where it started is the one case that is heard starting and
+      // never landing — which is what a cancelled move should sound like.
+      if (dragged) playSfx('dragCancel');
     } else if (target) {
       this.getHistory().beginBatch('Merge wire node');
       this.mergeNodeOnto(state, nodeId, target, detachPin);
       this.getHistory().endBatch();
+      playSfx('dragDrop');
     } else {
       this.getHistory().execute(new MoveWireNodeCommand(state, nodeId, finalPos, detachPin));
+      playSfx('dragDrop');
     }
 
     state.selection = [];
@@ -660,18 +700,21 @@ export class InputHandler {
     const dragDist = Vec2.dist(world, this.wireStartWorld);
     if (dragDist < MIN_WIRE_DRAG) {
       state.mode = { kind: 'normal' };
+      playSfx('wireCancel');
       state.renderDirty = true;
       return;
     }
 
     const target = hitTestEndpoint(world, state);
     const wireColor = customWireColor(state.wireColor);
+    /** Whether a segment was actually laid, which is what the player hears the difference of. */
+    let connected = false;
 
     if (target) {
       // Endpoint → endpoint
       const fromNode = this.ensureWireNode(state, wireStart);
       const toNode = this.ensureWireNode(state, target);
-      if (fromNode && toNode) this.addSegmentIfNew(state, fromNode, toNode, wireColor);
+      if (fromNode && toNode) connected = this.addSegmentIfNew(state, fromNode, toNode, wireColor);
     } else {
       // Check if dropped on a wire segment → split it and connect
       const segHit = hitTestWireSegment(world, state);
@@ -679,7 +722,7 @@ export class InputHandler {
         const snapPos = Vec2.snap(world);
         const midId = this.splitWireSegment(state, segHit, snapPos);
         const fromNode = this.ensureWireNode(state, wireStart);
-        if (fromNode) this.addSegmentIfNew(state, fromNode, midId, wireColor);
+        if (fromNode) connected = this.addSegmentIfNew(state, fromNode, midId, wireColor);
       } else {
         const snapPos = clampPoint(Vec2.snap(world), state.mapSize);
         const snappedTarget = hitTestEndpoint(snapPos, state);
@@ -687,17 +730,18 @@ export class InputHandler {
           // Snapped position lands on a pin/node — connect to it
           const fromNode = this.ensureWireNode(state, wireStart);
           const toNode = this.ensureWireNode(state, snappedTarget);
-          if (fromNode && toNode) this.addSegmentIfNew(state, fromNode, toNode, wireColor);
+          if (fromNode && toNode) connected = this.addSegmentIfNew(state, fromNode, toNode, wireColor);
         } else {
           // Empty space: create free node and connect
           const nodeCmd = new AddWireNodeCommand(state, snapPos);
           this.getHistory().execute(nodeCmd);
           const fromNode = this.ensureWireNode(state, wireStart);
-          if (fromNode) this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
+          if (fromNode) connected = this.addSegmentIfNew(state, fromNode, nodeCmd.getNodeId(), wireColor);
         }
       }
     }
 
+    playSfx(connected ? 'wireConnect' : 'wireCancel');
     state.mode = { kind: 'normal' };
     state.renderDirty = true;
   }
@@ -713,11 +757,16 @@ export class InputHandler {
 
     // A disconnect drag is worth recording even at zero offset: it detaches the pins.
     const moved = offset.x !== 0 || offset.y !== 0;
-    if (!moved && !drag.disconnected) return;
+    if (!moved && !drag.disconnected) {
+      // Carried back to where it came from: heard starting, so it is owed an ending.
+      if (this.dragSounded) playSfx('dragCancel');
+      return;
+    }
 
     this.getHistory().execute(new MoveGatesCommand(
       state, drag.gateIds, offset, drag.nodeIds, drag.disconnected,
     ));
+    playSfx('dragDrop');
   }
 
   private completeSelectionRect(state: EditorState): void {
@@ -759,6 +808,7 @@ export class InputHandler {
     const nodeIds = getSelectedIds(state, 'wireNode');
     if (gateIds.length > 0 || nodeIds.length > 0) {
       this.getHistory().execute(new RotateGatesCommand(state, gateIds, nodeIds));
+      playSfx('gateRotate');
     }
   }
 
@@ -828,6 +878,7 @@ export class InputHandler {
     if (gateIds.length === 0 && nodeIds.length === 0) return;
 
     this.drag = { kind: 'gates', gateIds, nodeIds, disconnected, startWorld: Vec2.copy(world) };
+    this.dragSounded = false;
     state.dragPreview = { ...emptyDragPreview(), gateIds, nodeIds };
     state.renderDirty = true;
   }
@@ -885,10 +936,13 @@ export class InputHandler {
     return false;
   }
 
-  /** Add a wire segment between two nodes unless one already exists. */
-  private addSegmentIfNew(state: EditorState, from: WireNodeId, to: WireNodeId, color?: string): void {
-    if (from === to || this.segmentExists(state, from, to)) return;
+  /** Add a wire segment between two nodes unless one already exists. Returns whether it added. */
+  private addSegmentIfNew(
+    state: EditorState, from: WireNodeId, to: WireNodeId, color?: string,
+  ): boolean {
+    if (from === to || this.segmentExists(state, from, to)) return false;
     this.getHistory().execute(new AddWireSegmentCommand(state, from, to, color));
+    return true;
   }
 
   /** Split a wire segment at pos. Returns the new node ID. */
@@ -968,15 +1022,22 @@ export class InputHandler {
   private deleteSelected(state: EditorState): void {
     this.getHistory().beginBatch('Delete selection');
     // Wire nodes first (cascades to attached segments)
-    for (const nodeId of getSelectedIds(state, 'wireNode'))
+    const nodeIds = getSelectedIds(state, 'wireNode');
+    const segIds = getSelectedIds(state, 'wireSegment');
+    for (const nodeId of nodeIds)
       this.getHistory().execute(new RemoveWireNodeCommand(state, nodeId));
-    for (const segId of getSelectedIds(state, 'wireSegment'))
+    for (const segId of segIds)
       this.getHistory().execute(new RemoveWireSegmentCommand(state, segId));
     const gateIds = getSelectedIds(state, 'gate')
       .filter(gid => state.circuit.getGate(gid).canRemove !== false);
     for (const gateId of gateIds)
       this.getHistory().execute(new RemoveGateCommand(state, gateId));
     this.getHistory().endBatch();
+
+    // Nothing removed means everything selected was a gate the level holds on to — a refusal,
+    // and the player is owed the difference between that and a deletion.
+    const removed = nodeIds.length + segIds.length + gateIds.length;
+    playSfx(removed > 0 ? 'gateDelete' : 'blocked');
 
     state.selection = [];
     state.renderDirty = true;

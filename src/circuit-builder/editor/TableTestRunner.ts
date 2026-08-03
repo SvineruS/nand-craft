@@ -80,6 +80,10 @@ export class TableTestRunner implements TestRunner {
     return this.results.length === this.caseCount && this.results.every(r => r.passed);
   }
 
+  get failed(): boolean {
+    return this.results.some(r => !r.passed);
+  }
+
   /** The row last applied — the one whose result is on screen. */
   get sourceLine(): number | null {
     if (this.caseIndex < 0) return null;
