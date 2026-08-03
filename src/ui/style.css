@@ -1032,6 +1032,20 @@ body {
   }
 }
 
+/* Anchored to the menu itself — .fullscreen-menu is the positioned ancestor. */
+.menu-icon-link {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: inline-flex;
+  color: var(--text-dim);
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
 .settings-group {
   display: flex;
   flex-direction: column;
