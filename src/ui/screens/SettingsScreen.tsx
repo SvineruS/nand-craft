@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { navigateTo } from '../screenManager.ts';
 import {
-  backgroundGrid, paletteId, setBackgroundGrid, setPaletteId, setSoundVolume, soundVolume,
+  backgroundGrid, musicVolume, paletteId, setBackgroundGrid, setMusicVolume, setPaletteId,
+  setSoundVolume, soundVolume,
 } from '../editorStore.ts';
 import {
   type GridPatternId, GRID_PATTERNS, drawBackground,
@@ -61,19 +62,13 @@ export function SettingsScreen() {
       </div>
 
       <div class="settings-group">
-        <div class="settings-label">Sound</div>
-        <div class="settings-row">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={Math.round(soundVolume.value * 100)}
-            onInput={e => setSoundVolume(Number((e.target as HTMLInputElement).value) / 100)}
-          />
-          <span class="settings-value">
-            {soundVolume.value === 0 ? 'Off' : `${Math.round(soundVolume.value * 100)}%`}
-          </span>
-        </div>
+        <div class="settings-label">Sound effects</div>
+        <VolumeSlider value={soundVolume.value} onChange={setSoundVolume} />
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">Music</div>
+        <VolumeSlider value={musicVolume.value} onChange={setMusicVolume} />
       </div>
 
       <div class="menu-buttons">
@@ -81,6 +76,29 @@ export function SettingsScreen() {
           Back
         </button>
       </div>
+    </div>
+  );
+}
+
+interface VolumeSliderProps {
+  value: number;
+  onChange: (volume: number) => void;
+}
+
+/** A volume row. Two of them now, so the markup is written once. */
+function VolumeSlider({ value, onChange }: VolumeSliderProps) {
+  return (
+    <div class="settings-row">
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={Math.round(value * 100)}
+        onInput={e => onChange(Number((e.target as HTMLInputElement).value) / 100)}
+      />
+      <span class="settings-value">
+        {value === 0 ? 'Off' : `${Math.round(value * 100)}%`}
+      </span>
     </div>
   );
 }

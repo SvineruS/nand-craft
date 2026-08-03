@@ -3,9 +3,10 @@ import type { EditorState } from '../circuit-builder/editor/EditorState.ts';
 import type { ComponentId, GateId, LevelId } from '../circuit-builder/editor/types.ts';
 import {
   getSolvedLevelIds, getBackgroundGrid, saveBackgroundGrid, getPaletteId, savePaletteId,
-  getSoundVolume, saveSoundVolume,
+  getSoundVolume, saveSoundVolume, getMusicVolume, saveMusicVolume,
 } from '../circuit-builder/persistence/storage.ts';
-import { setMasterVolume } from '../engine/audio.ts';
+// Renamed on import: `musicVolume` here is the setting, and the audio layer's is the bus gain.
+import { setSfxVolume, setMusicVolume as setAudioMusicVolume } from '../engine/audio.ts';
 import type { GridPatternId } from '../circuit-builder/editor/render/backgroundPattern.ts';
 import type { PaletteId } from '../circuit-builder/editor/palettes.ts';
 import { applyPalette } from './theme.ts';
@@ -91,9 +92,18 @@ export function setSoundVolume(volume: number): void {
   saveSoundVolume(volume);
 }
 
-// Applies the stored volume at startup and every change after, so the audio layer never has to
-// be asked what the setting is.
-effect(() => { setMasterVolume(soundVolume.value); });
+/** Music volume, 0…1 (persisted). 0 stops the generator, rather than muting it — see music.ts. */
+export const musicVolume = signal(getMusicVolume());
+
+export function setMusicVolume(volume: number): void {
+  musicVolume.value = volume;
+  saveMusicVolume(volume);
+}
+
+// Applies the stored volumes at startup and every change after, so the audio layer never has to
+// be asked what the settings are.
+effect(() => { setSfxVolume(soundVolume.value); });
+effect(() => { setAudioMusicVolume(musicVolume.value); });
 
 // Applies the stored palette at startup and every change after. Canvases watch the same
 // signal to mark themselves dirty (see useCanvasEditor); the version bump covers the Preact

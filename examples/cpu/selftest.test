@@ -1,0 +1,436 @@
+# 8-bit CPU self-test. Pair with selftest.asm.
+# Needs: input-8bit-sw labelled IN, output-8bit-sw labelled OUT, a second RAM
+# for data addressed from PTR, left unflashed so it zeroes before each run.
+# A MOV touching IO must assert enable for exactly one tick.
+# Sections fall through: the last flag of one starts the next.
+
+@mode queue
+
+@case boot
+read OUT 85
+
+# ALU: operands, result, then 1 to repeat or 0 for the next opcode.
+
+@case NOT
+write IN 0x00
+read OUT 0xFF
+write IN 1
+
+write IN 0xFF
+read OUT 0x00
+write IN 1
+
+write IN 0b10101010
+read OUT 0b01010101
+write IN 1
+
+write IN 0x01
+read OUT 0xFE
+write IN 0
+
+@case AND
+write IN 0xFF
+write IN 0x0F
+read OUT 0x0F
+write IN 1
+
+write IN 0xF0
+write IN 0x0F
+read OUT 0x00
+write IN 1
+
+write IN 0xAA
+write IN 0xCC
+read OUT 0x88
+write IN 1
+
+write IN 0xFF
+write IN 0xFF
+read OUT 0xFF
+write IN 0
+
+@case OR
+write IN 0xF0
+write IN 0x0F
+read OUT 0xFF
+write IN 1
+
+write IN 0x00
+write IN 0x00
+read OUT 0x00
+write IN 1
+
+write IN 0xAA
+write IN 0x55
+read OUT 0xFF
+write IN 1
+
+write IN 0xAA
+write IN 0xCC
+read OUT 0xEE
+write IN 0
+
+@case ADD
+write IN 7
+write IN 9
+read OUT 16
+write IN 1
+
+write IN 0
+write IN 0
+read OUT 0
+write IN 1
+
+write IN 200
+write IN 55
+read OUT 255
+write IN 1
+
+# carry out is dropped
+write IN 255
+write IN 1
+read OUT 0
+write IN 1
+
+write IN 200
+write IN 100
+read OUT 44
+write IN 1
+
+write IN 128
+write IN 128
+read OUT 0
+write IN 0
+
+@case SUB
+write IN 9
+write IN 7
+read OUT 2
+write IN 1
+
+write IN 100
+write IN 100
+read OUT 0
+write IN 1
+
+# borrow wraps
+write IN 0
+write IN 1
+read OUT 255
+write IN 1
+
+write IN 5
+write IN 200
+read OUT 61
+write IN 1
+
+write IN 255
+write IN 128
+read OUT 127
+write IN 0
+
+@case SHR
+write IN 128
+write IN 1
+read OUT 64
+write IN 1
+
+write IN 0xFF
+write IN 4
+read OUT 0x0F
+write IN 1
+
+write IN 1
+write IN 1
+read OUT 0
+write IN 1
+
+write IN 0xAA
+write IN 0
+read OUT 0xAA
+write IN 1
+
+write IN 0xFF
+write IN 7
+read OUT 1
+write IN 1
+
+# assumes a distance of 8+ empties the register - delete if yours is undefined
+write IN 0xFF
+write IN 8
+read OUT 0
+write IN 0
+
+@case SHL
+write IN 1
+write IN 0
+read OUT 1
+write IN 1
+
+write IN 1
+write IN 7
+read OUT 128
+write IN 1
+
+write IN 3
+write IN 1
+read OUT 6
+write IN 1
+
+write IN 0xFF
+write IN 4
+read OUT 0xF0
+write IN 1
+
+write IN 128
+write IN 1
+read OUT 0
+write IN 1
+
+write IN 0xFF
+write IN 8
+read OUT 0
+write IN 0
+
+# COND: selector, value for C, 1 if branched else 0, then the flag.
+# Selectors 0 JNEVER, 1 JMP, 2 JZ, 3 JNZ, 4 JL, 5 JGE, 6 JLE, 7 JG.
+# Signed: 0x7F is +127, 0x80 is -128, 0xFF is -1.
+
+@case JNEVER
+write IN 0
+write IN 0
+read OUT 0
+write IN 1
+
+write IN 0
+write IN 1
+read OUT 0
+write IN 1
+
+write IN 0
+write IN 0xFF
+read OUT 0
+write IN 1
+
+@case JMP
+write IN 1
+write IN 0
+read OUT 1
+write IN 1
+
+write IN 1
+write IN 1
+read OUT 1
+write IN 1
+
+write IN 1
+write IN 0xFF
+read OUT 1
+write IN 1
+
+@case JZ
+write IN 2
+write IN 0
+read OUT 1
+write IN 1
+
+write IN 2
+write IN 1
+read OUT 0
+write IN 1
+
+write IN 2
+write IN 0xFF
+read OUT 0
+write IN 1
+
+write IN 2
+write IN 0x80
+read OUT 0
+write IN 1
+
+@case JNZ
+write IN 3
+write IN 0
+read OUT 0
+write IN 1
+
+write IN 3
+write IN 1
+read OUT 1
+write IN 1
+
+write IN 3
+write IN 0xFF
+read OUT 1
+write IN 1
+
+@case JL
+write IN 4
+write IN 0
+read OUT 0
+write IN 1
+
+write IN 4
+write IN 1
+read OUT 0
+write IN 1
+
+write IN 4
+write IN 0x7F
+read OUT 0
+write IN 1
+
+write IN 4
+write IN 0x80
+read OUT 1
+write IN 1
+
+write IN 4
+write IN 0xFF
+read OUT 1
+write IN 1
+
+@case JGE
+write IN 5
+write IN 0
+read OUT 1
+write IN 1
+
+write IN 5
+write IN 0x7F
+read OUT 1
+write IN 1
+
+write IN 5
+write IN 0x80
+read OUT 0
+write IN 1
+
+write IN 5
+write IN 0xFF
+read OUT 0
+write IN 1
+
+@case JLE
+write IN 6
+write IN 0
+read OUT 1
+write IN 1
+
+write IN 6
+write IN 1
+read OUT 0
+write IN 1
+
+write IN 6
+write IN 0x7F
+read OUT 0
+write IN 1
+
+write IN 6
+write IN 0x80
+read OUT 1
+write IN 1
+
+write IN 6
+write IN 0xFF
+read OUT 1
+write IN 1
+
+@case JG
+write IN 7
+write IN 0
+read OUT 0
+write IN 1
+
+write IN 7
+write IN 1
+read OUT 1
+write IN 1
+
+write IN 7
+write IN 0x7F
+read OUT 1
+write IN 1
+
+write IN 7
+write IN 0x80
+read OUT 0
+write IN 1
+
+write IN 7
+write IN 0xFF
+read OUT 0
+write IN 0
+
+# PTR walk: bytes, 0 to end, then the count.
+@case store a list and count it
+write IN 11
+write IN 22
+write IN 33
+write IN 44
+write IN 0
+read OUT 4
+
+# MEM: address to store at, byte, address to read back, byte out, flag.
+
+@case store lands where PTR says
+write IN 0x10
+write IN 99
+write IN 0x10
+read OUT 99
+write IN 1
+
+@case neighbour untouched
+write IN 0x11
+write IN 7
+write IN 0x10
+read OUT 99
+write IN 1
+
+write IN 0x50
+write IN 0
+write IN 0x11
+read OUT 7
+write IN 1
+
+@case unwritten cell reads 0
+write IN 0x20
+write IN 5
+write IN 0x50
+read OUT 0
+write IN 1
+
+@case top of the address range
+write IN 0xFF
+write IN 123
+write IN 0xFF
+read OUT 123
+write IN 1
+
+# the list is still at 0..3; address 4 is untouched, the terminator is not stored
+@case list still in order
+write IN 0x30
+write IN 1
+write IN 0x00
+read OUT 11
+write IN 1
+
+write IN 0x31
+write IN 2
+write IN 0x02
+read OUT 33
+write IN 1
+
+write IN 0x32
+write IN 3
+write IN 0x03
+read OUT 44
+write IN 1
+
+write IN 0x33
+write IN 4
+write IN 0x04
+read OUT 0
+write IN 0

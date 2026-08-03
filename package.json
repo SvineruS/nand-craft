@@ -12,6 +12,7 @@
     "sim:check": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --check",
     "sim:scene": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --scene",
     "sim:bench": "node --import ./scripts/viteRawLoader.ts scripts/simCheck.ts --bench",
+    "music:render": "node --import ./scripts/viteRawLoader.ts scripts/musicRender.ts",
     "check:invariants": "node --import ./scripts/viteRawLoader.ts scripts/checkInvariants.ts"
   },
   "devDependencies": {

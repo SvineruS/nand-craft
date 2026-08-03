@@ -15,6 +15,7 @@ const SOLVED_KEY = `${PREFIX}:solved`;
 const BACKGROUND_GRID_KEY = `${PREFIX}:backgroundGrid`;
 const PALETTE_KEY = `${PREFIX}:palette`;
 const SOUND_VOLUME_KEY = `${PREFIX}:soundVolume`;
+const MUSIC_VOLUME_KEY = `${PREFIX}:musicVolume`;
 
 function circuitKey(levelId: LevelId): string {
   return `${PREFIX}:circuit:${levelId}`;
@@ -118,18 +119,36 @@ export function saveBackgroundGrid(grid: GridPatternId): void {
   }
 }
 
-/** Stored sound volume, 0…1. Absent means full — sound is on until it is turned down. */
+/** Stored sound volume, 0…1. */
 export function getSoundVolume(): number {
-  const stored = Number(localStorage.getItem(SOUND_VOLUME_KEY));
-  if (!isFinite(stored) || localStorage.getItem(SOUND_VOLUME_KEY) === null) return 1;
-  return Math.min(1, Math.max(0, stored));
+  return getVolume(SOUND_VOLUME_KEY, 0.6);
 }
 
 export function saveSoundVolume(volume: number): void {
+  saveVolume(SOUND_VOLUME_KEY, volume);
+}
+
+/** Stored music volume, 0…1. */
+export function getMusicVolume(): number {
+  return getVolume(MUSIC_VOLUME_KEY, 0.2);
+}
+
+export function saveMusicVolume(volume: number): void {
+  saveVolume(MUSIC_VOLUME_KEY, volume);
+}
+
+function getVolume(key: string, fallback: number): number {
+  const raw = localStorage.getItem(key);
+  const stored = Number(raw);
+  if (raw === null || !isFinite(stored)) return fallback;
+  return Math.min(1, Math.max(0, stored));
+}
+
+function saveVolume(key: string, volume: number): void {
   try {
-    localStorage.setItem(SOUND_VOLUME_KEY, String(volume));
+    localStorage.setItem(key, String(volume));
   } catch (e) {
-    console.error('Failed to persist sound volume:', e);
+    console.error(`Failed to persist ${key}:`, e);
   }
 }
 
