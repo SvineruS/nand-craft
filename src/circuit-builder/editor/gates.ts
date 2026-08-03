@@ -8,6 +8,15 @@ export interface PinDef {
   y: number;  // grid units relative to gate origin
   label?: string;
   bitWidth?: number;  // override per-pin (e.g. tristate enable is always 1-bit)
+  /**
+   * Input pins only: this pin feeds the gate's stored state at the end of the tick and
+   * never its outputs within the tick. It therefore creates no combinational dependency,
+   * so wiring an output back into it is a one-tick feedback loop, not a short circuit.
+   *
+   * Only needed for gates that are partly combinational — a fully sequential gate is
+   * already absent from the combinational graph (see SEQUENTIAL_TYPES).
+   */
+  registered?: boolean;
 }
 
 export interface SvgLayer {
@@ -299,10 +308,13 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     ],
     svg: [{ path: SVG.MUX_A }, { path: SVG.MUX_B }],
   },
+  // Every input of a register is registered: the output is last tick's stored value, so
+  // nothing on the way in can reach it. That is what puts these gates at the head of the
+  // evaluation order with no incoming edges, and what lets a player wire Q back to V.
   delay: {
     label: 'DLY', description: '1-tick delay', width: 3, height: 2,    color: '#4a3a2d', stroke: '#ad8a5a',
     pins: [
-      { kind: 'input', x: 0, y: 1 },
+      { kind: 'input', x: 0, y: 1, registered: true },
       { kind: 'output', x: 3, y: 1 },
     ],
     svg: SVG.DELAY,
@@ -311,20 +323,20 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     label: 'RS', description: 'RS latch', width: 2, height: 2,
     color: '#4a3a2d', stroke: '#ad8a5a',
     pins: [
-      { kind: 'input', x: 0, y: 0, label: 'S' },
-      { kind: 'input', x: 0, y: 2, label: 'R' },
+      { kind: 'input', x: 0, y: 0, label: 'S', registered: true },
+      { kind: 'input', x: 0, y: 2, label: 'R', registered: true },
       { kind: 'output', x: 2, y: 1, label: 'Q' },
     ],
     svg: SVG.BOX_2x2,
   },
   // S sits on top, V below — matching the RS latch above. Pins are declared top to bottom,
-  // and declaration order is the simulation's slot order, so SeqOp.MEMORY reads S then V.
+  // and declaration order is the simulation's slot order, so LatchOp.MEMORY reads S then V.
   '1bit-memory': {
     label: 'MEM', description: '1-bit register', width: 2, height: 2,
     color: '#4a3a2d', stroke: '#ad8a5a',
     pins: [
-      { kind: 'input', x: 0, y: 0, label: 'S' },
-      { kind: 'input', x: 0, y: 2, label: 'V' },
+      { kind: 'input', x: 0, y: 0, label: 'S', registered: true },
+      { kind: 'input', x: 0, y: 2, label: 'V', registered: true },
       { kind: 'output', x: 2, y: 1, label: 'Q' },
     ],
     svg: SVG.BOX_2x2_FULL,
@@ -333,8 +345,8 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     label: 'MEM8', description: '8-bit register', width: 2, height: 2,
     color: '#3a4a3a', stroke: '#7aad7a',
     pins: [
-      { kind: 'input', x: 0, y: 0, label: 'S', bitWidth: 1 },
-      { kind: 'input', x: 0, y: 2, label: 'V', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 0, label: 'S', bitWidth: 1, registered: true },
+      { kind: 'input', x: 0, y: 2, label: 'V', bitWidth: 8, registered: true },
       { kind: 'output', x: 2, y: 1, label: 'Q', bitWidth: 8 },
     ],
     svg: SVG.BOX_2x2_FULL,
@@ -346,8 +358,8 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     color: '#3a3a4a', stroke: '#7a7aad',
     // Flag on top, value below — the same order as the registers and RAM.
     pins: [
-      { kind: 'input', x: 0, y: 0, label: 'O', bitWidth: 1 },
-      { kind: 'input', x: 0, y: 2, label: 'V', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 0, label: 'O', bitWidth: 1, registered: true },
+      { kind: 'input', x: 0, y: 2, label: 'V', bitWidth: 8, registered: true },
       { kind: 'output', x: 3, y: 1, label: 'Q', bitWidth: 8 },
     ],
     svg: SVG.COUNTER,
@@ -361,10 +373,12 @@ const GATE_DEFS: Record<BuiltInGateType, GateDefinition> = {
     // buttons — a player debugging a CPU wants both open at once.
     buttons: ['memory', 'program'],
     pins: [
+      // R and A are read live (Op.RAM); W and V only land in the write-back that runs
+      // after propagation (LatchOp.RAM), so they are registered inputs.
       { kind: 'input', x: 0, y: 0, label: 'R', bitWidth: 1 },
-      { kind: 'input', x: 0, y: 1, label: 'W', bitWidth: 1 },
+      { kind: 'input', x: 0, y: 1, label: 'W', bitWidth: 1, registered: true },
       { kind: 'input', x: 0, y: 3, label: 'A', bitWidth: 8 },
-      { kind: 'input', x: 0, y: 4, label: 'V', bitWidth: 8 },
+      { kind: 'input', x: 0, y: 4, label: 'V', bitWidth: 8, registered: true },
       { kind: 'output', x: 3, y: 2, label: 'Q', bitWidth: 8 },
     ],
     svg: SVG.BOX_3x4,
@@ -612,6 +626,8 @@ export function clearComponentDefCache(): void {
 export interface GatePinMeta {
   inputBitWidths: readonly number[];
   outputBitWidths: readonly number[];
+  /** Per input pin: PinDef.registered — no combinational path to any output. */
+  inputRegistered: readonly boolean[];
   inputCount: number;
   outputCount: number;
 }
@@ -629,14 +645,20 @@ export function getGatePinMeta(gateType: GateType): GatePinMeta {
 
   const inputBitWidths: number[] = [];
   const outputBitWidths: number[] = [];
+  const inputRegistered: boolean[] = [];
   for (const pin of getGateDefinition(gateType).pins) {
-    const widths = pin.kind === 'input' ? inputBitWidths : outputBitWidths;
-    widths.push(pin.bitWidth ?? 1);
+    if (pin.kind === 'input') {
+      inputBitWidths.push(pin.bitWidth ?? 1);
+      inputRegistered.push(pin.registered === true);
+    } else {
+      outputBitWidths.push(pin.bitWidth ?? 1);
+    }
   }
 
   const meta: GatePinMeta = {
     inputBitWidths,
     outputBitWidths,
+    inputRegistered,
     inputCount: inputBitWidths.length,
     outputCount: outputBitWidths.length,
   };

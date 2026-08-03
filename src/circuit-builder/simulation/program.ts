@@ -1,7 +1,8 @@
 import type { GateId, Net, NetId, WireNodeId } from '../editor/types.ts';
-import { getGatePinMeta, getPinBitWidth } from '../editor/gates.ts';
+import { getGatePinMeta, getPinBitWidth, isBuiltInGateType } from '../editor/gates.ts';
 import type { Circuit } from './circuit.ts';
-import { type Gate, type GateType, isConstantGate, isInputGate, isOutputGate, isSequentialGate } from './gateTypes.ts';
+import { type Gate, type GateType, isInputGate, isOutputGate } from './gateTypes.ts';
+import { hasRegisteredInput } from './registeredInputs.ts';
 
 // ---------------------------------------------------------------------------
 // Opcodes
@@ -10,7 +11,15 @@ import { type Gate, type GateType, isConstantGate, isInputGate, isOutputGate, is
 // out TS enums, so these are const objects.
 // ---------------------------------------------------------------------------
 
-/** Combinational evaluation opcode. Gate types with identical math share one op. */
+/**
+ * Propagation opcode: how a gate computes its outputs from its inputs and its stored
+ * state. Gate types with identical math share one op.
+ *
+ * Every gate with output pins has one, registers included — a register's outputs are
+ * simply a function of state alone (Op.REGISTER), which is why it needs no seeding phase
+ * and no exemption from the evaluation order. All of its input pins are registered, so it
+ * has no incoming edges and sorts to the front by itself.
+ */
 export const Op = {
   NOP: 0,
   NAND: 1,
@@ -36,34 +45,44 @@ export const Op = {
   JOINER: 21,
   INPUT_ENABLE: 22,
   COMPONENT: 23,
-  RAM: 24,        // read path only; the write lands in SeqOp.RAM
+  RAM: 24,        // read path only; the write lands in LatchOp.RAM
   SHR8: 25,
   SHL8: 26,
+  REGISTER: 27,   // 'delay', 'rs-latch', both memories, '8bit-counter': output is state
 } as const;
 
-/** How setSourceOutputs seeds a gate's output before propagation. */
+/**
+ * How setSourceOutputs seeds a gate's output before propagation.
+ *
+ * Only one kind is left: a value arriving from outside the circuit, which no opcode can
+ * compute. Constants and registers used to be seeded here too, but both are just functions
+ * of the gate's own fields, so they are Op.CONSTANT and Op.REGISTER in the ordinary
+ * evaluation order instead.
+ */
 export const SrcOp = {
   /** Driven from the caller's input map (input gates and 'level'). */
   DRIVEN: 1,
-  /** gate.state as a user-set constant. */
-  CONSTANT: 2,
-  /** gate.state as registered sequential state. */
-  SEQUENTIAL: 3,
 } as const;
 
-/** How advanceSequentialState updates a gate's state after propagation. */
-export const SeqOp = {
+/**
+ * How the latch phase updates a gate's stored state, after propagation has resolved every
+ * wire. A gate has one of these exactly when it holds state; it is unrelated to whether the
+ * gate also has a propagation opcode, and most stateful gates have both.
+ */
+export const LatchOp = {
   DELAY: 1,
   RS_LATCH: 2,
   MEMORY: 3,        // '1bit-memory' and '8bit-memory'
   COUNTER_SET: 4,   // '8bit-counter': increments, or takes V when O is high
+  RAM: 5,           // the write-back; the read is Op.RAM
   /**
-   * Unlike the others, a RAM gate is *also* evaluated combinationally (Op.RAM): its output
-   * depends on the address wire, so it cannot be seeded as a source before propagation.
-   * Only the write-back happens here. buildRoleLists keys this list off sequentialOpcodeFor
-   * rather than isSequentialGate, which is what lets a gate be in both roles.
+   * Latch a component's inner circuit. Its inner state must not move during propagation,
+   * because a registered input pin of the component may not have resolved yet — so
+   * Op.COMPONENT only propagates, and this phase is the sole place the inner state
+   * advances. Whether that needs the inner circuit re-propagated first is decided here,
+   * from the component's own registered pins.
    */
-  RAM: 5,
+  COMPONENT: 6,
 } as const;
 
 function opcodeFor(type: GateType): number {
@@ -92,43 +111,53 @@ function opcodeFor(type: GateType): number {
     case 'splitter': return Op.SPLITTER;
     case 'joiner': return Op.JOINER;
     case 'ram': return Op.RAM;
+    case 'delay': case 'rs-latch': case '1bit-memory': case '8bit-memory':
+    case '8bit-counter': return Op.REGISTER;
+    case 'level': return Op.NOP;  // never evaluated; the level map drives both its pins
     default:
       // Input gates with an enable pin gate their output to high-Z when it is low.
       if (isInputGate(type)) return Op.INPUT_ENABLE;
       // Output gates only ever read; their old switch branch wrote nothing. They are
-      // also never combinational (zero output pins), so this is unreachable anyway.
+      // also never evaluated (zero output pins), so this is unreachable anyway.
       if (isOutputGate(type)) return Op.NOP;
       return Op.COMPONENT;
   }
 }
 
 function sourceOpcodeFor(type: GateType): number {
-  // Order mirrors setSourceOutputs: driven IO first, then constants, then sequential.
-  if (isInputGate(type) || type === 'level') return SrcOp.DRIVEN;
-  if (isConstantGate(type)) return SrcOp.CONSTANT;
-  if (isSequentialGate(type)) return SrcOp.SEQUENTIAL;
-  return 0;
+  return isInputGate(type) || type === 'level' ? SrcOp.DRIVEN : 0;
 }
 
-function sequentialOpcodeFor(type: GateType): number {
+function latchOpcodeFor(type: GateType): number {
   switch (type) {
-    case 'delay': return SeqOp.DELAY;
-    case 'rs-latch': return SeqOp.RS_LATCH;
-    case '1bit-memory': case '8bit-memory': return SeqOp.MEMORY;
-    case '8bit-counter': return SeqOp.COUNTER_SET;
-    case 'ram': return SeqOp.RAM;
-    default: return 0;
+    case 'delay': return LatchOp.DELAY;
+    case 'rs-latch': return LatchOp.RS_LATCH;
+    case '1bit-memory': case '8bit-memory': return LatchOp.MEMORY;
+    case '8bit-counter': return LatchOp.COUNTER_SET;
+    case 'ram': return LatchOp.RAM;
   }
+  // Every stateful built-in is covered above, so anything left is a component. Whether its
+  // inner circuit holds state is not worth deriving: the latch phase of a stateless one
+  // walks an empty list.
+  return isBuiltInGateType(type) ? 0 : LatchOp.COMPONENT;
 }
 
-/** Derived: anything not sequential, not a pure IO gate, and not 'level'. */
-export function isCombinational(type: GateType): boolean {
-  if (type === 'level') return false;
-  if (isSequentialGate(type)) return false;
-  // Plain IO gates are sources/sinks; switch variants have both inputs and outputs
+/**
+ * Whether a gate's outputs are computed during propagation, so it joins the evaluation
+ * order. True of everything with an output pin, except a gate whose output arrives from
+ * outside the circuit and is seeded before the loop instead.
+ *
+ * Note what is *not* here: no gate type is exempt for being stateful. A register is
+ * evaluated like anything else; it just reads state rather than pins.
+ */
+export function isEvaluated(type: GateType): boolean {
   const meta = getGatePinMeta(type);
+  if (meta.outputCount === 0) return false;
+  // A level node's pins both belong to the level map, which drives the output and reads the
+  // input from outside the tick. Nothing about it is computed, either way round.
+  if (type === 'level') return false;
+  // A switched input still has an enable pin to evaluate; a plain one is purely seeded.
   if (isInputGate(type)) return meta.inputCount > 0;
-  if (isOutputGate(type)) return meta.outputCount > 0;
   return true;
 }
 
@@ -186,8 +215,10 @@ export interface CompiledProgram {
   // --- per-tick role lists (gate indices) ---
   sourceGates: Int32Array;
   sourceOpcode: Uint8Array;
-  sequentialGates: Int32Array;
-  sequentialOpcode: Uint8Array;
+  latchGates: Int32Array;
+  latchOpcode: Uint8Array;
+  /** Per latch entry: 1 when the gate must be re-propagated before it can latch. */
+  latchNeedsPropagate: Uint8Array;
   outputGates: Int32Array;
 
   // --- renderer support ---
@@ -387,13 +418,13 @@ interface Schedule {
 }
 
 /**
- * Schedule each net to resolve exactly once, right after the last combinational gate
- * that drives it. Valid because `evaluationOrder` is a topological sort: every net
- * feeding a gate has all its combinational drivers scheduled earlier.
+ * Schedule each net to resolve exactly once, right after the last evaluated gate that
+ * drives it. Valid because `evaluationOrder` is a topological sort: every net feeding a
+ * gate has all its drivers scheduled earlier.
  *
- * Gates inside combinational cycles are absent from `evaluationOrder` (Kahn's algorithm
- * never reaches them), so nets they drive also get a final sweep — reproducing the old
- * loop's habit of re-resolving every net after every gate.
+ * Gates inside feedback cycles are absent from `evaluationOrder` (Kahn's algorithm never
+ * reaches them), so nets they drive also get a final sweep — reproducing the old loop's
+ * habit of re-resolving every net after every gate.
  */
 function buildSchedule(
   slots: SlotTables,
@@ -430,10 +461,10 @@ function buildSchedule(
       const step = stepOfGate[gateIndex];
       if (step >= 0) {
         if (step > lastStep) lastStep = step;
-      } else if (isCombinational(slots.gates[gateIndex].type)) {
+      } else if (isEvaluated(slots.gates[gateIndex].type)) {
         hasStrandedDriver = true;
       }
-      // else: a source or sequential gate, seeded before the loop runs
+      // else: a driven source, seeded before the loop runs
     }
 
     if (lastStep >= 0) resolveAfter[lastStep].push(netIndex);
@@ -458,8 +489,9 @@ function buildSchedule(
 interface RoleLists {
   sourceGates: Int32Array;
   sourceOpcode: Uint8Array;
-  sequentialGates: Int32Array;
-  sequentialOpcode: Uint8Array;
+  latchGates: Int32Array;
+  latchOpcode: Uint8Array;
+  latchNeedsPropagate: Uint8Array;
   outputGates: Int32Array;
 }
 
@@ -467,8 +499,9 @@ interface RoleLists {
 function buildRoleLists(slots: SlotTables): RoleLists {
   const sourceGates: number[] = [];
   const sourceOpcode: number[] = [];
-  const sequentialGates: number[] = [];
-  const sequentialOpcode: number[] = [];
+  const latchGates: number[] = [];
+  const latchOpcode: number[] = [];
+  const latchNeedsPropagate: number[] = [];
   const outputGates: number[] = [];
 
   for (let i = 0; i < slots.gates.length; i++) {
@@ -480,10 +513,13 @@ function buildRoleLists(slots: SlotTables): RoleLists {
       sourceOpcode.push(srcOp);
     }
 
-    const seqOp = sequentialOpcodeFor(type);
-    if (seqOp !== 0) {
-      sequentialGates.push(i);
-      sequentialOpcode.push(seqOp);
+    const latchOp = latchOpcodeFor(type);
+    if (latchOp !== 0) {
+      latchGates.push(i);
+      latchOpcode.push(latchOp);
+      // Only LatchOp.COMPONENT reads this. Resolved here rather than per tick: it is a
+      // property of the gate's type, and the latch loop should stay free of lookups.
+      latchNeedsPropagate.push(hasRegisteredInput(type) ? 1 : 0);
     }
 
     if (isOutputGate(type)) outputGates.push(i);
@@ -492,8 +528,9 @@ function buildRoleLists(slots: SlotTables): RoleLists {
   return {
     sourceGates: Int32Array.from(sourceGates),
     sourceOpcode: Uint8Array.from(sourceOpcode),
-    sequentialGates: Int32Array.from(sequentialGates),
-    sequentialOpcode: Uint8Array.from(sequentialOpcode),
+    latchGates: Int32Array.from(latchGates),
+    latchOpcode: Uint8Array.from(latchOpcode),
+    latchNeedsPropagate: Uint8Array.from(latchNeedsPropagate),
     outputGates: Int32Array.from(outputGates),
   };
 }

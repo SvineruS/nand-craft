@@ -10735,6 +10735,338 @@
    }
   }
  ],
+ "ram-self-feedback": [
+  {
+   "outputs": {
+    "holdSink": 77,
+    "flipSink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 4,
+    "write:out:0": 1,
+    "readHold:out:0": 0,
+    "seedEnable:out:0": 1,
+    "seed:in:0": 1,
+    "seed:out:0": 77,
+    "hold:in:0": 0,
+    "hold:in:1": 1,
+    "hold:in:2": 4,
+    "hold:in:3": 77,
+    "hold:out:0": null,
+    "flip:in:0": 1,
+    "flip:in:1": 1,
+    "flip:in:2": 4,
+    "flip:in:3": 255,
+    "flip:out:0": 0,
+    "not:in:0": 0,
+    "not:out:0": 255,
+    "one:out:0": 1,
+    "holdSink:in:0": 77,
+    "flipSink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "4/8",
+    "node#4": "4/8",
+    "node#5": "4/8",
+    "node#6": "1/1",
+    "node#7": "1/1",
+    "node#8": "0/1",
+    "node#9": "0/1",
+    "node#10": "77/8",
+    "node#11": "77/8",
+    "node#12": "77/8",
+    "node#13": "77/8",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "0/8",
+    "node#17": "0/8",
+    "node#18": "0/8",
+    "node#19": "255/8",
+    "node#20": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "holdSink": 77,
+    "flipSink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 4,
+    "write:out:0": 1,
+    "readHold:out:0": 1,
+    "seedEnable:out:0": 0,
+    "seed:in:0": 0,
+    "seed:out:0": null,
+    "hold:in:0": 1,
+    "hold:in:1": 1,
+    "hold:in:2": 4,
+    "hold:in:3": 77,
+    "hold:out:0": 77,
+    "flip:in:0": 1,
+    "flip:in:1": 1,
+    "flip:in:2": 4,
+    "flip:in:3": 0,
+    "flip:out:0": 255,
+    "not:in:0": 255,
+    "not:out:0": 0,
+    "one:out:0": 1,
+    "holdSink:in:0": 77,
+    "flipSink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "4/8",
+    "node#4": "4/8",
+    "node#5": "4/8",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "77/8",
+    "node#11": "77/8",
+    "node#12": "77/8",
+    "node#13": "77/8",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "255/8",
+    "node#17": "255/8",
+    "node#18": "255/8",
+    "node#19": "0/8",
+    "node#20": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "holdSink": 77,
+    "flipSink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 4,
+    "write:out:0": 1,
+    "readHold:out:0": 1,
+    "seedEnable:out:0": 0,
+    "seed:in:0": 0,
+    "seed:out:0": null,
+    "hold:in:0": 1,
+    "hold:in:1": 1,
+    "hold:in:2": 4,
+    "hold:in:3": 77,
+    "hold:out:0": 77,
+    "flip:in:0": 1,
+    "flip:in:1": 1,
+    "flip:in:2": 4,
+    "flip:in:3": 255,
+    "flip:out:0": 0,
+    "not:in:0": 0,
+    "not:out:0": 255,
+    "one:out:0": 1,
+    "holdSink:in:0": 77,
+    "flipSink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "4/8",
+    "node#4": "4/8",
+    "node#5": "4/8",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "77/8",
+    "node#11": "77/8",
+    "node#12": "77/8",
+    "node#13": "77/8",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "0/8",
+    "node#17": "0/8",
+    "node#18": "0/8",
+    "node#19": "255/8",
+    "node#20": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "holdSink": 77,
+    "flipSink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 4,
+    "write:out:0": 0,
+    "readHold:out:0": 1,
+    "seedEnable:out:0": 0,
+    "seed:in:0": 0,
+    "seed:out:0": null,
+    "hold:in:0": 1,
+    "hold:in:1": 0,
+    "hold:in:2": 4,
+    "hold:in:3": 77,
+    "hold:out:0": 77,
+    "flip:in:0": 1,
+    "flip:in:1": 0,
+    "flip:in:2": 4,
+    "flip:in:3": 0,
+    "flip:out:0": 255,
+    "not:in:0": 255,
+    "not:out:0": 0,
+    "one:out:0": 1,
+    "holdSink:in:0": 77,
+    "flipSink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "4/8",
+    "node#4": "4/8",
+    "node#5": "4/8",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "77/8",
+    "node#11": "77/8",
+    "node#12": "77/8",
+    "node#13": "77/8",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "255/8",
+    "node#17": "255/8",
+    "node#18": "255/8",
+    "node#19": "0/8",
+    "node#20": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "holdSink": 77,
+    "flipSink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 4,
+    "write:out:0": 1,
+    "readHold:out:0": 1,
+    "seedEnable:out:0": 0,
+    "seed:in:0": 0,
+    "seed:out:0": null,
+    "hold:in:0": 1,
+    "hold:in:1": 1,
+    "hold:in:2": 4,
+    "hold:in:3": 77,
+    "hold:out:0": 77,
+    "flip:in:0": 1,
+    "flip:in:1": 1,
+    "flip:in:2": 4,
+    "flip:in:3": 0,
+    "flip:out:0": 255,
+    "not:in:0": 255,
+    "not:out:0": 0,
+    "one:out:0": 1,
+    "holdSink:in:0": 77,
+    "flipSink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "4/8",
+    "node#4": "4/8",
+    "node#5": "4/8",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "77/8",
+    "node#11": "77/8",
+    "node#12": "77/8",
+    "node#13": "77/8",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "255/8",
+    "node#17": "255/8",
+    "node#18": "255/8",
+    "node#19": "0/8",
+    "node#20": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "holdSink": 0,
+    "flipSink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "addr:out:0": 9,
+    "write:out:0": 1,
+    "readHold:out:0": 1,
+    "seedEnable:out:0": 0,
+    "seed:in:0": 0,
+    "seed:out:0": null,
+    "hold:in:0": 1,
+    "hold:in:1": 1,
+    "hold:in:2": 9,
+    "hold:in:3": 0,
+    "hold:out:0": 0,
+    "flip:in:0": 1,
+    "flip:in:1": 1,
+    "flip:in:2": 9,
+    "flip:in:3": 255,
+    "flip:out:0": 0,
+    "not:in:0": 0,
+    "not:out:0": 255,
+    "one:out:0": 1,
+    "holdSink:in:0": 0,
+    "flipSink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "9/8",
+    "node#4": "9/8",
+    "node#5": "9/8",
+    "node#6": "0/1",
+    "node#7": "0/1",
+    "node#8": "1/1",
+    "node#9": "1/1",
+    "node#10": "0/8",
+    "node#11": "0/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "1/1",
+    "node#15": "1/1",
+    "node#16": "0/8",
+    "node#17": "0/8",
+    "node#18": "0/8",
+    "node#19": "255/8",
+    "node#20": "255/8"
+   }
+  }
+ ],
  "counter-seq": [
   {
    "outputs": {
@@ -11614,6 +11946,578 @@
     "node#3": "0/1",
     "node#4": "0/1",
     "node#5": "0/1"
+   }
+  }
+ ],
+ "component-self-feedback": [
+  {
+   "outputs": {
+    "countSink": 0,
+    "holdSink": 0,
+    "mixQ": 0,
+    "mixN": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "p:out:0": 0,
+    "one:out:0": 1,
+    "count:in:0": 1,
+    "count:in:1": 1,
+    "count:out:0": 0,
+    "add:in:0": null,
+    "add:in:1": 0,
+    "add:in:2": 1,
+    "add:out:0": 1,
+    "add:out:1": 0,
+    "hold:in:0": 0,
+    "hold:in:1": 1,
+    "hold:out:0": 0,
+    "mix:in:0": 0,
+    "mix:in:1": 1,
+    "mix:in:2": 0,
+    "mix:out:0": 0,
+    "mix:out:1": 1,
+    "countSink:in:0": 0,
+    "holdSink:in:0": 0,
+    "mixQ:in:0": 0,
+    "mixN:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "0/8",
+    "node#5": "0/8",
+    "node#6": "0/8",
+    "node#7": "0/8",
+    "node#8": "1/8",
+    "node#9": "1/8",
+    "node#10": "1/8",
+    "node#11": "1/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "0/8",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "0/8",
+    "node#18": "0/8",
+    "node#19": "1/1",
+    "node#20": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "countSink": 1,
+    "holdSink": 0,
+    "mixQ": 0,
+    "mixN": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "p:out:0": 1,
+    "one:out:0": 1,
+    "count:in:0": 2,
+    "count:in:1": 1,
+    "count:out:0": 1,
+    "add:in:0": null,
+    "add:in:1": 1,
+    "add:in:2": 1,
+    "add:out:0": 2,
+    "add:out:1": 0,
+    "hold:in:0": 0,
+    "hold:in:1": 1,
+    "hold:out:0": 0,
+    "mix:in:0": 1,
+    "mix:in:1": 1,
+    "mix:in:2": 1,
+    "mix:out:0": 0,
+    "mix:out:1": 0,
+    "countSink:in:0": 1,
+    "holdSink:in:0": 0,
+    "mixQ:in:0": 0,
+    "mixN:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "1/8",
+    "node#5": "1/8",
+    "node#6": "1/8",
+    "node#7": "1/8",
+    "node#8": "1/8",
+    "node#9": "1/8",
+    "node#10": "2/8",
+    "node#11": "2/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "0/8",
+    "node#15": "1/1",
+    "node#16": "1/1",
+    "node#17": "0/8",
+    "node#18": "0/8",
+    "node#19": "0/1",
+    "node#20": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "countSink": 2,
+    "holdSink": 0,
+    "mixQ": 1,
+    "mixN": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "p:out:0": 0,
+    "one:out:0": 1,
+    "count:in:0": 3,
+    "count:in:1": 1,
+    "count:out:0": 2,
+    "add:in:0": null,
+    "add:in:1": 2,
+    "add:in:2": 1,
+    "add:out:0": 3,
+    "add:out:1": 0,
+    "hold:in:0": 0,
+    "hold:in:1": 1,
+    "hold:out:0": 0,
+    "mix:in:0": 2,
+    "mix:in:1": 1,
+    "mix:in:2": 0,
+    "mix:out:0": 1,
+    "mix:out:1": 1,
+    "countSink:in:0": 2,
+    "holdSink:in:0": 0,
+    "mixQ:in:0": 1,
+    "mixN:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "2/8",
+    "node#5": "2/8",
+    "node#6": "2/8",
+    "node#7": "2/8",
+    "node#8": "1/8",
+    "node#9": "1/8",
+    "node#10": "3/8",
+    "node#11": "3/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "0/8",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "1/8",
+    "node#18": "1/8",
+    "node#19": "1/1",
+    "node#20": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "countSink": 3,
+    "holdSink": 0,
+    "mixQ": 2,
+    "mixN": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 0,
+    "p:out:0": 1,
+    "one:out:0": 1,
+    "count:in:0": 4,
+    "count:in:1": 0,
+    "count:out:0": 3,
+    "add:in:0": null,
+    "add:in:1": 3,
+    "add:in:2": 1,
+    "add:out:0": 4,
+    "add:out:1": 0,
+    "hold:in:0": 0,
+    "hold:in:1": 0,
+    "hold:out:0": 0,
+    "mix:in:0": 3,
+    "mix:in:1": 0,
+    "mix:in:2": 1,
+    "mix:out:0": 2,
+    "mix:out:1": 0,
+    "countSink:in:0": 3,
+    "holdSink:in:0": 0,
+    "mixQ:in:0": 2,
+    "mixN:in:0": 0
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "0/1",
+    "node#3": "0/1",
+    "node#4": "3/8",
+    "node#5": "3/8",
+    "node#6": "3/8",
+    "node#7": "3/8",
+    "node#8": "1/8",
+    "node#9": "1/8",
+    "node#10": "4/8",
+    "node#11": "4/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "0/8",
+    "node#15": "1/1",
+    "node#16": "1/1",
+    "node#17": "2/8",
+    "node#18": "2/8",
+    "node#19": "0/1",
+    "node#20": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "countSink": 3,
+    "holdSink": 0,
+    "mixQ": 2,
+    "mixN": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "p:out:0": 1,
+    "one:out:0": 1,
+    "count:in:0": 4,
+    "count:in:1": 1,
+    "count:out:0": 3,
+    "add:in:0": null,
+    "add:in:1": 3,
+    "add:in:2": 1,
+    "add:out:0": 4,
+    "add:out:1": 0,
+    "hold:in:0": 0,
+    "hold:in:1": 1,
+    "hold:out:0": 0,
+    "mix:in:0": 3,
+    "mix:in:1": 1,
+    "mix:in:2": 1,
+    "mix:out:0": 2,
+    "mix:out:1": 0,
+    "countSink:in:0": 3,
+    "holdSink:in:0": 0,
+    "mixQ:in:0": 2,
+    "mixN:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "3/8",
+    "node#5": "3/8",
+    "node#6": "3/8",
+    "node#7": "3/8",
+    "node#8": "1/8",
+    "node#9": "1/8",
+    "node#10": "4/8",
+    "node#11": "4/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "0/8",
+    "node#15": "1/1",
+    "node#16": "1/1",
+    "node#17": "2/8",
+    "node#18": "2/8",
+    "node#19": "0/1",
+    "node#20": "0/1"
+   }
+  },
+  {
+   "outputs": {
+    "countSink": 4,
+    "holdSink": 0,
+    "mixQ": 3,
+    "mixN": 1
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "p:out:0": 0,
+    "one:out:0": 1,
+    "count:in:0": 5,
+    "count:in:1": 1,
+    "count:out:0": 4,
+    "add:in:0": null,
+    "add:in:1": 4,
+    "add:in:2": 1,
+    "add:out:0": 5,
+    "add:out:1": 0,
+    "hold:in:0": 0,
+    "hold:in:1": 1,
+    "hold:out:0": 0,
+    "mix:in:0": 4,
+    "mix:in:1": 1,
+    "mix:in:2": 0,
+    "mix:out:0": 3,
+    "mix:out:1": 1,
+    "countSink:in:0": 4,
+    "holdSink:in:0": 0,
+    "mixQ:in:0": 3,
+    "mixN:in:0": 1
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "1/1",
+    "node#4": "4/8",
+    "node#5": "4/8",
+    "node#6": "4/8",
+    "node#7": "4/8",
+    "node#8": "1/8",
+    "node#9": "1/8",
+    "node#10": "5/8",
+    "node#11": "5/8",
+    "node#12": "0/8",
+    "node#13": "0/8",
+    "node#14": "0/8",
+    "node#15": "0/1",
+    "node#16": "0/1",
+    "node#17": "3/8",
+    "node#18": "3/8",
+    "node#19": "1/1",
+    "node#20": "1/1"
+   }
+  }
+ ],
+ "component-feedback-discrimination": [
+  {
+   "outputs": {
+    "combSink": 1,
+    "regSink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [
+    "combLoop"
+   ],
+   "pins": {
+    "write:out:0": 1,
+    "combLoop:in:0": 1,
+    "combLoop:out:0": 1,
+    "regLoop:in:0": 0,
+    "regLoop:in:1": 1,
+    "regLoop:out:0": 0,
+    "combSink:in:0": 1,
+    "regSink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "combSink": 1,
+    "regSink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [
+    "combLoop"
+   ],
+   "pins": {
+    "write:out:0": 1,
+    "combLoop:in:0": 1,
+    "combLoop:out:0": 1,
+    "regLoop:in:0": 0,
+    "regLoop:in:1": 1,
+    "regLoop:out:0": 0,
+    "combSink:in:0": 1,
+    "regSink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "1/1",
+    "node#7": "1/1"
+   }
+  },
+  {
+   "outputs": {
+    "combSink": 1,
+    "regSink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [
+    "seg#0",
+    "seg#1"
+   ],
+   "shortCircuitGates": [
+    "combLoop"
+   ],
+   "pins": {
+    "write:out:0": 0,
+    "combLoop:in:0": 1,
+    "combLoop:out:0": 1,
+    "regLoop:in:0": 0,
+    "regLoop:in:1": 0,
+    "regLoop:out:0": 0,
+    "combSink:in:0": 1,
+    "regSink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "1/1",
+    "node#3": "0/1",
+    "node#4": "0/1",
+    "node#5": "0/1",
+    "node#6": "0/1",
+    "node#7": "0/1"
+   }
+  }
+ ],
+ "nested-component-feedback": [
+  {
+   "outputs": {
+    "sink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "nested:in:0": 255,
+    "nested:in:1": 1,
+    "nested:out:0": 255,
+    "sink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "nested:in:0": 0,
+    "nested:in:1": 1,
+    "nested:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 0,
+    "nested:in:0": 255,
+    "nested:in:1": 0,
+    "nested:out:0": 255,
+    "sink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "0/1",
+    "node#1": "0/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 255
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "nested:in:0": 255,
+    "nested:in:1": 1,
+    "nested:out:0": 255,
+    "sink:in:0": 255
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "255/8",
+    "node#3": "255/8",
+    "node#4": "255/8"
+   }
+  },
+  {
+   "outputs": {
+    "sink": 0
+   },
+   "contentionNets": [],
+   "errorSegments": [],
+   "shortCircuitGates": [],
+   "pins": {
+    "write:out:0": 1,
+    "nested:in:0": 0,
+    "nested:in:1": 1,
+    "nested:out:0": 0,
+    "sink:in:0": 0
+   },
+   "nodes": {
+    "node#0": "1/1",
+    "node#1": "1/1",
+    "node#2": "0/8",
+    "node#3": "0/8",
+    "node#4": "0/8"
    }
   }
  ],

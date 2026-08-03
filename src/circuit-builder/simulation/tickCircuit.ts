@@ -2,18 +2,21 @@ import type { ComponentId, GateId } from "../editor/types.ts";
 import { type BuildResult, HIGH_Z, type SimulationState, type TickResult } from "./types.ts";
 import { Circuit } from "./circuit.ts";
 import { isInputGate, isOutputGate, RAM_ADDRESS_MASK, RAM_SIZE } from "./gateTypes.ts";
-import { type CompiledProgram, Op, SeqOp, SrcOp } from "./program.ts";
+import { type CompiledProgram, Op, LatchOp, SrcOp } from "./program.ts";
 import { getComponent } from "../components/componentRegistry.ts";
 import { deserializeCircuit } from "../persistence/serialize.ts";
 
 /**
- * Execute one simulation tick:
- * 1. Set source gate outputs (inputs, constants, sequential)
- * 2. Propagate combinational logic
- * 3. Advance sequential gate state from new inputs
- * 4. Collect outputs
+ * A tick is two phases, and every gate takes part in whichever ones apply to it:
+ *
+ *   propagate — outputs = f(inputs, state), in topological order, resolving nets as their
+ *               last driver runs. Nothing stored changes.
+ *   latch     — state = g(inputs, state), once every wire has settled.
+ *
+ * They are separate entry points because a component gate has to interleave with them: its
+ * inner circuit propagates during the outer propagate and latches during the outer latch.
  */
-export function tick(
+export function propagateCircuit(
   circuit: Circuit,
   buildResult: BuildResult,
   inputs: Map<GateId, number>,
@@ -28,7 +31,6 @@ export function tick(
     contentionNets: [],
     contentionSeen: circuit.contentionSeen,
   });
-  advanceSequentialState(program, values);
 
   return {
     outputs: collectOutputs(program, values),
@@ -36,6 +38,11 @@ export function tick(
     errorSegmentIds: buildErrorSegments(program, buildResult, contentionNets),
     netValues: circuit.netValues,
   };
+}
+
+/** Phase two: commit stored state from the values propagation left behind. */
+export function latchCircuit(circuit: Circuit, buildResult: BuildResult): void {
+  latchState(circuit, buildResult.program, circuit.simState);
 }
 
 // ---------------------------------------------------------------------------
@@ -60,10 +67,14 @@ function isLow(value: number): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Sources and sequential state
+// Sources and the latch phase
 // ---------------------------------------------------------------------------
 
-/** Seed outputValues for all source gates (inputs, constants, sequential). */
+/**
+ * Seed the gates whose output comes from outside the circuit and so cannot be computed.
+ * Everything else — constants and registers included — is an ordinary opcode in the
+ * evaluation order.
+ */
 function setSourceOutputs(
   program: CompiledProgram,
   values: SimulationState,
@@ -74,41 +85,34 @@ function setSourceOutputs(
   for (let i = 0; i < sourceGates.length; i++) {
     const gateIndex = sourceGates[i];
     if (outputCount[gateIndex] === 0) continue;
-    const gate = gates[gateIndex];
-    const slot = outputBase[gateIndex];
 
-    switch (sourceOpcode[i]) {
-      case SrcOp.DRIVEN: {
-        // Undriven inputs keep their cleared value rather than falling back to 0
-        const value = inputs.get(gate.id);
-        if (value !== undefined) values[slot] = value;
-        break;
-      }
-      case SrcOp.CONSTANT:
-        values[slot] = gate.value ?? 0;
-        break;
-      case SrcOp.SEQUENTIAL:
-        values[slot] = gate.register ?? 0;
-        break;
+    if (sourceOpcode[i] === SrcOp.DRIVEN) {
+      // Undriven inputs keep their cleared value rather than falling back to 0
+      const value = inputs.get(gates[gateIndex].id);
+      if (value !== undefined) values[outputBase[gateIndex]] = value;
     }
   }
 }
 
-/** Update sequential gate state from current input values (delivered by propagation). */
-function advanceSequentialState(program: CompiledProgram, values: SimulationState): void {
-  const { sequentialGates, sequentialOpcode, gates, inputBase } = program;
+/** Commit stored state from the input values propagation delivered. */
+function latchState(
+  circuit: Circuit,
+  program: CompiledProgram,
+  values: SimulationState,
+): void {
+  const { latchGates, latchOpcode, latchNeedsPropagate, gates, inputBase } = program;
 
-  for (let i = 0; i < sequentialGates.length; i++) {
-    const gateIndex = sequentialGates[i];
+  for (let i = 0; i < latchGates.length; i++) {
+    const gateIndex = latchGates[i];
     const gate = gates[gateIndex];
     const base = inputBase[gateIndex];
 
-    switch (sequentialOpcode[i]) {
-      case SeqOp.DELAY:
+    switch (latchOpcode[i]) {
+      case LatchOp.DELAY:
         gate.register = readInput(values, base);
         break;
 
-      case SeqOp.RS_LATCH: {
+      case LatchOp.RS_LATCH: {
         const set = readInput(values, base);
         const reset = readInput(values, base + 1);
         let q = gate.register ?? 0;
@@ -118,14 +122,14 @@ function advanceSequentialState(program: CompiledProgram, values: SimulationStat
         break;
       }
 
-      case SeqOp.MEMORY: {
+      case LatchOp.MEMORY: {
         const write = readInput(values, base);
         const data = readInput(values, base + 1);
         if (write) gate.register = data;
         break;
       }
 
-      case SeqOp.RAM: {
+      case LatchOp.RAM: {
         if (!readInput(values, base + 1)) break;
         // Allocated on first write so an untouched RAM costs nothing. The address is masked
         // because it indexes an array, not just because the pin is 8 bits wide.
@@ -134,7 +138,11 @@ function advanceSequentialState(program: CompiledProgram, values: SimulationStat
         break;
       }
 
-      case SeqOp.COUNTER_SET: {
+      case LatchOp.COMPONENT:
+        latchComponent(circuit, program, values, gateIndex, latchNeedsPropagate[i] === 1);
+        break;
+
+      case LatchOp.COUNTER_SET: {
         // Pin order is O then V — the flag sits above the value on every stateful gate.
         const override = readInput(values, base);
         const value = readInput(values, base + 1);
@@ -360,8 +368,7 @@ function evaluateGate(
     }
 
     case Op.CONSTANT:
-      // setSourceOutputs already seeded this from gate.value; only a missing value falls here
-      if (values[outBase] === HIGH_Z) values[outBase] = 0;
+      values[outBase] = program.gates[gateIndex].value ?? 0;
       break;
 
     case Op.MUX: {
@@ -397,7 +404,7 @@ function evaluateGate(
       // Async read: Q follows the address within the tick, like the decoder + tri-state
       // circuit this gate stands in for. Read low (or unwired) blocks the output, matching
       // Op.TRISTATE, so a half-wired RAM cannot drive a shared bus. The write lands later,
-      // in advanceSequentialState, so reading an address written this tick sees the old byte.
+      // in latchState, so reading an address written this tick sees the old byte.
       if (isLow(values[inBase])) {
         values[outBase] = HIGH_Z;
         break;
@@ -418,6 +425,12 @@ function evaluateGate(
       evaluateComponent(circuit, program, values, gateIndex);
       break;
 
+    case Op.REGISTER:
+      // The whole of f for a register: last tick's stored value, ignoring every pin. Its
+      // inputs are all registered, so they belong to g and are read in the latch phase.
+      values[outBase] = program.gates[gateIndex].register ?? 0;
+      break;
+
     case Op.NOP:
       break;
 
@@ -436,35 +449,85 @@ function evaluateGate(
 /** Track component evaluation chain to detect circular references. */
 const evaluatingComponents = new Set<string>();
 
+/** Op.COMPONENT: propagate the inner circuit and publish its outputs. Latches nothing. */
 function evaluateComponent(
   circuit: Circuit,
   program: CompiledProgram,
   values: SimulationState,
   gateIndex: number,
 ): void {
+  const run = propagateComponent(circuit, program, values, gateIndex);
+  if (!run) return;
+
+  // Read inner circuit output gate values → component output pins
+  const outBase = program.outputBase[gateIndex];
+  const outCount = program.outputCount[gateIndex];
+  const { inner, outputIds } = run;
+  for (let i = 0; i < outputIds.length && i < outCount; i++) {
+    const value = inner.tickResult.outputs.get(outputIds[i]) ?? null;
+    values[outBase + i] = value === null ? HIGH_Z : value;
+  }
+}
+
+/**
+ * LatchOp.COMPONENT: commit the inner circuit's state.
+ *
+ * `needsPropagate` means the gate has a registered input pin, which may only have resolved
+ * after Op.COMPONENT ran — so the inner circuit is propagated again to see the settled
+ * value before latching. Without one, nothing has changed since Op.COMPONENT and the inner
+ * values still stand, so this is a bare latch. Either way the state advances exactly once.
+ *
+ * Outputs are never republished: they cannot depend on a registered input (that is what
+ * makes it registered), so re-propagating produces the values already on the wires.
+ */
+function latchComponent(
+  circuit: Circuit,
+  program: CompiledProgram,
+  values: SimulationState,
+  gateIndex: number,
+  needsPropagate: boolean,
+): void {
+  if (needsPropagate) propagateComponent(circuit, program, values, gateIndex);
+  circuit.componentInstances.get(program.gates[gateIndex].id)?.latch();
+}
+
+interface ComponentRun {
+  inner: Circuit;
+  /** Inner output gates, in the order they map onto the component's output pins. */
+  outputIds: GateId[];
+}
+
+/** Feed the gate's current input slots into its inner circuit and propagate it. */
+function propagateComponent(
+  circuit: Circuit,
+  program: CompiledProgram,
+  values: SimulationState,
+  gateIndex: number,
+): ComponentRun | null {
   const gate = program.gates[gateIndex];
   const compId = gate.type as ComponentId;
   const def = getComponent(compId);
-  if (!def) return; // Not a component gate — unknown type, silently skip
+  if (!def) return null; // Not a component gate — unknown type, silently skip
 
   // Circular reference check
-  if (evaluatingComponents.has(compId)) return;
+  if (evaluatingComponents.has(compId)) return null;
   evaluatingComponents.add(compId);
 
   try {
     // Get or create this gate's inner circuit instance, kept on the owning Circuit
-    let innerCircuit = circuit.componentInstances.get(gate.id);
-    if (!innerCircuit) {
-      innerCircuit = deserializeCircuit(def.circuit);
-      circuit.componentInstances.set(gate.id, innerCircuit);
+    let inner = circuit.componentInstances.get(gate.id);
+    if (!inner) {
+      inner = deserializeCircuit(def.circuit);
+      circuit.componentInstances.set(gate.id, inner);
     }
 
-    // Collect inner IO gates in iteration order (same order as buildComponentDefinition)
+    // Collect inner IO gates in iteration order (same order as buildComponentDefinition,
+    // and the same order analyzeComponent numbered the registered inputs in)
     const innerInputIds: GateId[] = [];
-    const innerOutputIds: GateId[] = [];
-    for (const innerGate of innerCircuit.gates.values()) {
+    const outputIds: GateId[] = [];
+    for (const innerGate of inner.gates.values()) {
       if (isInputGate(innerGate.type)) innerInputIds.push(innerGate.id);
-      else if (isOutputGate(innerGate.type)) innerOutputIds.push(innerGate.id);
+      else if (isOutputGate(innerGate.type)) outputIds.push(innerGate.id);
     }
 
     // Map component input pins → inner circuit input gate values
@@ -475,16 +538,8 @@ function evaluateComponent(
       inputs.set(innerInputIds[i], readInput(values, inBase + i));
     }
 
-    // Tick the inner circuit
-    innerCircuit.tick(inputs);
-
-    // Read inner circuit output gate values → component output pins
-    const outBase = program.outputBase[gateIndex];
-    const outCount = program.outputCount[gateIndex];
-    for (let i = 0; i < def.outputs.length && i < innerOutputIds.length && i < outCount; i++) {
-      const value = innerCircuit.tickResult.outputs.get(innerOutputIds[i]) ?? null;
-      values[outBase + i] = value === null ? HIGH_Z : value;
-    }
+    inner.propagate(inputs);
+    return { inner, outputIds: outputIds.slice(0, def.outputs.length) };
   } finally {
     evaluatingComponents.delete(compId);
   }

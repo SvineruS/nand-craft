@@ -522,6 +522,58 @@ const ramSharedBus: Fixture = {
   },
 };
 
+/**
+ * RAM output wired back into its own V input, both directly and through a NOT.
+ *
+ * V is a registered input — it is read after propagation — so neither loop is a short
+ * circuit, and errorSegmentIds must stay empty. The direct wire exercises the self-loop
+ * path in buildCombinationalGraph, the NOT the SCC path in detectCycles.
+ *
+ * `hold` copies a cell onto itself, so its byte must survive. `flip` writes back the
+ * complement, so its byte toggles between 0 and 255 on every writing tick.
+ */
+const ramSelfFeedback: Fixture = {
+  name: 'ram-self-feedback',
+  create() {
+    const b = new Builder();
+    const addr = b.gate('input-8bit', 'addr');
+    const write = b.gate('input', 'write');
+    const readHold = b.gate('input', 'readHold');
+    const seedEnable = b.gate('input', 'seedEnable');
+    const seed = b.gate('input-8bit-sw', 'seed');
+    const hold = b.gate('ram', 'hold');
+    const flip = b.gate('ram', 'flip');
+    const not = b.gate('8bit-not', 'not');
+    const one = b.gate('constant', 'one', 1);
+    const holdSink = b.gate('output-8bit', 'holdSink');
+    const flipSink = b.gate('output-8bit', 'flipSink');
+
+    b.net(op(write), ip(hold, 1), ip(flip, 1));
+    b.net(op(addr), ip(hold, 2), ip(flip, 2));
+
+    // `hold` shares one bus between its Q, its V and the switched `seed` input, so the two
+    // take turns driving it: R low parks Q in high-Z while seed loads the cell.
+    b.net(op(seedEnable), ip(seed, 0));
+    b.net(op(readHold), ip(hold, 0));
+    b.net(op(hold), ip(hold, 3), ip(holdSink), op(seed));
+
+    b.net(op(one), ip(flip, 0));
+    b.net(op(flip), ip(not), ip(flipSink));
+    b.net(op(not), ip(flip, 3));
+
+    return b.done([
+      // hold: seed drives V, writes 77. flip: reads 0, writes back 255.
+      { addr: 4, write: 1, seed: 77, seedEnable: 1, readHold: 0 },
+      // From here hold sees only its own Q: 77 rewrites itself while flip toggles.
+      { addr: 4, write: 1, seed: 0, seedEnable: 0, readHold: 1 },
+      { addr: 4, write: 1, seed: 0, seedEnable: 0, readHold: 1 },
+      { addr: 4, write: 0, seed: 0, seedEnable: 0, readHold: 1 },  // read-only tick
+      { addr: 4, write: 1, seed: 0, seedEnable: 0, readHold: 1 },
+      { addr: 9, write: 1, seed: 0, seedEnable: 0, readHold: 1 },  // a never-seeded cell
+    ]);
+  },
+};
+
 /** Left free-running: with O unwired the counter must still increment every tick. */
 const counterSeq: Fixture = {
   name: 'counter-seq',
@@ -661,6 +713,190 @@ const nestedComponent: Fixture = {
   },
 };
 
+/**
+ * A player-built register wired back into itself, the component equivalent of the RAM
+ * Q -> V case.
+ *
+ * `reg8`'s V and W reach Q only through an 8bit-memory, so both are registered inputs: the
+ * feedback is a one-tick loop, not a short circuit, and the component must latch in
+ * LatchOp.COMPONENT rather than during propagation. `count` closes the loop through an adder,
+ * which is the part that catches a stale read: incrementing needs the value the adder
+ * produced *this* tick, so a counter that ticks 0,1,2,3 can only come from the deferred
+ * latch seeing the resolved wire.
+ *
+ * `mix` additionally has a plain combinational input, so its N output must track P within
+ * the tick while its Q side still runs a tick behind.
+ */
+const componentSelfFeedback: Fixture = {
+  name: 'component-self-feedback',
+  create() {
+    // reg8: V + W -> 8bit-memory -> Q. Both inputs registered.
+    const reg = new Builder();
+    const rv = reg.gate('input-8bit', 'V');
+    const rw = reg.gate('input', 'W');
+    const mem = reg.gate('8bit-memory', 'mem');
+    const rq = reg.gate('output-8bit', 'Q');
+    reg.net(op(rw), ip(mem, 0));
+    reg.net(op(rv), ip(mem, 1));
+    reg.net(op(mem), ip(rq));
+    saveComponent(buildComponentDefinition(reg.circuit, 'reg8', 'cmp-reg8' as ComponentId));
+
+    // mix: the same register plus a combinational P -> N passthrough.
+    const mixed = new Builder();
+    const mv = mixed.gate('input-8bit', 'V');
+    const mw = mixed.gate('input', 'W');
+    const mp = mixed.gate('input', 'P');
+    const mmem = mixed.gate('8bit-memory', 'mem');
+    const minv = mixed.gate('not', 'inv');
+    const mq = mixed.gate('output-8bit', 'Q');
+    const mn = mixed.gate('output', 'N');
+    mixed.net(op(mw), ip(mmem, 0));
+    mixed.net(op(mv), ip(mmem, 1));
+    mixed.net(op(mmem), ip(mq));
+    mixed.net(op(mp), ip(minv));
+    mixed.net(op(minv), ip(mn));
+    saveComponent(buildComponentDefinition(mixed.circuit, 'mix', 'cmp-mix' as ComponentId));
+
+    const b = new Builder();
+    const write = b.gate('input', 'write');
+    const p = b.gate('input', 'p');
+    const one = b.gate('constant-8bit', 'one', 1);
+    const count = b.gate('cmp-reg8' as ComponentId, 'count');
+    const add = b.gate('8bit-adder', 'add');
+    const hold = b.gate('cmp-reg8' as ComponentId, 'hold');
+    const mixInstance = b.gate('cmp-mix' as ComponentId, 'mix');
+    const countSink = b.gate('output-8bit', 'countSink');
+    const holdSink = b.gate('output-8bit', 'holdSink');
+    const mixQ = b.gate('output-8bit', 'mixQ');
+    const mixN = b.gate('output', 'mixN');
+
+    b.net(op(write), ip(count, 1), ip(hold, 1), ip(mixInstance, 1));
+
+    // count: Q -> adder -> V. Two nodes in the loop, so this is the SCC path in
+    // detectCycles; it increments only if the deferred latch sees this tick's sum.
+    b.net(op(count), ip(add, 1), ip(countSink), ip(mixInstance, 0));
+    b.net(op(one), ip(add, 2));
+    b.net(op(add), ip(count, 0));
+
+    // hold: Q straight back into V — the self-loop path. Nothing ever seeds it, so the
+    // assertion is that it stays put at 0 instead of being called a short circuit.
+    b.net(op(hold), ip(hold, 0), ip(holdSink));
+
+    // mix: V comes off the counter bus above, P is purely combinational.
+    b.net(op(p), ip(mixInstance, 2));
+    b.net(op(mixInstance, 0), ip(mixQ));
+    b.net(op(mixInstance, 1), ip(mixN));
+
+    return b.done([
+      { write: 1, p: 0 },
+      { write: 1, p: 1 },
+      { write: 1, p: 0 },
+      { write: 0, p: 1 },  // holds: no register moves
+      { write: 1, p: 1 },
+      { write: 1, p: 0 },
+    ]);
+  },
+};
+
+/**
+ * The discrimination itself: two components fed back the same way, only one of them a
+ * short circuit. Guards the failure mode the derived analysis could introduce — calling an
+ * input registered when it is not, which would silently swallow a real feedback loop.
+ *
+ * `combLoop` is a bare inverter, so its input reaches its output within the tick and the
+ * loop is a genuine short circuit. `regLoop` reaches its output only through a register.
+ * Both are built and fed back in one circuit, so the recorded shortCircuitGates naming
+ * exactly one of them is the assertion.
+ */
+const componentFeedbackDiscrimination: Fixture = {
+  name: 'component-feedback-discrimination',
+  create() {
+    // inv1: A -> not -> Y. No state anywhere, so A is not registered.
+    const inv = new Builder();
+    const ia = inv.gate('input', 'A');
+    const inot = inv.gate('not', 'n');
+    const iy = inv.gate('output', 'Y');
+    inv.net(op(ia), ip(inot));
+    inv.net(op(inot), ip(iy));
+    saveComponent(buildComponentDefinition(inv.circuit, 'inv1', 'cmp-inv1' as ComponentId));
+
+    // reg1: V + W -> 1bit-memory -> Q. Both inputs registered.
+    const reg = new Builder();
+    const rv = reg.gate('input', 'V');
+    const rw = reg.gate('input', 'W');
+    const rmem = reg.gate('1bit-memory', 'mem');
+    const rq = reg.gate('output', 'Q');
+    reg.net(op(rw), ip(rmem, 0));
+    reg.net(op(rv), ip(rmem, 1));
+    reg.net(op(rmem), ip(rq));
+    saveComponent(buildComponentDefinition(reg.circuit, 'reg1', 'cmp-reg1' as ComponentId));
+
+    const b = new Builder();
+    const write = b.gate('input', 'write');
+    const combLoop = b.gate('cmp-inv1' as ComponentId, 'combLoop');
+    const regLoop = b.gate('cmp-reg1' as ComponentId, 'regLoop');
+    const combSink = b.gate('output', 'combSink');
+    const regSink = b.gate('output', 'regSink');
+
+    b.net(op(combLoop), ip(combLoop), ip(combSink));
+    b.net(op(regLoop), ip(regLoop, 0), ip(regSink));
+    b.net(op(write), ip(regLoop, 1));
+
+    return b.done([{ write: 1 }, { write: 1 }, { write: 0 }]);
+  },
+};
+
+/**
+ * The same feedback one level down: a component wrapping a component that holds the
+ * register. The outer component declares nothing, so its pins can only be registered if the
+ * reachability walk recurses into the inner one — this is what guards that recursion.
+ *
+ * Q is the inner register inverted and feeds straight back into V, so the stored bit has to
+ * flip every tick that writes: 255, 0, 255, 0.
+ */
+const nestedComponentFeedback: Fixture = {
+  name: 'nested-component-feedback',
+  create() {
+    const inner = new Builder();
+    const iv = inner.gate('input-8bit', 'V');
+    const iw = inner.gate('input', 'W');
+    const imem = inner.gate('8bit-memory', 'mem');
+    const iq = inner.gate('output-8bit', 'Q');
+    inner.net(op(iw), ip(imem, 0));
+    inner.net(op(iv), ip(imem, 1));
+    inner.net(op(imem), ip(iq));
+    saveComponent(buildComponentDefinition(inner.circuit, 'nreg', 'cmp-nreg' as ComponentId));
+
+    // Outer: passes V and W through to the inner register, inverts Q on the way out.
+    const outer = new Builder();
+    const ov = outer.gate('input-8bit', 'V');
+    const ow = outer.gate('input', 'W');
+    const sub = outer.gate('cmp-nreg' as ComponentId, 'sub');
+    const oinv = outer.gate('8bit-not', 'inv8');
+    const oq = outer.gate('output-8bit', 'Q');
+    outer.net(op(ov), ip(sub, 0));
+    outer.net(op(ow), ip(sub, 1));
+    outer.net(op(sub), ip(oinv));
+    outer.net(op(oinv), ip(oq));
+    saveComponent(buildComponentDefinition(outer.circuit, 'nregOuter', 'cmp-nreg-outer' as ComponentId));
+
+    const b = new Builder();
+    const write = b.gate('input', 'write');
+    const nested = b.gate('cmp-nreg-outer' as ComponentId, 'nested');
+    const sink = b.gate('output-8bit', 'sink');
+    b.net(op(write), ip(nested, 1));
+    b.net(op(nested), ip(nested, 0), ip(sink));
+
+    return b.done([
+      { write: 1 },
+      { write: 1 },
+      { write: 0 },  // holds mid-flip
+      { write: 1 },
+      { write: 1 },
+    ]);
+  },
+};
+
 // ---------------------------------------------------------------------------
 // Bench fixture: 64-bit ripple-carry adder built from NAND gates
 // ---------------------------------------------------------------------------
@@ -774,12 +1010,12 @@ export const FIXTURES: Fixture[] = [
   rsLatchSeq,
   memoryFixture('mem1-seq', '1bit-memory', [1, 0, 1, 1, 0]),
   memoryFixture('mem8-seq', '8bit-memory', [0, 42, 255, 128, 7]),
-  ramSeq, ramSharedBus,
+  ramSeq, ramSharedBus, ramSelfFeedback,
   counterSeq,
   counterSetSeq,
   switchIo,
   constantsAndLevel,
-  nestedComponent,
+  nestedComponent, componentSelfFeedback, componentFeedbackDiscrimination, nestedComponentFeedback,
   wideAdder,
 ];
 

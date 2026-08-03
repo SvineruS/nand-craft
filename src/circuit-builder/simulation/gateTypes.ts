@@ -11,7 +11,7 @@ export interface Gate {
    */
   value?: number;
   /**
-   * Register contents. Sequential gates only — see isSequentialGate. undefined means
+   * Register contents. Register-holding gates only — see holdsRegister. undefined means
    * "not yet clocked", which reads as 0. Persisted, so a memory keeps its contents
    * across a reload.
    */
@@ -39,14 +39,14 @@ const OUTPUT_TYPES = new Set<GateType>(['output', 'output-8bit', 'output-16bit',
 const CONSTANT_TYPES = new Set<GateType>(['constant', 'constant-8bit', 'constant-16bit']);
 
 /**
- * Gates whose output is a stored value needing no computation, so setSourceOutputs can seed
- * it before propagation and isCombinational can drop them from the evaluation order.
+ * Gates that store their state in `gate.register`.
  *
- * 'ram' is deliberately absent: its output is a stored value *selected by its address input*,
- * so it cannot be answered until that wire has resolved. It runs in the evaluation order like
- * a combinational gate and writes back via SeqOp.RAM. See the note in program.ts.
+ * This is a storage-shape question, not a scheduling one — the schedule is driven entirely
+ * by which pins are registered (see registeredInputs.ts), and these gates simply happen to
+ * have all of theirs registered. 'ram' is absent because it stores `cells` instead, which
+ * clearGateState has to reset differently.
  */
-const SEQUENTIAL_TYPES = new Set<GateType>(['delay', 'rs-latch', '1bit-memory', '8bit-memory', '8bit-counter']);
+const REGISTER_TYPES = new Set<GateType>(['delay', 'rs-latch', '1bit-memory', '8bit-memory', '8bit-counter']);
 
 /** Addressable bytes in a RAM gate — the full range of its 8-bit address pin. */
 export const RAM_SIZE = 256;
@@ -55,20 +55,20 @@ export const RAM_ADDRESS_MASK = RAM_SIZE - 1;
 export function isInputGate(type: GateType): boolean { return INPUT_TYPES.has(type); }
 export function isOutputGate(type: GateType): boolean { return OUTPUT_TYPES.has(type); }
 export function isConstantGate(type: GateType): boolean { return CONSTANT_TYPES.has(type); }
-export function isSequentialGate(type: GateType): boolean { return SEQUENTIAL_TYPES.has(type); }
+export function holdsRegister(type: GateType): boolean { return REGISTER_TYPES.has(type); }
 export function isRamGate(type: GateType): boolean { return type === 'ram'; }
 
 /**
  * Discard a gate's stored state, so a test run starts from a known board.
  *
- * RAM needs its own branch because it is not in SEQUENTIAL_TYPES — see the note there.
- * It resets to its boot image rather than to nothing: a flashed program is authored
- * content like gate.value, not simulation state.
+ * RAM needs its own branch because it stores `cells`, not a `register`. It resets to its
+ * boot image rather than to nothing: a flashed program is authored content like
+ * gate.value, not simulation state.
  *
  * gate.value is left alone for the same reason: it holds the player's constants.
  */
 export function clearGateState(gate: Gate): void {
-  if (isSequentialGate(gate.type)) gate.register = undefined;
+  if (holdsRegister(gate.type)) gate.register = undefined;
   else if (isRamGate(gate.type)) gate.cells = gate.rom ? padRamCells(gate.rom) : undefined;
 }
 

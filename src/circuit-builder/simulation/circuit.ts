@@ -3,7 +3,7 @@ import { pinRefKey } from '../editor/types.ts';
 import type { Gate } from "./gateTypes.ts";
 import { type BuildResult, HIGH_Z, type SimulationState, type TickResult } from "./types.ts";
 import { build } from "./buildCircuit.ts";
-import { tick } from "./tickCircuit.ts";
+import { latchCircuit, propagateCircuit } from "./tickCircuit.ts";
 
 const NO_SEGMENTS: ReadonlySet<WireSegmentId> = new Set();
 
@@ -218,13 +218,28 @@ export class Circuit {
   // Simulation
   // ---------------------------------------------------------------------------
 
+  /** One tick: propagate, then latch. */
   tick(inputs: Map<GateId, number>) {
+    this.propagate(inputs);
+    this.latch();
+  }
+
+  /**
+   * Phase one: resolve every wire from the current inputs and stored state, leaving that
+   * state untouched. Split out because a component gate propagates its inner circuit here
+   * and latches it later, in the outer circuit's own latch phase.
+   */
+  propagate(inputs: Map<GateId, number>) {
     // Rebuild if invalidated
     if (!this.cachedBuild) this.buildCircuit(this);
-    const buildResult = this.cachedBuild!;
     this.simState.fill(HIGH_Z);
     this.contentionSeen.fill(0);
-    this.tickResult = tick(this, buildResult, inputs);
+    this.tickResult = propagateCircuit(this, this.cachedBuild!, inputs);
+  }
+
+  /** Phase two: commit stored state from the values propagate() left behind. */
+  latch() {
+    if (this.cachedBuild) latchCircuit(this, this.cachedBuild);
   }
 
   /** Rebuild structural analysis. Called automatically by tick() if invalidated. */
