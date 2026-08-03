@@ -1,5 +1,5 @@
-import { useRef, useState } from 'preact/hooks';
-import { testEditorVisible } from '../editorStore.ts';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { stateVersion, testEditorVisible } from '../editorStore.ts';
 import { linter, type Diagnostic } from '@codemirror/lint';
 import { dslLanguage } from '../../circuit-builder/testing/dslHighlight.ts';
 import { parseDsl, convertToTestCases } from '../../circuit-builder/testing/dslParser.ts';
@@ -96,38 +96,28 @@ const createDslLinter = (circuit: Circuit) => linter((view) => {
     }
   }
 
-  // Per-command label check (only for queue — table/code already checked via @inputs/@outputs)
+  // Per-command label check (only for queue — table/code already checked via @inputs/@outputs).
+  // Each command reports the line it was parsed from, so this marks the command itself rather
+  // than the next line whose text happens to contain the label.
   if (mode === 'queue') {
-    let cmdLine = 0;
-    const allCommands = cases.flatMap(c => c.commands);
-    for (const cmd of allCommands) {
-      if (cmd.type === 'set' || cmd.type === 'write') {
-        const lineIdx = findCommandLine(lines, cmd.label, cmdLine);
-        if (lineIdx !== null && !labels.inputs.has(cmd.label)) {
-          const line = doc.line(lineIdx + 1);
-          diagnostics.push({ from: line.from, to: line.to, severity: 'warning', message: `No input gate labeled "${cmd.label}"` });
-        }
-        cmdLine = lineIdx ?? cmdLine;
-      } else if (cmd.type === 'expect' || cmd.type === 'read') {
-        const lineIdx = findCommandLine(lines, cmd.label, cmdLine);
-        if (lineIdx !== null && !labels.outputs.has(cmd.label)) {
-          const line = doc.line(lineIdx + 1);
-          diagnostics.push({ from: line.from, to: line.to, severity: 'warning', message: `No output gate labeled "${cmd.label}"` });
-        }
-        cmdLine = lineIdx ?? cmdLine;
-      }
+    for (const cmd of cases.flatMap(c => c.commands)) {
+      if (cmd.line === undefined) continue;
+      const drivesInput = cmd.type === 'set' || cmd.type === 'write';
+      const known = drivesInput ? labels.inputs : labels.outputs;
+      if (known.has(cmd.label)) continue;
+
+      const line = doc.line(Math.min(cmd.line, doc.lines));
+      diagnostics.push({
+        from: line.from,
+        to: line.to,
+        severity: 'warning',
+        message: `No ${drivesInput ? 'input' : 'output'} gate labeled "${cmd.label}"`,
+      });
     }
   }
 
   return diagnostics;
 });
-
-function findCommandLine(lines: string[], label: string, startFrom: number): number | null {
-  for (let i = startFrom; i < lines.length; i++) {
-    if (lines[i].includes(label)) return i;
-  }
-  return null;
-}
 
 export function TestEditorDialog() {
   if (!testEditorVisible.value) return null;
@@ -139,6 +129,7 @@ export function TestEditorDialog() {
  * and torn down with it — the buffer itself lives on in `testBuffer`.
  */
 function TestEditor() {
+  stateVersion.value; // subscribe: a run advancing is what moves the marked line
   const editor = useEditor();
   const [status, setStatus] = useState<FileEditorStatus | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -164,6 +155,14 @@ function TestEditor() {
     initialise: files.initialise,
     keys: [{ key: 'Escape', run: () => { testEditorVisible.value = false; return true; } }],
   });
+
+  /*
+   * Mark the statement the run is on. The lines come from the text as it was when Apply was
+   * pressed, so editing without re-applying can drift them — the same bargain as any debugger
+   * showing an edited file, and re-applying is one button.
+   */
+  const sourceLine = editor.tests.sourceLine;
+  useEffect(() => { handleRef.current?.markLine(sourceLine); }, [sourceLine]);
 
   const handleApply = () => {
     const doc = testBuffer.source.peek();
@@ -196,11 +195,15 @@ function TestEditor() {
     }
 
     let cases: TestCase[];
+    // Code mode enumerates its cases rather than writing them out, so there is no row per
+    // case to mark; table rows map one to one.
+    let caseLines: number[] | undefined;
     try {
       if (result.mode === 'code') {
         cases = generateCodeTestCases(result, editor.getCircuit());
       } else {
         cases = convertToTestCases(result);
+        caseLines = result.cases.map(c => c.line);
       }
     } catch (e) {
       setStatus({ kind: 'error', text: `Could not generate cases: ${(e as Error).message}` });
@@ -224,7 +227,7 @@ function TestEditor() {
       outputNames = [...outSet];
     }
 
-    editor.tests.setSuite({ cases, inputNames, outputNames });
+    editor.tests.setSuite({ cases, inputNames, outputNames, caseLines });
     notifyStateChange();
     setStatus({ kind: 'info', text: `Applied ${cases.length} test cases` });
   };

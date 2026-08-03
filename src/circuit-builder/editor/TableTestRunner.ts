@@ -18,6 +18,12 @@ export interface TestSuite {
   cases: TestCase[];
   inputNames: string[];
   outputNames: string[];
+  /**
+   * Line each case was written on, when the suite came from a test file — kept beside the
+   * cases rather than inside them because a `TestCase` is also how a level ships its table,
+   * and a level has no source text to point at.
+   */
+  caseLines?: number[];
 }
 
 /**
@@ -72,6 +78,12 @@ export class TableTestRunner implements TestRunner {
 
   get allPassed(): boolean {
     return this.results.length === this.caseCount && this.results.every(r => r.passed);
+  }
+
+  /** The row last applied — the one whose result is on screen. */
+  get sourceLine(): number | null {
+    if (this.caseIndex < 0) return null;
+    return this.getSuite().caseLines?.[this.caseIndex] ?? null;
   }
 
   step(): boolean {

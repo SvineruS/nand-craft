@@ -32,6 +32,13 @@ export interface TestRunner {
   /** Ticks spent so far, shown in the test panel header. */
   readonly tickCount: number;
 
+  /**
+   * 1-based line of the test file the run is on — the row last applied, the command being
+   * awaited — for the test editor to mark. Null when nothing is running, or when the
+   * definition did not come from a test file (a level's own cases have no source text).
+   */
+  readonly sourceLine: number | null;
+
   /** How often an animated run steps this engine. A table row is worth watching; a tick isn't. */
   readonly stepIntervalMs: number;
 }

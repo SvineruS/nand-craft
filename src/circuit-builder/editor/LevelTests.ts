@@ -102,6 +102,11 @@ export class LevelTests {
     return this.runner.tickCount;
   }
 
+  /** Line of the test file the run is on, for the test editor's marked line. */
+  get sourceLine(): number | null {
+    return this.runner.sourceLine;
+  }
+
   allPassed(): boolean {
     return this.runner.allPassed;
   }

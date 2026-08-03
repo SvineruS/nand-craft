@@ -1,14 +1,28 @@
 export type TestMode = 'table' | 'queue' | 'code';
 
-export type TestCommand =
+/** What a command carries whatever its kind: where it was written. */
+interface CommandSource {
+  /**
+   * 1-based line of the test file the command was parsed from, so the test editor can mark
+   * the statement a run is on. Absent for commands that never came from source text — a
+   * level's own definition, or a check in the invariants script — which is exactly when there
+   * is no line to mark.
+   */
+  line?: number;
+}
+
+export type TestCommand = CommandSource & (
   | { type: 'set'; label: string; value: number }
   | { type: 'expect'; label: string; value: number }
   | { type: 'write'; label: string; value: number }
-  | { type: 'read'; label: string; value: number };
+  | { type: 'read'; label: string; value: number }
+);
 
 export interface DslTestCase {
   description?: string;
   commands: TestCommand[];
+  /** 1-based line the case starts on: its `@case`, or its table row. */
+  line: number;
 }
 
 export interface ParseError {
@@ -143,13 +157,14 @@ function parseCommands(ctx: ParseContext, startLine: number): { cases: DslTestCa
 
     if (stripped.startsWith('@case')) {
       const desc = stripped.slice(5).trim() || undefined;
-      currentCase = { description: desc, commands: [] };
+      currentCase = { description: desc, commands: [], line: lineNum };
       cases.push(currentCase);
       continue;
     }
 
     if (!currentCase) {
-      currentCase = { commands: [] };
+      // Commands before any @case are one unnamed case, starting where the first one is.
+      currentCase = { commands: [], line: lineNum };
       cases.push(currentCase);
     }
 
@@ -172,7 +187,9 @@ function parseCommands(ctx: ParseContext, startLine: number): { cases: DslTestCa
       continue;
     }
 
-    currentCase.commands.push({ type: cmd as TestCommand['type'], label: tokens[1], value });
+    currentCase.commands.push({
+      type: cmd as TestCommand['type'], label: tokens[1], value, line: lineNum,
+    });
   }
 
   return { cases };
@@ -228,17 +245,17 @@ function parseTable(
     for (let j = 0; j < inputLabels.length; j++) {
       const v = parseNumber(inVals[j]);
       if (v === null) { ctx.errors.push({ line: lineNum, message: `Invalid number: ${inVals[j]}` }); valid = false; break; }
-      commands.push({ type: 'set', label: inputLabels[j], value: v });
+      commands.push({ type: 'set', label: inputLabels[j], value: v, line: lineNum });
     }
     if (!valid) continue;
     for (let j = 0; j < outputLabels.length; j++) {
       const v = parseNumber(outVals[j]);
       if (v === null) { ctx.errors.push({ line: lineNum, message: `Invalid number: ${outVals[j]}` }); valid = false; break; }
-      commands.push({ type: 'expect', label: outputLabels[j], value: v });
+      commands.push({ type: 'expect', label: outputLabels[j], value: v, line: lineNum });
     }
     if (!valid) continue;
 
-    cases.push({ commands });
+    cases.push({ commands, line: lineNum });
   }
 
   return { cases };

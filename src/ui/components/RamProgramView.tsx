@@ -1,5 +1,6 @@
-import { useRef, useState } from 'preact/hooks';
-import { EditorView } from '@codemirror/view';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { signal } from '@preact/signals';
+import { lineNumbers, type EditorView } from '@codemirror/view';
 import { linter, type Diagnostic } from '@codemirror/lint';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
@@ -12,7 +13,9 @@ import { padRamCells } from '../../circuit-builder/simulation/gateTypes.ts';
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { WriteRamCommand } from '../../circuit-builder/editor/commands.ts';
+import { RAM_PIN } from '../../circuit-builder/editor/gates.ts';
 import { programBuffer } from '../fileBuffers.ts';
+import { asmDocumentField, byteOffsetGutter, lineForAddress, type AsmDocument } from '../asmDocument.ts';
 import { useCodeEditor, type CodeEditorHandle } from '../useCodeEditor.ts';
 import { useFileEditor, type FileEditorStatus } from '../useFileEditor.ts';
 import { FileEditorPane, HelpToggle } from './FileEditorPane.tsx';
@@ -21,9 +24,17 @@ import { FileEditorPane, HelpToggle } from './FileEditorPane.tsx';
  * Write a program, assemble it, flash it into the chip.
  *
  * The files, the buffer and the text editor are the shared machinery (`useFileEditor`,
- * `useCodeEditor`, `FileEditorPane`); what belongs to this view is the assembly syntax and
- * the two buttons that turn source into bytes.
+ * `useCodeEditor`, `FileEditorPane`); what belongs to this view is the assembly syntax, the
+ * two buttons that turn source into bytes, and what the addresses those bytes land at are
+ * good for — the gutter's byte offsets and the line the chip's address pin is pointing at.
  */
+
+/**
+ * Whether the gutter counts bytes instead of lines. Outside the component tree, like the
+ * buffers, because this window unmounts every time it is closed and a notation the player
+ * chose should not be forgotten by that.
+ */
+const byteOffsetsVisible = signal(false);
 
 const NEW_FILE_TEMPLATE = `; A program is just bytes. What they mean is up to your CPU.
 ; Press ? for the syntax.
@@ -54,21 +65,37 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
     onStatus: setStatus,
   });
 
-  // The linter runs on every keystroke, and must assemble against the file the buffer is
-  // saved as — read through a ref, because the editor is built once.
+  // The document is assembled on every keystroke, against the file the buffer is saved as —
+  // read through a ref, because the editor is built once.
   const pathRef = useRef(files.path);
   pathRef.current = files.path;
+
+  const asmDoc = useMemo(() => asmDocumentField(() => pathRef.current ?? ''), []);
 
   const containerRef = useCodeEditor(handleRef, {
     buffer: programBuffer,
     extensions: [
       asmLanguage,
       syntaxHighlighting(asmHighlightStyle),
-      linter(view => lintProgram(view, pathRef.current)),
+      asmDoc,
+      linter(view => lintProgram(view, view.state.field(asmDoc), pathRef.current)),
     ],
+    gutter: [lineNumbers(), byteOffsetGutter(asmDoc)],
     onSave: files.save,
     initialise: files.initialise,
   });
+
+  // Subscribed to on purpose: inserting a line moves the bytes below it, so the marked line
+  // has to follow the text being typed and not only the circuit ticking.
+  const source = programBuffer.source.value;
+  const liveAddress = state.circuit.getPinValue(gate.id, 'input', RAM_PIN.address);
+
+  // From an effect rather than in render, because the editor exists only once mounted — and
+  // the window re-renders on every tick, which is when the address it reads can have moved.
+  useEffect(() => {
+    const handle = handleRef.current;
+    if (handle) handle.markLine(lineForAddress(handle.state.field(asmDoc), liveAddress));
+  }, [liveAddress, source, asmDoc]);
 
   const assemble = () => assembleProgram(programBuffer.source.peek(), files.path ?? '');
 
@@ -89,17 +116,28 @@ export function RamProgramView({ gate, state, onExecute }: RamProgramViewProps) 
     setStatus({ kind: 'info', text: `Flashed ${result.bytes.length} bytes into ${gate.label ?? 'RAM'}` });
   };
 
+  const showOffsets = byteOffsetsVisible.value;
+
   const actions = (
     <>
       <button class="window-btn" onClick={handleAssemble}>Assemble</button>
       <button class="window-btn is-primary" onClick={handleFlash}>Flash</button>
+      <button
+        class={`window-tab is-icon${showOffsets ? ' is-active' : ''}`}
+        title={showOffsets ? 'Number lines' : 'Number bytes: show each line’s address'}
+        onClick={() => { byteOffsetsVisible.value = !showOffsets; }}
+      >0x</button>
       <HelpToggle open={showHelp} onToggle={() => setShowHelp(!showHelp)} />
     </>
   );
 
   return (
     <FileEditorPane editor={files} status={status} actions={actions}>
-      <div class="window-editor" ref={containerRef} style={{ display: showHelp ? 'none' : '' }} />
+      <div
+        class={`window-editor${showOffsets ? ' is-offsets' : ''}`}
+        ref={containerRef}
+        style={{ display: showHelp ? 'none' : '' }}
+      />
       {showHelp && <ProgramHelp />}
     </FileEditorPane>
   );
@@ -115,16 +153,16 @@ function assembleStatus(errors: AsmDiagnostic[], okText: string): FileEditorStat
 /**
  * Underline assembly errors in the editor.
  *
- * Only errors from the file being edited get a marker — one raised inside an `#include`
- * has no line here to point at, so it is reported with its file name in the message.
+ * Reads the assembly the document already holds, so the underlining, the offsets in the
+ * gutter and the marked line are three readings of one result rather than three assemblies.
+ * Only errors from the file being edited get a marker — one raised inside an `#include` has
+ * no line here to point at, so it is reported with its file name in the message.
  */
-function lintProgram(view: EditorView, openPath: string | null): Diagnostic[] {
+function lintProgram(view: EditorView, asm: AsmDocument, openPath: string | null): Diagnostic[] {
   const doc = view.state.doc;
-  const path = openPath ?? '';
-  const result = assembleProgram(doc.toString(), path);
-  const ownFile = path === '' ? '(unsaved)' : path;
+  const ownFile = openPath === null || openPath === '' ? '(unsaved)' : openPath;
 
-  return result.errors.map(error => {
+  return asm.result.errors.map(error => {
     const inThisFile = error.file === ownFile;
     const lineNumber = inThisFile ? Math.min(Math.max(error.line, 1), doc.lines) : 1;
     const line = doc.line(lineNumber);

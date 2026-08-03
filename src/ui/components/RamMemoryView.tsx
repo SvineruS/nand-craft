@@ -5,6 +5,7 @@ import { padRamCells, RAM_SIZE } from '../../circuit-builder/simulation/gateType
 import type { EditorState } from '../../circuit-builder/editor/EditorState.ts';
 import type { Command } from '../../circuit-builder/editor/commands.ts';
 import { WriteRamCommand } from '../../circuit-builder/editor/commands.ts';
+import { RAM_PIN } from '../../circuit-builder/editor/gates.ts';
 
 /**
  * The 256 bytes of a RAM gate, as a grid the player can read in four notations and edit
@@ -48,12 +49,6 @@ function columnsFor(radix: Radix, availableWidth: number): number {
   return availableWidth >= needed ? wide : wide / 2;
 }
 
-/** Input pin order of the RAM gate, from its definition in gates.ts. */
-const PIN_READ = 0;
-const PIN_WRITE = 1;
-const PIN_ADDRESS = 2;
-const PIN_VALUE = 3;
-
 interface RamMemoryViewProps {
   gate: Gate;
   state: EditorState;
@@ -73,7 +68,7 @@ export function RamMemoryView({ gate, state, onExecute }: RamMemoryViewProps) {
 
   const cells = readCells(gate);
   const columns = columnsFor(radix, availableWidth);
-  const liveAddress = state.circuit.getPinValue(gate.id, 'input', PIN_ADDRESS);
+  const liveAddress = state.circuit.getPinValue(gate.id, 'input', RAM_PIN.address);
 
   const writeCells = (next: number[]) => {
     onExecute(new WriteRamCommand(state, gate.id, { cells: next, rom: gate.rom }));
@@ -196,10 +191,10 @@ function PinStatus({ gate, state }: { gate: Gate; state: EditorState }) {
 
   return (
     <div class="ram-status">
-      <span>R <b>{pin(PIN_READ)}</b></span>
-      <span>W <b>{pin(PIN_WRITE)}</b></span>
-      <span>A <b>{pin(PIN_ADDRESS)}</b></span>
-      <span>V <b>{pin(PIN_VALUE)}</b></span>
+      <span>R <b>{pin(RAM_PIN.read)}</b></span>
+      <span>W <b>{pin(RAM_PIN.write)}</b></span>
+      <span>A <b>{pin(RAM_PIN.address)}</b></span>
+      <span>V <b>{pin(RAM_PIN.value)}</b></span>
     </div>
   );
 }

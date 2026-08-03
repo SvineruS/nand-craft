@@ -83,6 +83,17 @@ export class QueueTestRunner implements TestRunner {
     return this.done && !this.failed;
   }
 
+  /**
+   * The command being awaited. A finished run stays on its last command rather than clearing:
+   * where a run stopped — the read that failed, or the one that completed it — is what the
+   * player is looking for once it has.
+   */
+  get sourceLine(): number | null {
+    if (this.commandIndex < 0 || this.commands.length === 0) return null;
+    const index = Math.min(this.commandIndex, this.commands.length - 1);
+    return this.commands[index].line ?? null;
+  }
+
   step(): boolean {
     return !this.tick();
   }

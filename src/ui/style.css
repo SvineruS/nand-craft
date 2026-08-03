@@ -937,6 +937,18 @@ body {
   min-height: 0;
   overflow: hidden;
   background: var(--bg);
+
+  /*
+   * The program editor mounts both gutters and shows one of them: numbering lines and
+   * numbering bytes answer the same question in the two notations that matter, so they belong
+   * in the same column. `!important` because CodeMirror's own rule for .cm-gutter is one.
+   */
+  .cm-byteOffsets { display: none !important; }
+
+  &.is-offsets {
+    .cm-lineNumbers { display: none !important; }
+    .cm-byteOffsets { display: flex !important; }
+  }
 }
 
 .window-help {

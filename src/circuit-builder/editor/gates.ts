@@ -572,6 +572,12 @@ const componentDefCache = new Map<string, GateDefinition>();
 /** Every built-in gate type, in declaration order. Lets checks sweep all of them. */
 export const BUILT_IN_GATE_TYPES = Object.keys(GATE_DEFS) as BuiltInGateType[];
 
+/**
+ * Input pin indexes of the RAM chip, named so its two windows can read a pin without each
+ * counting the declaration above. Both of them watch the address pin.
+ */
+export const RAM_PIN = { read: 0, write: 1, address: 2, value: 3 } as const;
+
 /** True for the built-in gate types keyed in GATE_DEFS; false for component ids. */
 export function isBuiltInGateType(type: GateType): type is BuiltInGateType {
   return Object.hasOwn(GATE_DEFS, type);

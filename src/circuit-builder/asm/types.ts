@@ -22,6 +22,25 @@ export interface AsmSymbol {
   kind: 'label' | 'define';
 }
 
+/**
+ * The bytes one source line emitted, in the file it was written in.
+ *
+ * The editor reads these both ways round: forwards, to show a line's address in place of its
+ * line number, and backwards, to highlight the line that produced the byte the CPU is
+ * reading right now. A line that emits nothing — a comment, a `#define`, a bare label — has
+ * no entry.
+ */
+export interface AsmLineBytes {
+  /** File the line belongs to. Differs from the edited file for included lines. */
+  file: string;
+  /** 1-based line inside `file`. */
+  line: number;
+  /** Address the first of the line's bytes landed at. */
+  address: number;
+  /** How many bytes landed, so one line can cover a run of addresses. */
+  length: number;
+}
+
 export interface AssembleResult {
   /**
    * Assembled image, index = memory address, trimmed to the highest written byte.
@@ -30,6 +49,8 @@ export interface AssembleResult {
   bytes: number[];
   errors: AsmDiagnostic[];
   symbols: AsmSymbol[];
+  /** Which line produced which bytes, in the order they were emitted. */
+  lineBytes: AsmLineBytes[];
 }
 
 /** A file pulled in by an include, with the path it actually resolved to. */

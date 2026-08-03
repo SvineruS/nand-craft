@@ -1,4 +1,6 @@
-import type { AsmDiagnostic, AsmSymbol, AssembleRequest, AssembleResult, Preprocessor } from './types.ts';
+import type {
+  AsmDiagnostic, AsmLineBytes, AsmSymbol, AssembleRequest, AssembleResult, Preprocessor,
+} from './types.ts';
 import { tokenizeLine, type Token } from './lexer.ts';
 import { evaluateExpression, parseExpression, type ExprNode } from './expr.ts';
 import { expandMacros, type MacroDef, type MacroTable } from './macros.ts';
@@ -39,9 +41,9 @@ function assemble(request: AssembleRequest): AssembleResult {
   const errors: AsmDiagnostic[] = [];
   const lines = flattenSource(request, errors);
   const pass = buildChunks(lines, request.memorySize, errors);
-  const bytes = emitBytes(pass, request.memorySize, errors);
+  const image = emitImage(pass, request.memorySize, errors);
 
-  return { bytes, errors, symbols: collectSymbols(pass) };
+  return { ...image, errors, symbols: collectSymbols(pass) };
 }
 
 /** One logical line of source, after includes and `\` continuations are resolved. */
@@ -334,8 +336,11 @@ function defineMacro(rest: string, source: SourceLine, pass: PassResult, errors:
 // Pass 2 — evaluate and place bytes
 // ---------------------------------------------------------------------------
 
-function emitBytes(pass: PassResult, memorySize: number, errors: AsmDiagnostic[]): number[] {
+function emitImage(
+  pass: PassResult, memorySize: number, errors: AsmDiagnostic[],
+): { bytes: number[]; lineBytes: AsmLineBytes[] } {
   const image = new Array<number>(memorySize).fill(0);
+  const lineBytes: AsmLineBytes[] = [];
   let highest = -1;
   let overflowReported = false;
 
@@ -345,6 +350,7 @@ function emitBytes(pass: PassResult, memorySize: number, errors: AsmDiagnostic[]
       : evaluateChunk(chunk, pass, errors);
     if (!values) continue;
 
+    let written = 0;
     for (let i = 0; i < values.length; i++) {
       const address = chunk.address + i;
       if (address >= memorySize) {
@@ -358,11 +364,30 @@ function emitBytes(pass: PassResult, memorySize: number, errors: AsmDiagnostic[]
         continue;
       }
       image[address] = values[i] & 0xFF;
+      written++;
       if (address > highest) highest = address;
     }
+    if (written > 0) recordLineBytes(lineBytes, chunk, written);
   }
 
-  return image.slice(0, highest + 1);
+  return { bytes: image.slice(0, highest + 1), lineBytes };
+}
+
+/**
+ * Credit a chunk's bytes to the line it was written on, merging into the entry before it when
+ * that is the same line carrying on: `LOADI(1, 42)` is three chunks and one line, and the
+ * editor wants one address range for it.
+ */
+function recordLineBytes(lineBytes: AsmLineBytes[], chunk: Chunk, written: number): void {
+  const previous = lineBytes[lineBytes.length - 1];
+  if (previous
+    && previous.line === chunk.line
+    && previous.file === chunk.file
+    && previous.address + previous.length === chunk.address) {
+    previous.length += written;
+    return;
+  }
+  lineBytes.push({ file: chunk.file, line: chunk.line, address: chunk.address, length: written });
 }
 
 function evaluateChunk(
