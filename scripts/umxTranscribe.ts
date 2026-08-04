@@ -1,21 +1,25 @@
 /**
- * Turns the tracker module in `src/assets/music` into a score the game's music engine can play,
- * written out as a TypeScript module.
+ * Takes the tracker module in `src/assets/music` apart into the loops it is built from, written out
+ * as a TypeScript module the game's music engine arranges for itself.
  *
  *   npm run music:transcribe
  *   npm run music:transcribe -- --out=src/engine/music/scores/foregone.ts --name=FOREGONE
  *
- * What is kept is what a synth can act on: which note, on which channel, from which instrument,
- * how loud, and for how long. What is dropped is everything that needs a sample player to mean
- * anything — sample offsets, retriggers, and the volume slides that shape a held note, which the
- * patches' own envelopes stand in for. The module stays the source of truth; this file is derived,
- * so a mapping decision is changed in `scores.ts` and only the *reading* is re-run here.
+ * What is kept is what a synth can act on: which note, from which instrument, how loud, and for how
+ * long. What is dropped is everything that needs a sample player to mean anything — sample offsets,
+ * retriggers, and the volume slides that shape a held note, which the patches' own envelopes stand
+ * in for. And the running order: 44 orders of a 4-minute arrangement become 73 loops and the rules
+ * for combining them, which is 28% of the notes and an arrangement that need not be the same twice.
+ *
+ * The module stays the source of truth; the output is derived, so a mapping decision is changed in
+ * `scores.ts` and only the *reading* is re-run here.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import {
   type ItSample, type ItSong, NOTE_CUT, ROWS_PER_BEAT, defaultModuleFile, loadItSong, readPcm,
 } from './itModule.ts';
+import type { LoopCell, LoopSection, ScoreLoop } from '../src/engine/music/score.ts';
 
 /** Effect command bytes, as IT numbers them from `A` = 1. */
 const SET_SPEED = 1;
@@ -27,6 +31,53 @@ const SET_PAN = 0x80;
 /** IT's own volume scale, and the widest a pan value gets. */
 const MAX_VOLUME = 64;
 const MAX_PAN = 64;
+/** A note that says nothing about pan, before the channel's own is folded in. */
+const PAN_UNSET = 127;
+
+/**
+ * The form of *this* module, and the one thing here that is a reading rather than a measurement.
+ *
+ * A section is a stretch of the order list whose **harmony holds still**, which is what makes its
+ * loops freely combinable — and what a machine cannot tell from note data alone. Read off
+ * `npm run music:analyze`: the hook sounds C D D♯ G in all 44 orders and the sub sounds F, so the
+ * whole piece is one mode except twice. Orders 26–29 bring in a line on D E F G A, whose E is
+ * foreign to the rest; orders 30–37 are a real four-chord progression under the strings, which is
+ * why that one section has four cells and they play in order.
+ *
+ * The split into intro/main/outro is not harmonic — those three are the same mode — but textural,
+ * and it earns its place by giving the arranger sparse, full and closing orchestrations to choose
+ * between rather than one undifferentiated pool.
+ *
+ * Another module needs its own table. There is no default that means anything.
+ */
+const SECTIONS: SectionSpec[] = [
+  { name: 'intro', cells: 1, orders: [[0, 8]] },
+  { name: 'main', cells: 1, orders: [[8, 26]] },
+  { name: 'break', cells: 1, orders: [[26, 30]] },
+  { name: 'strings', cells: 4, orders: [[30, 38]] },
+  { name: 'outro', cells: 1, orders: [[38, 44]] },
+];
+
+/** A section to extract: which order positions it spans, and its harmony's cycle in four-bar cells. */
+interface SectionSpec {
+  readonly name: string;
+  readonly cells: number;
+  /** Half-open ranges of order positions, `[from, to)`. */
+  readonly orders: readonly (readonly [number, number])[];
+}
+
+/** One note of a pattern, with its channel already resolved away. */
+interface PatternNote {
+  readonly instrument: number;
+  /** `row,note,volume,rows,pan`. */
+  readonly text: string;
+}
+
+/** The module taken apart: the loops, and the sections that say what goes with what. */
+interface LoopLibrary {
+  readonly loops: ScoreLoop[];
+  readonly sections: LoopSection[];
+}
 
 /** Longest a note is allowed to be held, in rows: past this it is a drone, not a note. */
 const MAX_HELD_ROWS = 64;
@@ -52,17 +103,101 @@ if (options.samples.length > 0) writeSamples(song);
 function writeScore(song: ItSong): void {
   const speed = songSpeed(song);
   const bpm = (speed.tempo * 60) / (2.5 * speed.speed * ROWS_PER_BEAT);
-  const patterns = song.patterns.map((_, index) => encodePattern(song, index));
-  const used = new Set(song.orders);
-  const notes = patterns.reduce((sum, text) => sum + (text ? text.split(' ').length : 0), 0);
+  const library = extractLoops(song);
 
-  const source = renderModule(song, bpm, patterns);
+  const source = renderModule(song, bpm, library);
   mkdirSync(dirname(options.out), { recursive: true });
   writeFileSync(options.out, source);
 
+  const notes = library.loops.reduce((sum, loop) => sum + loop.notes.split(' ').length, 0);
+  const played = song.patterns.reduce(
+    (sum, pattern, index) => sum + (pattern ? readPattern(song, index).length : 0), 0,
+  );
   console.log(`wrote ${options.out} — ${(source.length / 1024).toFixed(0)}kB`);
   console.log(`  "${song.name}" at ${bpm.toFixed(1)} BPM (speed ${speed.speed}, tempo ${speed.tempo})`);
-  console.log(`  ${song.orders.length} orders over ${used.size} patterns, ${notes} notes`);
+  console.log(`  ${library.loops.length} loops, ${notes} notes — ${played} written out flat`);
+  for (const section of library.sections) {
+    const voicings = section.cells.reduce((sum, cell) => sum + cell.voicings.length, 0);
+    console.log(`  ${section.name}: ${section.cells.length} cells, ${voicings} voicings`);
+  }
+}
+
+/**
+ * The module taken apart into loops: every distinct four bars one instrument plays, plus which
+ * instruments were heard together and which loops each of them was on.
+ *
+ * A pattern is four bars, and four bars is how long the figures in this piece are, so a pattern
+ * split by instrument *is* the loop library — nothing has to be guessed at or cut to length.
+ */
+function extractLoops(song: ItSong): LoopLibrary {
+  const loops: ScoreLoop[] = [];
+  const index = new Map<string, number>();
+  /** Per pattern: which loop each of its instruments is on. */
+  const byPattern = song.patterns.map((pattern, at) => {
+    const parts = new Map<number, number>();
+    if (!pattern) return parts;
+
+    for (const [instrument, notes] of groupByInstrument(readPattern(song, at))) {
+      const text = notes.map(note => note.text).join(' ');
+      let id = index.get(text);
+      if (id === undefined) {
+        id = loops.length;
+        index.set(text, id);
+        loops.push({ instrument, notes: text });
+      }
+      parts.set(instrument, id);
+    }
+    return parts;
+  });
+
+  return { loops, sections: SECTIONS.map(spec => buildSection(spec, song, byPattern)) };
+}
+
+/** One section: its cells in order, each holding the orchestrations and loops heard in it. */
+function buildSection(
+  spec: SectionSpec, song: ItSong, byPattern: Map<number, number>[],
+): LoopSection {
+  const voicings: Set<string>[] = Array.from({ length: spec.cells }, () => new Set());
+  const parts: Map<number, Set<number>>[] = Array.from({ length: spec.cells }, () => new Map());
+
+  let at = 0;
+  for (const [from, to] of spec.orders) {
+    for (let order = from; order < to; order++, at++) {
+      const played = byPattern[song.orders[order]];
+      if (!played || played.size === 0) continue;
+
+      const cell = at % spec.cells;
+      voicings[cell].add([...played.keys()].sort((a, b) => a - b).join(','));
+      for (const [instrument, loop] of played) {
+        if (!parts[cell].has(instrument)) parts[cell].set(instrument, new Set());
+        parts[cell].get(instrument)!.add(loop);
+      }
+    }
+  }
+
+  const cells: LoopCell[] = voicings.map((heard, cell) => ({
+    // Fewest instruments first: that is what lets the arranger index them by how full it wants it.
+    voicings: [...heard].sort((a, b) => countOf(a) - countOf(b) || a.localeCompare(b)),
+    parts: Object.fromEntries(
+      [...parts[cell]].sort((a, b) => a[0] - b[0])
+        .map(([instrument, loops]) => [instrument, [...loops].sort((a, b) => a - b)]),
+    ),
+  }));
+  return { name: spec.name, cells };
+}
+
+/** All of one pattern's notes, with the channel resolved away — see `readPattern`. */
+function groupByInstrument(notes: PatternNote[]): Map<number, PatternNote[]> {
+  const byInstrument = new Map<number, PatternNote[]>();
+  for (const note of notes) {
+    if (!byInstrument.has(note.instrument)) byInstrument.set(note.instrument, []);
+    byInstrument.get(note.instrument)!.push(note);
+  }
+  return byInstrument;
+}
+
+function countOf(voicing: string): number {
+  return voicing.split(',').length;
 }
 
 /**
@@ -161,16 +296,19 @@ function songSpeed(song: ItSong): { speed: number; tempo: number } {
 }
 
 /**
- * One pattern as `channel:row,note,instrument,volume,rows` per note, space separated.
+ * One pattern's notes as `row,note,volume,rows,pan`, in row order.
  *
- * Text rather than nested arrays because it is a tenth of the size and parses in one pass — the
- * whole piece is a few thousand notes, and a `JSON.parse`-shaped file would be most of a megabyte.
+ * The channel does not survive this, and does not need to: it decided two things, and both are
+ * resolved here. Its fader is already folded into the volume, and its pan is folded in for any note
+ * that does not set its own — so a loop carries where it sits rather than a reference to a mixer.
+ *
+ * Text rather than nested arrays because it is a tenth of the size and parses in one pass.
  */
-function encodePattern(song: ItSong, index: number): string {
+function readPattern(song: ItSong, index: number): PatternNote[] {
   const pattern = song.patterns[index];
-  if (!pattern) return '';
+  if (!pattern) return [];
 
-  const parts: string[] = [];
+  const notes: PatternNote[] = [];
   for (let row = 0; row < pattern.rows; row++) {
     for (const [key, cell] of Object.entries(pattern.grid[row])) {
       const channel = Number(key);
@@ -183,12 +321,15 @@ function encodePattern(song: ItSong, index: number): string {
         sampleRows(song, sample, cell.note),
       );
       const volume = effectiveVolume(song, cell.volume, cell.instrument, channel);
-      const pan = panOf(cell.command, cell.param);
-      parts.push([channel, row, cell.note, cell.instrument, volume, held, pan]
-        .map(value => String(value)).join(','));
+      const own = panOf(cell.command, cell.param);
+      const pan = own === PAN_UNSET ? channelPan(song, channel) : own;
+      notes.push({
+        instrument: cell.instrument,
+        text: [row, cell.note, volume, held, pan].map(value => String(value)).join(','),
+      });
     }
   }
-  return parts.join(' ');
+  return notes;
 }
 
 /**
@@ -243,52 +384,71 @@ function effectiveVolume(
   return Math.round(scaled * MAX_VOLUME);
 }
 
-/** The note's own pan as -64…64, or 127 for "wherever the channel sits". */
+/** The note's own pan as -64…64, or `PAN_UNSET` for "wherever the channel sits". */
 function panOf(command: number | undefined, param: number | undefined): number {
-  if (command !== SPECIAL || param === undefined) return 127;
-  if ((param & 0xf0) !== SET_PAN) return 127;
+  if (command !== SPECIAL || param === undefined) return PAN_UNSET;
+  if ((param & 0xf0) !== SET_PAN) return PAN_UNSET;
   // The low nibble is sixteenths of the width; centre is 8.
   return Math.round((((param & 0x0f) / 15) * 2 - 1) * MAX_PAN);
 }
 
-function renderModule(song: ItSong, bpm: number, patterns: string[]): string {
-  const pans = song.channelPans.slice(0, channelCount(song))
-    .map(pan => (pan >= 100 ? 0 : Math.round(((pan / MAX_PAN) * 2 - 1) * MAX_PAN)));
+/** Where a channel's fader sits, -64…64. Anything from 100 up is IT's surround, which is centre. */
+function channelPan(song: ItSong, channel: number): number {
+  const pan = song.channelPans[channel];
+  return pan >= 100 ? 0 : Math.round(((pan / MAX_PAN) * 2 - 1) * MAX_PAN);
+}
 
+function renderModule(song: ItSong, bpm: number, library: LoopLibrary): string {
   return `/**
- * ${song.name} — transcribed from the tracker module in \`src/assets/music\` by
+ * ${song.name} — the loops of the tracker module in \`src/assets/music\`, extracted by
  * \`npm run music:transcribe\`. Generated: edit the transcriber, not this file.
  *
- * Notes only. Which instrument each number means, and what it sounds like, is
- * \`scores.ts\` — so the reading of the module and the interpretation of it stay apart.
+ * The module taken apart, not played back: every distinct four bars one instrument plays, plus
+ * which instruments were heard together and where the harmony moves. \`loopArranger.ts\` builds
+ * arrangements out of it; what each instrument *sounds* like is \`scores.ts\` — so the reading of
+ * the module and the interpretation of it stay apart.
  */
-import type { TrackerScore } from '../score.ts';
+import type { LoopScore } from '../score.ts';
 
-export const ${options.name}: TrackerScore = {
+export const ${options.name}: LoopScore = {
   title: ${JSON.stringify(song.name)},
   bpm: ${bpm.toFixed(2)},
   rows: ${song.patterns.find(p => p)?.rows ?? 64},
-  orders: [${song.orders.join(', ')}],
-  /** Pan per channel, -64…64, from the module's own mix. */
-  pans: [${pans.join(', ')}],
-  /** One string per pattern: \`channel,row,note,instrument,volume,rows,pan\` per note. */
-  patterns: [
-${patterns.map(text => `    ${JSON.stringify(text)},`).join('\n')}
+  /** \`row,note,volume,rows,pan\` per note, space separated. */
+  loops: [
+${library.loops.map(renderLoop).join('\n')}
+  ],
+  sections: [
+${library.sections.map(renderSection).join('\n')}
   ],
 };
 `;
 }
 
-/** How many channels the module really uses — the tables are 64 long whatever it needs. */
-function channelCount(song: ItSong): number {
-  let highest = 0;
-  for (const pattern of song.patterns) {
-    if (!pattern) continue;
-    for (const row of pattern.grid) {
-      for (const key of Object.keys(row)) highest = Math.max(highest, Number(key) + 1);
-    }
-  }
-  return highest;
+function renderLoop(loop: ScoreLoop, index: number): string {
+  return `    /* ${String(index).padStart(2)} */ `
+    + `{ instrument: ${loop.instrument}, notes: ${JSON.stringify(loop.notes)} },`;
+}
+
+function renderSection(section: LoopSection): string {
+  const cells = section.cells.map(cell => [
+    '        {',
+    '          voicings: [',
+    ...cell.voicings.map(voicing => `            ${JSON.stringify(voicing)},`),
+    '          ],',
+    `          parts: { ${Object.entries(cell.parts)
+      .map(([instrument, loops]) => `${instrument}: [${loops.join(', ')}]`).join(', ')} },`,
+    '        },',
+  ].join('\n'));
+
+  return [
+    '    {',
+    `      name: ${JSON.stringify(section.name)},`,
+    '      cells: [',
+    ...cells,
+    '      ],',
+    '    },',
+  ].join('\n');
 }
 
 interface Options {

@@ -800,7 +800,7 @@ console.log('sound files OK');
 // ---------------------------------------------------------------------------
 
 {
-  const { MusicPlayer } = await import('../src/engine/music/player.ts');
+  const { MAX_EVENTS_PER_STEP, MusicPlayer } = await import('../src/engine/music/player.ts');
   const { MOOD_IDS, SOUNDTRACK_IDS, themeOf } = await import('../src/engine/music/themes.ts');
   type MusicTheme = ReturnType<typeof themeOf>;
   const { STEPS_PER_BAR } = await import('../src/engine/music/notes.ts');
@@ -809,6 +809,13 @@ console.log('sound files OK');
   const { isSampleName } = await import('../src/engine/music/samples.ts');
   /** The drums, which are voices rather than patches and so are in neither table. */
   const DRUM_KINDS: string[] = ['kick', 'snare', 'hat'];
+
+  /** How many notes a loop starts on each of its rows. */
+  const countRows = (notes: string, rowCount: number): number[] => {
+    const rows = new Array<number>(rowCount).fill(0);
+    if (notes.length > 0) for (const note of notes.split(' ')) rows[Number(note.split(',')[0])]++;
+    return rows;
+  };
 
   const RATE = 48000;
   const SECONDS = 12;
@@ -862,7 +869,7 @@ console.log('sound files OK');
     check(`${label} is in stereo`, difference > 0, `sum |L-R| ${difference.toFixed(2)}`);
 
     // A layer with a threshold but no rhythm never plays, and nothing else here would notice.
-    // Only generated themes choose a rhythm; a score's layers are the module's own channels.
+    // Only generated themes choose a rhythm; a loop theme's layers are the module's instruments.
     if (theme.kind === 'generated') {
       for (const layer of Object.keys(theme.layers)) {
         if (layer === 'pad' || layer === 'bell') continue;
@@ -872,9 +879,10 @@ console.log('sound files OK');
       continue;
     }
 
-    // And a score's layers are only reachable if some instrument is actually assigned to them —
+    // And a loop theme's layers are only reachable if some instrument is assigned to them —
     // a threshold naming a layer nothing plays is a silence nothing else here would catch.
-    const voices = Object.values(SCORES[theme.score].voices);
+    const { score, voices: byInstrument } = SCORES[theme.score];
+    const voices = Object.values(byInstrument);
     // Every voice names something that exists. `EventKind` is a union of three key spaces told
     // apart by name alone, so a name in none of them is a silent silence rather than an error.
     for (const voice of voices) {
@@ -886,9 +894,62 @@ console.log('sound files OK');
     for (const layer of Object.keys(theme.layers)) {
       check(`${label} has an instrument for ${layer}`, voices.some(voice => voice.layer === layer));
     }
-    check(`${label} loops a real stretch of the arrangement`,
-      theme.from >= 0 && theme.to > theme.from
-      && theme.to <= SCORES[theme.score].score.orders.length);
+
+    // The route is the one hand-written thing about a loop theme, and it is written against names
+    // a generator chose. A name no section answers to is silently dropped at run time.
+    const names = new Set(score.sections.map(section => section.name));
+    for (const stop of theme.route) {
+      check(`${label} route names the section "${stop}"`, names.has(stop));
+    }
+    check(`${label} has a route and a stop length`,
+      theme.route.length > 0 && theme.cellsPerStop > 0);
+  }
+
+  // A loop the arranger can reach but no voice can sound is a hole in the middle of an
+  // arrangement — and every voicing must be playable, or the energy control thins to silence.
+  for (const [id, { score, voices }] of Object.entries(SCORES)) {
+    for (const loop of score.loops) {
+      check(`${id} loop instrument ${loop.instrument} has a voice`, loop.instrument in voices);
+    }
+    for (const section of score.sections) {
+      section.cells.forEach((cell, index) => {
+        const where = `${id}/${section.name} cell ${index}`;
+        check(`${where} has a voicing`, cell.voicings.length > 0);
+        for (const voicing of cell.voicings) {
+          const missing = voicing.split(',').map(Number)
+            .filter(instrument => (cell.parts[instrument]?.length ?? 0) === 0);
+          check(`${where} voicing "${voicing}" has a loop for every part`,
+            missing.length === 0, `no loops for ${missing.join(',')}`);
+        }
+      });
+    }
+
+    // Notes past `MAX_EVENTS_PER_STEP` are dropped in silence. The fullest voicing on the loops
+    // with the most notes in one row is the worst the arranger can ask for.
+    let busiest = { row: 0, notes: 0, where: '' };
+    for (const section of score.sections) {
+      for (const cell of section.cells) {
+        const widest = cell.voicings[cell.voicings.length - 1].split(',').map(Number);
+        const rows = new Array<number>(score.rows).fill(0);
+        for (const instrument of widest) {
+          // One loop per instrument plays, so a part contributes its busiest candidate — and the
+          // parts then add up, because every instrument of the voicing sounds at once.
+          const worst = new Array<number>(score.rows).fill(0);
+          for (const loop of cell.parts[instrument] ?? []) {
+            countRows(score.loops[loop].notes, score.rows).forEach((count, row) => {
+              worst[row] = Math.max(worst[row], count);
+            });
+          }
+          worst.forEach((count, row) => { rows[row] += count; });
+        }
+        rows.forEach((notes, row) => {
+          if (notes > busiest.notes) busiest = { row, notes, where: `${section.name} row ${row}` };
+        });
+      }
+    }
+    check(`${id} never asks for more notes on a step than the player has events`,
+      busiest.notes <= MAX_EVENTS_PER_STEP,
+      `${busiest.notes} at ${busiest.where}, pool is ${MAX_EVENTS_PER_STEP}`);
   }
 
   // Same seed, same samples — or `music:render` is not rendering what the game plays.

@@ -21,7 +21,7 @@ export type MusicLayer = 'pad' | 'bass' | 'kick' | 'snare' | 'hat' | 'arp' | 'be
  * is, and the per-layer mix — so a soundtrack can be one or the other and nothing above this file
  * has to care which.
  */
-export type MusicTheme = GeneratedTheme | ScoreTheme;
+export type MusicTheme = GeneratedTheme | LoopTheme;
 
 interface ThemeBase {
   /** 0…1, how much of the arrangement plays, against the thresholds in `layers`. */
@@ -39,17 +39,22 @@ interface ThemeBase {
 }
 
 /**
- * A piece transcribed from a tracker module: the notes are written down, and this says which
- * stretch of the arrangement this mood loops.
+ * A piece arranged out of a real one's loops: the notes come from a tracker module, the order they
+ * come in does not.
  *
- * `from`/`to` are positions in the order list, so a mood is a section of the real piece rather
- * than a different piece — the intro for a menu, the whole thing for a long session.
+ * `route` is the form and the only part of it written by hand — which of the score's sections the
+ * music visits, in order, repeating forever. What plays at each stop is chosen from the loops that
+ * section really contained, so a mood is a *shape* rather than a stretch of a fixed arrangement.
  */
-export interface ScoreTheme extends ThemeBase {
-  readonly kind: 'score';
+export interface LoopTheme extends ThemeBase {
+  readonly kind: 'loops';
   readonly score: ScoreId;
-  readonly from: number;
-  readonly to: number;
+  /** Section names from the score, in the order they are visited. */
+  readonly route: readonly string[];
+  /** Four-bar cells one stop on the route lasts. */
+  readonly cellsPerStop: number;
+  /** How far the arrangement drops for the cell opening each stop. Default 0.15. */
+  readonly breath?: number;
 }
 
 export interface GeneratedTheme extends ThemeBase {
@@ -251,37 +256,42 @@ export const SOUNDTRACKS = {
     },
   },
   /**
-   * The transcribed piece itself, rather than a style derived from it.
+   * The real piece's material, arranged rather than replayed.
    *
-   * Keyed `foregone` after the module it is, and labelled for the player like the other two; the
-   * id is what `--soundtrack=` and the saved setting use.
+   * Keyed `foregone` after the module it comes from, and labelled for the player like the other
+   * two; the id is what `--soundtrack=` and the saved setting use.
    *
-   * `coffee` above borrows this module's tempo, key and drum grids and then generates its own
-   * notes, which makes it the same genre and a different tune. This one plays the notes: every one
-   * of the module's 3850, on the same sixteenth grid, through synth patches built from its own
-   * samples' measured spectra. A mood is a stretch of the real arrangement — the sparse intro, the
-   * middle, or the whole four minutes — so the moods are sections of one piece rather than three.
+   * `coffee` above borrows this module's tempo, key and drum grids and then invents its own notes,
+   * which makes it the same genre and a different tune. This one is the third possibility: its
+   * notes are the module's — 73 loops of four bars, through synth patches built from its own
+   * samples' measured spectra — and its *arrangement* is generated, from the orchestrations the
+   * module was really scored with. So it is that piece, and it is never quite the same run of it.
    */
   foregone: {
     label: 'Ice',
-    description: 'Foregone Destruction (UT99)',
+    description: 'Foregone Destruction (UT99), rearranged',
     moods: {
-      /** The intro: the hook, the stabs and the low tone, before any drums. */
+      /** Sits in the intro: the hook, the stabs and the low tone, and it never builds. */
       menu: {
-        kind: 'score', score: 'foregone', from: 0, to: 8,
-        intensity: 0.5, reverb: 0.36,
+        kind: 'loops', score: 'foregone', route: ['intro'], cellsPerStop: 4,
+        intensity: 0.5, reverb: 0.36, breath: 0.1,
         layers: FOREGONE_LAYERS, gains: FOREGONE_GAINS,
       },
-      /** The middle, where it is already running. */
+      /** The body, with the break coming round every fourth stop for somewhere to go. */
       map: {
-        kind: 'score', score: 'foregone', from: 8, to: 26,
-        intensity: 0.75, reverb: 0.3,
+        kind: 'loops', score: 'foregone', route: ['main', 'main', 'break', 'main'],
+        cellsPerStop: 4, intensity: 0.75, reverb: 0.3,
         layers: FOREGONE_LAYERS, gains: FOREGONE_GAINS,
       },
-      /** All 44 orders — four minutes, and the only place the whole arrangement is heard. */
+      /**
+       * The whole form — eight stops, about three minutes, and the only place the strings are
+       * heard. Rolls its loops afresh each time round, so the second pass is the same shape and
+       * not the same music.
+       */
       puzzle: {
-        kind: 'score', score: 'foregone', from: 0, to: 44,
-        intensity: 1, reverb: 0.26,
+        kind: 'loops', score: 'foregone',
+        route: ['intro', 'main', 'main', 'break', 'main', 'strings', 'main', 'outro'],
+        cellsPerStop: 4, intensity: 1, reverb: 0.26, breath: 0.2,
         layers: FOREGONE_LAYERS, gains: FOREGONE_GAINS,
       },
     },

@@ -12,7 +12,7 @@ import {
 import { isSampleName, sampleFor } from './samples.ts';
 import { Composer } from './composer.ts';
 import { createEventPool, type NoteEvent, type NoteSource } from './notes.ts';
-import { ScorePlayer } from './score.ts';
+import { LoopArranger } from './loopArranger.ts';
 import { SCORES } from './scores.ts';
 import type { MusicTheme } from './themes.ts';
 
@@ -28,9 +28,12 @@ const HAT_VOICES = 4;
 const SAMPLE_VOICES = 6;
 /**
  * Notes one sixteenth may start. A pad chord with a seventh plus drums is the busy case for a
- * generated theme; a transcribed one can put a note on every channel of the same row.
+ * generated theme; a module's loops can put a note on every part of the same row.
+ *
+ * Exported because notes past it are dropped without a sound — `check:invariants` works out the
+ * fullest row an arrangement can ask for and holds it against this.
  */
-const MAX_EVENTS_PER_STEP = 16;
+export const MAX_EVENTS_PER_STEP = 16;
 
 /** How far the kick pushes the pad and bass down, and how quickly they come back. */
 const DUCK_DEPTH = 0.34;
@@ -402,10 +405,10 @@ export class MusicPlayer {
   }
 }
 
-/** A written theme reads its notes off a score; a generated one makes them up. */
+/** A loop theme arranges notes taken from a real piece; a generated one makes them up. */
 function noteSourceFor(theme: MusicTheme, seed: number): NoteSource {
-  return theme.kind === 'score'
-    ? new ScorePlayer(theme, SCORES[theme.score])
+  return theme.kind === 'loops'
+    ? new LoopArranger(theme, SCORES[theme.score], seed)
     : new Composer(theme, seed);
 }
 

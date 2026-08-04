@@ -1,12 +1,14 @@
 # Music
 
-Three soundtracks, two of which are generated from a handful of numbers and a seed, and one of
-which is a real tracker module played note for note. Each layer is ignorant of the one above it.
+Three soundtracks. Two invent their notes from a handful of numbers and a seed; the third takes its
+notes from a real tracker module and invents the arrangement instead. Each layer is ignorant of the
+one above it.
 
-    themes.ts      the soundtracks       — which are generated, which are written down
+    themes.ts      the soundtracks       — which invent notes, which arrange borrowed ones
     notes.ts       NoteEvent, NoteSource — the seam the player sees
     composer.ts    which notes, when     — makes them up from a theme and a seed
-    score.ts       which notes, when     — reads them off a transcribed module
+    loopArranger.ts which notes, when    — arranges a real piece's loops
+    score.ts       what a loop score is  — the types, and what a voice is
     scores.ts      what a score's instruments are; scores/ is generated data
     instruments.ts how a note sounds     — oscillators, filters, envelopes, and a sample player
     samples.ts     the few sounds carried as audio rather than synthesised
@@ -26,7 +28,7 @@ a new screen cannot be silent by accident (the legacy factory screen borrows `ma
 |---|---|---|
 | `tea` | Tea | calm ambient techno — generated |
 | `coffee` | Coffee | breakbeat with strings — generated |
-| `foregone` | Ice | a transcribed tracker module — written down |
+| `foregone` | Ice | a real module's loops, arranged afresh |
 
 `MusicTheme` is a union of the two kinds, and they share only what the player needs — `intensity`,
 `reverb` and the per-layer `gains`. Everything else differs, so nothing is a setting on a struct
@@ -64,12 +66,39 @@ snare on two and four — a reese under it, long minor pads over the top, and a 
 rather than chatters. Its `breath` is much deeper than `tea`'s: a 16-bar breakdown that strips back
 to pad and sub before the break returns is the shape the genre runs on.
 
-### The written one
+### The arranged one
 
-`foregone` is *Foregone Destruction*, the Impulse Tracker module in `src/assets/music`, transcribed:
-3850 notes at 168 BPM over 44 orders, four minutes of it. A mood is a **stretch of that one
-arrangement** rather than a different piece — `menu` loops the sparse intro, `map` the middle,
-`puzzle` the whole thing.
+`foregone` is *Foregone Destruction*, the Impulse Tracker module in `src/assets/music` — taken apart
+into the loops it is built from, and put back together differently every time.
+
+The module's 3850 notes over 44 orders are **72 loops of four bars, 1048 notes**, because 86% of that
+arrangement is the same bars written out again. A pattern is four bars and four bars is how long the
+figures in this piece are, so a pattern split by instrument *is* the loop library — nothing had to be
+guessed at or cut to length.
+
+    3850 notes, 44 orders, 76 kB    →    72 loops, 1048 notes, 20 kB    +    how to combine them
+
+Two facts, both measured with `npm run music:analyze`, are what make recombining safe:
+
+**The harmony barely moves.** The hook sounds C D D♯ G in all 44 orders and the sub sounds F, so
+almost the whole piece is one mode — any loop fits any other. It is not true twice: orders 26–29 add
+a line on D E F G A whose E is foreign to the rest, and orders 30–37 are a real four-chord
+progression under the strings. Those are the **sections**, and the strings' one has four cells that
+play in order because a progression is the one thing here that cannot be shuffled.
+
+**Which instruments played together is data, not judgement.** 32 patterns give 29 orchestrations —
+`1,5,14,18`, `1,2,3,4,5,7,10,11,13,14,15,16,17,18,20` — extracted as-is. The arranger only ever picks
+a bar that existed, so it never has to reason about whether two kicks belong together. The intensity
+gate then takes instruments *out* of a chosen orchestration and never puts any in.
+
+A mood is a **form** rather than a stretch: `route` names which sections the music visits, in order,
+repeating forever, and everything inside a stop is chosen by the seed.
+
+| `foregone` | route | cells/stop | intensity | reverb |
+|---|---|---|---|---|
+| `menu` | intro | 4 | 0.5 | 0.36 |
+| `map` | main main break main | 4 | 0.75 | 0.3 |
+| `puzzle` | intro main main break main strings main outro | 4 | 1 | 0.26 |
 
 The grid lines up for free. A tracker at four rows to the beat *is* sixteenths, so one row is one
 step and nothing has to be resampled in time.
@@ -103,9 +132,32 @@ every mood's own intensity is a layer that only appears when the game turns `ene
 
 `foregone` uses the same gate, with each of the module's instruments assigned a layer: its seven
 percussion samples are all `hat`, its two kicks `kick`, and the sine that carries the hook `lead` at
-threshold 0 — so turning the energy down strips a written piece back in the same order it strips a
+threshold 0 — so turning the energy down strips a borrowed piece back in the same order it strips a
 generated one, and the hook is the last thing to go. The first bars of each section subtract the theme's `breath`, so
 the arrangement drops and rebuilds every 16 bars.
+
+For `foregone` the gate is the *second* thing intensity does. The orchestrations are stored
+fewest-instruments-first, so intensity indexes them directly and picks how full the arrangement is
+before any layer is gated off it — which is why turning the energy down thins the scoring rather than
+only muting parts of it.
+
+### What the arranger chooses
+
+The unit is a **cell**: four bars, which is how long one loop lasts. A **stop** is `cellsPerStop`
+cells on one section. Three choices, none of them a pitch:
+
+- **which section** — the route says, so the same form comes round every time.
+- **which orchestration** — seeded from the *stop*, so it holds still long enough to be heard as an
+  arrangement.
+- **which loop each of those instruments plays** — seeded from the *cell*, so sixteen bars on one
+  orchestration is four different bars rather than the same bar four times.
+
+Those two seeds are why `pickVoicing` runs before the cell's own reseed: it seeds from the stop, and
+running it second would undo the cell's seed and make every cell of a stop identical.
+
+The `strings` section degenerates to near-replay — one orchestration, one loop per part per cell —
+and that is correct. That stretch of the original *is* a written progression; there is nothing there
+to generate.
 
 ### Voice leading is not optional
 
@@ -127,17 +179,27 @@ or arp, but never the lead: where a soundtrack has one it is the hook.
 
 ## Transcription
 
-`foregone`'s notes are generated data, produced offline and committed. Nothing reads the 2 MB
+`foregone`'s loops are generated data, produced offline and committed. Nothing reads the 2 MB
 `.umx` at run time.
 
     src/assets/music/*.umx
        ├── npm run music:analyze     reports only — tempo, arrangement, spectra, sounding pitch
-       └── npm run music:transcribe  → scores/foregone.ts        3850 notes, 74 kB
+       └── npm run music:transcribe  → scores/foregone.ts        72 loops, 1048 notes, 20 kB
                                      → scores/foregoneSamples.ts three sounds, 106 kB
 
-`scores/` is the module's notes and nothing else. `scores.ts` is the *reading* of them — which
-patch plays each instrument, in which register, how loud. The two are apart on purpose: a mapping
-decision changes one file, re-reading the module changes the other.
+`scores/` is the module's loops and nothing else. `scores.ts` is the *reading* of them — which patch
+plays each instrument, in which register, how loud. The two are apart on purpose: a mapping decision
+changes one file, re-reading the module changes the other.
+
+The channel does not survive transcription, and does not need to. It decided two things and both are
+resolved: its fader is folded into each note's volume, its pan into each note's pan. A loop carries
+where it sits rather than a reference to a mixer — which is also why two loops that differed only by
+which channel played them collapse into one.
+
+One table in the transcriber is a reading rather than a measurement: `SECTIONS`, the order ranges
+whose harmony holds still. No machine can tell that from note data — orders 30–37 are a progression
+whose chords are individually inside the mode, so a pitch-class rule splits them up instead of seeing
+one section. Another module needs its own table; there is no default that means anything.
 
 ### Almost nothing can be taken at face value
 
@@ -185,26 +247,30 @@ of them), which the patches' own envelopes stand in for. The nine-pitch kick pla
 
 ### How close it is
 
-Similarity is measured, not asserted. `openmpt123` renders the real module, `npm run music:render`
-renders this one, and `npm run music:compare` bins both into semitones every half second and takes
-the cosine. Currently **0.79** mean over the full four minutes, with the pitch-class profiles
-nearly identical.
+`npm run music:compare` bins two renders into semitones every half second and takes the cosine.
+`openmpt123` renders the real module, `npm run music:render` renders ours.
 
-The number is blind to timbre by design — it says the right notes are sounding in the right
-balance, not that it sounds good. That still needs an ear.
-
-**Measuring the whole mix hides one wrong instrument almost completely.** The chord stabs were
-badly wrong while the overall figure sat at 0.79, because they are a small share of the energy.
-Isolate the part instead — the same instruments on both sides:
+**Comparing the whole mix stopped meaning "how close" when the arrangement became generated.** Two
+renders of the same material in a different order disagree window by window however right both are,
+so the 0.79 mean that figure used to report is not a number to chase any more. What it still measures
+is a **part**: the same instruments on both sides, where the arrangement cannot drift because there is
+only one line to hear.
 
     npm run music:solo -- --instruments=15,16,17 --out=/tmp/part.it
     openmpt123 --render --samplerate 48000 /tmp/part.it
     npm run music:render -- --soundtrack=foregone --instruments=15,16,17 --out=/tmp/mine.wav
     npm run music:compare -- --a=/tmp/part.it.wav --b=/tmp/mine.wav
 
-Prefer `--instruments` over `--channels`: several instruments share channels, so a few have no
-channel where they play alone. That loop established every `transpose` in `scores.ts`, and it is
-how a part that sounds wrong gets found.
+That loop established every `transpose` in `scores.ts`, and it is how a part that sounds wrong gets
+found. Prefer `--instruments` over `--channels`: several instruments share channels, so a few have no
+channel where they play alone.
+
+The number is blind to timbre by design, and now blind to arrangement as well — it says one part is
+sounding at the right pitch and level, not that the piece sounds good. That needs an ear.
+
+Measuring the whole mix hid one wrong instrument almost completely even when it did line up: the
+chord stabs were badly wrong while the overall figure sat at 0.79, because they are a small share of
+the energy. Isolating the part was the only way that showed.
 
 ## Instruments
 
@@ -291,11 +357,16 @@ following game state; wrong for a sound answering a click — that is what `sfx.
 The seed is fixed (`0x1a7e`), so it is the same piece every session and the renderer writes exactly
 what a player hears. `--sweep` is how the live controls get judged by ear.
 
-`npm run check:invariants` phase 9 pins what a generated soundtrack has no golden output for. Over
-every soundtrack × mood: renders finite, audible, unclipped stereo, and every layer it declares has
-a rhythm (one without would silently never play). Plus: one seed is one piece of music; the clock
-keeps time over eight bars whatever block size it is rendered in; and changing the music mid-render
-— including across soundtracks, the switch with the most to go wrong — leaves no 100 ms window
-below −46 dB.
+`npm run check:invariants` phase 9 pins what generated music has no golden output for. Over every
+soundtrack × mood: renders finite, audible, unclipped stereo, and every layer it declares can actually
+sound — a rhythm for a generated theme, an instrument for a loop theme. Plus: one seed is one piece of
+music; the clock keeps time over eight bars whatever block size it is rendered in; and changing the
+music mid-render — including across soundtracks, the switch with the most to go wrong — leaves no
+100 ms window below −46 dB.
+
+For `foregone` it also checks the things a generated arrangement can get silently wrong: every route
+names a section that exists (a typo is dropped, not thrown), every loop's instrument has a voice,
+every orchestration has a loop for every part it lists, and the fullest row the arranger can ask for
+still fits `MAX_EVENTS_PER_STEP` — notes past it are dropped without a sound.
 
 Volumes live on separate buses — defaults are music 20%, effects 60%, both persisted.

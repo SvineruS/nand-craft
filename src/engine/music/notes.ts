@@ -1,9 +1,9 @@
 /**
  * What the player consumes: notes on a sixteenth grid, and the two things that can produce them.
  *
- * `Composer` writes music from a handful of numbers and a seed; `ScorePlayer` reads one that was
- * written down. Neither knows how a note sounds — that is `instruments.ts` — and the player knows
- * which of the two it holds only through this interface.
+ * `Composer` writes music from a handful of numbers and a seed; `LoopArranger` arranges loops taken
+ * from a real piece. Neither knows how a note sounds — that is `instruments.ts` — and the player
+ * knows which of the two it holds only through this interface.
  */
 import type { PatchName } from './instruments.ts';
 import type { SampleName } from './samples.ts';
