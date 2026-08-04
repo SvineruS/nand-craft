@@ -15,7 +15,9 @@
     "music:render": "node --import ./scripts/viteRawLoader.ts scripts/musicRender.ts",
     "music:analyze": "node --import ./scripts/viteRawLoader.ts scripts/umxAnalyze.ts",
     "check:invariants": "node --import ./scripts/viteRawLoader.ts scripts/checkInvariants.ts",
-    "music:transcribe": "node --import ./scripts/viteRawLoader.ts scripts/umxTranscribe.ts"
+    "music:transcribe": "node --import ./scripts/viteRawLoader.ts scripts/umxTranscribe.ts",
+    "music:compare": "node --import ./scripts/viteRawLoader.ts scripts/musicCompare.ts",
+    "music:solo": "node --import ./scripts/viteRawLoader.ts scripts/umxSolo.ts"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",

@@ -185,9 +185,26 @@ of them), which the patches' own envelopes stand in for. The nine-pitch kick pla
 
 ### How close it is
 
-`openmpt123` renders the real module; `npm run music:render` renders this one; comparing
-semitone-binned spectra window by window gives a number rather than an opinion. Currently **0.79**
-mean cosine over the full four minutes, with the pitch-class profiles nearly identical.
+Similarity is measured, not asserted. `openmpt123` renders the real module, `npm run music:render`
+renders this one, and `npm run music:compare` bins both into semitones every half second and takes
+the cosine. Currently **0.79** mean over the full four minutes, with the pitch-class profiles
+nearly identical.
+
+The number is blind to timbre by design — it says the right notes are sounding in the right
+balance, not that it sounds good. That still needs an ear.
+
+**Measuring the whole mix hides one wrong instrument almost completely.** The chord stabs were
+badly wrong while the overall figure sat at 0.79, because they are a small share of the energy.
+Isolate the part instead — the same instruments on both sides:
+
+    npm run music:solo -- --instruments=15,16,17 --out=/tmp/part.it
+    openmpt123 --render --samplerate 48000 /tmp/part.it
+    npm run music:render -- --soundtrack=foregone --instruments=15,16,17 --out=/tmp/mine.wav
+    npm run music:compare -- --a=/tmp/part.it.wav --b=/tmp/mine.wav
+
+Prefer `--instruments` over `--channels`: several instruments share channels, so a few have no
+channel where they play alone. That loop established every `transpose` in `scores.ts`, and it is
+how a part that sounds wrong gets found.
 
 ## Instruments
 
@@ -262,6 +279,10 @@ following game state; wrong for a sound answering a click — that is what `sfx.
 
 ## Tools
 
+    npm run music:analyze                         # what the reference module is made of
+    npm run music:transcribe                      # re-read it into scores/
+    npm run music:solo                            # the module with one part audible
+    npm run music:compare                         # how close two renders are
     npm run music:render                          # 90s of tea/puzzle to a wav
     npm run music:render -- --all                 # every soundtrack and mood, one file each
     npm run music:render -- --soundtrack=industrial --sweep

@@ -7,6 +7,7 @@
  *   npm run music:render -- --mood=menu --seconds=45 --seed=7 --out=/tmp/menu.wav
  *   npm run music:render -- --sweep             # turns every control, then changes mood
  *   npm run music:render -- --all               # every soundtrack and mood, one file each
+ *   npm run music:render -- --soundtrack=foregone --instruments=15,16,17
  */
 import { writeFileSync } from 'node:fs';
 import {
@@ -16,6 +17,8 @@ import {
   DEFAULT_SOUNDTRACK, MOOD_IDS, SOUNDTRACK_IDS, themeOf,
   type MoodId, type SoundtrackId,
 } from '../src/engine/music/themes.ts';
+import { SCORES } from '../src/engine/music/scores.ts';
+import type { ScoreVoice } from '../src/engine/music/score.ts';
 
 const SAMPLE_RATE = 48000;
 /** Frames per render call — small, like the game's, so the timing below means something. */
@@ -34,6 +37,7 @@ if (options.all) {
 }
 
 function renderTrack(soundtrack: SoundtrackId, mood: MoodId, out: string): void {
+  if (options.instruments.length > 0) keepInstruments(options.instruments);
   const player = new MusicPlayer(SAMPLE_RATE, themeOf(soundtrack, mood), options.seed);
   const frames = Math.round(options.seconds * SAMPLE_RATE);
   const left = new Float32Array(frames);
@@ -75,6 +79,24 @@ function renderTrack(soundtrack: SoundtrackId, mood: MoodId, out: string): void 
     `  rendered in ${elapsedMs.toFixed(0)}ms — ${(options.seconds * 1000 / elapsedMs).toFixed(0)}x`
     + ` real time, ${(elapsedMs / options.seconds / 10).toFixed(2)}% of one core`,
   );
+}
+
+/**
+ * Silences every instrument of every score but the ones named — the other half of the A/B against
+ * `npm run music:solo`, which does the same to the original module.
+ *
+ * Mutates the registry rather than threading a filter through the player, because this is a
+ * diagnostic that runs once in a process that then does nothing else.
+ */
+function keepInstruments(keep: number[]): void {
+  for (const [id, playable] of Object.entries(SCORES)) {
+    const voices: Record<number, ScoreVoice> = {};
+    for (const [number, voice] of Object.entries(playable.voices)) {
+      if (keep.includes(Number(number))) voices[Number(number)] = voice;
+    }
+    (SCORES as Record<string, unknown>)[id] = { score: playable.score, voices };
+  }
+  console.log(`  only instruments ${keep.join(',')}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +147,8 @@ interface Options {
   out: string;
   sweep: boolean;
   all: boolean;
+  /** Score instrument numbers to keep, for hearing or measuring one part on its own. */
+  instruments: number[];
 }
 
 function parseArguments(args: string[]): Options {
@@ -155,6 +179,7 @@ function parseArguments(args: string[]): Options {
     out: flags.get('out') ?? `music-${sweep ? 'sweep-' : ''}${soundtrack}-${mood}.wav`,
     sweep,
     all: flags.has('all'),
+    instruments: (flags.get('instruments') ?? '').split(',').filter(Boolean).map(Number),
   };
 }
 
