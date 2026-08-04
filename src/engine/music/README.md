@@ -27,16 +27,23 @@ intensity each needs, **the rhythms** they choose between, and **which patch** p
 | `map` | 88 | G dorian | 2 | 0.38 | 0.46 |
 | `puzzle` | 92 | A natural minor | 2 | 0.55 | 0.42 |
 
-| `industrial` | bpm | key | bars/chord | intensity | reverb |
-|---|---|---|---|---|---|
-| `menu` | 112 | E natural minor | 4 | 0.3 | 0.34 |
-| `map` | 126 | E natural minor | 2 | 0.55 | 0.28 |
-| `puzzle` | 138 | D natural minor | 2 | 0.78 | 0.24 |
+| `breaks` | bpm | key | bars/chord | intensity | reverb | breath |
+|---|---|---|---|---|---|---|
+| `menu` | 168 | B♭ natural minor | 4 | 0.3 | 0.42 | 0.22 |
+| `map` | 170 | B♭ natural minor | 2 | 0.58 | 0.36 | 0.3 |
+| `puzzle` | 172 | B♭ natural minor | 2 | 0.8 | 0.3 | 0.42 |
 
-`ambient` is pads, bells and a soft kick. `industrial` is after the Impulse Tracker music of
-late-90s shooters: a driving sixteenth bass, a backbeat with ghost notes, chord stabs instead of a
-wash, and a detuned lead riff — drier, and with the drums arriving much earlier in the intensity
-range.
+`ambient` is pads, bells and a soft kick.
+
+`breaks` is drum and bass, after the Impulse Tracker music of late-90s shooters — the reference
+being *Foregone Destruction*, whose tempo (~168) and key (B♭ minor, the relative minor of the C♯
+major that key detectors report) it follows. Nothing melodic is copied; the riffs are generated from
+the same tables and a seed as every other soundtrack's.
+
+What makes the genre is the two-step break — kick on the one and on the second half of beat three,
+snare on two and four — a reese under it, long minor pads over the top, and a lead line that sings
+rather than chatters. Its `breath` is much deeper than ambient's: a 16-bar breakdown that strips
+back to pad and sub before the break returns is the shape the genre runs on.
 
 Adding a soundtrack means adding an entry to `SOUNDTRACKS`. No other file needs to change.
 
@@ -57,11 +64,13 @@ only selects among options written in the source. That is the whole reason it st
 
 Which layers play comes from one number against the theme's own thresholds:
 
-    ambient      pad 0   bell 0.15   bass 0.22   hat 0.4    kick 0.5    arp 0.62
-    industrial   pad 0   bass 0.1    kick 0.25   hat 0.35   snare 0.45  lead 0.58   arp 0.72
+    ambient   pad 0   bell 0.15   bass 0.22   hat 0.4     kick 0.5   arp 0.62
+    breaks    pad 0   bass 0.12   snare 0.3   kick 0.32   hat 0.42   lead 0.55   arp 0.88
 
-A layer the theme does not list never plays — `ambient` has no snare or lead, `industrial` no bell.
-The first 4 bars of every section subtract 0.18, so drums drop out and rebuild every 16 bars.
+A layer the theme does not list never plays — `ambient` has no snare or lead, `breaks` no bell. A
+threshold set above every mood's own intensity, like `breaks`'s arp, is a layer that only appears
+when the game turns `energy` up. The first bars of each section subtract the theme's `breath`, so
+the arrangement drops and rebuilds every 16 bars.
 
 ### Voice leading is not optional
 
@@ -77,6 +86,10 @@ anchored to the key. The **riff** is a line: 5–8 degrees running every bar, re
 it transposes under the progression, and deliberately a different length from the bar's note count
 so it phases across bars instead of repeating identically.
 
+Lead notes are held until just before the next one in the pattern, so how legato the line is falls
+out of how sparse its rhythm is — no per-theme note length to set. A section may drop the bell, hat
+or arp, but never the lead: where a soundtrack has one it is the hook.
+
 ## Instruments
 
 The tuned patches are one voice class and seven sets of numbers; kick, snare and hat are separate,
@@ -88,6 +101,8 @@ being different signal paths rather than another patch.
 - **bell** — sine phase-modulated at ratio 3.5, clang decaying in 0.35 s
 - **stab** — chords as short hits, for a style with a backbeat
 - **drive** — short square bass for sixteenth lines, where a sub would smear into one note
+- **reese** — 3 saws detuned 26 cents taken right down by the filter, over a sub: what is left is
+  the beating between them
 - **lead** — 3 saws detuned 19 cents, resonant filter wide open at the attack
 - **kick** — sine falling 132→47 Hz in 28 ms, plus a 4 ms noise click
 - **snare** — a band of noise for the crack plus a fast sine for the body; noise alone is a hiss

@@ -897,7 +897,7 @@ console.log('sound files OK');
       // Across soundtracks, which is the switch with the most to go wrong: different tempo, key,
       // layers and patches all at once.
       if (at >= 16 && at < 16 + BLOCK / RATE) {
-        player.setTheme(themeOf('industrial', 'puzzle'), 3);
+        player.setTheme(themeOf('breaks', 'puzzle'), 3);
       }
 
       const count = Math.min(BLOCK, frames - offset);

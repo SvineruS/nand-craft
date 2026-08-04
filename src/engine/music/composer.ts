@@ -38,13 +38,24 @@ const BEATS_PER_BAR = STEPS_PER_BAR / STEPS_PER_BEAT;
 const BARS_PER_SECTION = 16;
 /** Bars at the top of each section that thin out, so the music breathes rather than churns. */
 const BREATH_BARS = 4;
-const BREATH_INTENSITY_DROP = 0.18;
+const DEFAULT_BREATH = 0.18;
 
-/** Layers a section may leave out — never the pad, bass or snare, which hold it together. */
-const OPTIONAL_LAYERS: MusicLayer[] = ['bell', 'hat', 'arp', 'lead'];
+/**
+ * Layers a section may leave out. Not the pad, bass or snare, which hold it together — and not
+ * the lead either: where a soundtrack has one it is the hook, and 16 bars without it is a
+ * different piece rather than a variation.
+ */
+const OPTIONAL_LAYERS: MusicLayer[] = ['bell', 'hat', 'arp'];
 
 /** Layers that play a pitch. The rest are drums, which have no patch. */
 type TunedLayer = 'pad' | 'bass' | 'arp' | 'bell' | 'lead';
+type DrumLayer = 'kick' | 'snare' | 'hat';
+
+const DRUM_LAYERS: readonly MusicLayer[] = ['kick', 'snare', 'hat'];
+
+function isDrumLayer(layer: MusicLayer): layer is DrumLayer {
+  return DRUM_LAYERS.includes(layer);
+}
 
 /** The patch each tuned layer plays unless the theme overrides it — a Record, so none is missed. */
 const DEFAULT_PATCH: Record<TunedLayer, PatchName> = {
@@ -58,6 +69,30 @@ const DEFAULT_PATCH: Record<TunedLayer, PatchName> = {
 /** Minor pentatonic: dropping the second and sixth lets one motif fit every chord in the loop. */
 const MELODY_DEGREES = [0, 2, 3, 4, 6];
 
+/**
+ * The five degrees a rolling bass riff moves on: root, second, third, fourth, fifth.
+ *
+ * A minor scale with the sixth and seventh left out. Read off the reference tracker module, whose
+ * melodic content is C D E♭ F G and almost nothing else — leaving out the two degrees that would
+ * date it is what makes the mode sound like this rather than like a scale being run up and down.
+ */
+const BASS_DEGREES = [0, 1, 2, 3, 4];
+
+/**
+ * Where a bass riff aims on each of the four beats, as indices into `BASS_DEGREES`.
+ *
+ * Always starting from the root, because a riff that begins anywhere else stops being the thing
+ * the bar is built on.
+ */
+const BASS_CONTOURS = [
+  [0, 0, 3, 2],
+  [0, 0, 4, 3],
+  [0, 2, 3, 0],
+  [0, 0, 2, 4],
+  [0, 3, 2, 0],
+  [0, 0, 1, 3],
+];
+
 /** Steps within a bar a melody note may begin on — off the downbeat, mostly. */
 const MELODY_STEPS = [0, 3, 4, 6, 8, 10, 12];
 
@@ -67,11 +102,25 @@ const ARP_OCTAVE = 2;
 const MELODY_OCTAVE = 2;
 const LEAD_OCTAVE = 2;
 
-/** Degrees a riff leaps to when it does not step: root, third, fifth, octave. */
-const RIFF_ACCENTS = [0, 2, 4, 7];
-/** How far a riff may wander from the chord root. */
-const RIFF_LOW = -3;
-const RIFF_HIGH = 7;
+/**
+ * Shapes a phrase can take, as the degrees it aims for across its length.
+ *
+ * This is the melody's skeleton, and having one written down is the whole difference between a
+ * tune and a wander. Each is four targets — where the line is at the start, a third of the way
+ * through, two thirds, and at the end — and the notes are hung off them.
+ */
+const CONTOURS = [
+  [0, 2, 4, 2],
+  [4, 2, 0, 2],
+  [0, 4, 7, 4],
+  [2, 0, 4, 0],
+  [7, 4, 2, 0],
+  [0, -1, 2, 4],
+];
+
+/** How far a melody may wander from the tonic. */
+const LEAD_LOW = -3;
+const LEAD_HIGH = 9;
 
 /** The arrangement for one section, re-rolled every sixteen bars. */
 interface SectionPlan {
@@ -81,11 +130,15 @@ interface SectionPlan {
   hat: string;
   bass: string;
   arp: string;
+  /** The lead's rhythm over two bars, so a phrase has room to have a shape. */
   lead: string;
-  /** Scale degrees the lead riff walks, relative to the chord root. */
-  riff: number[];
   leadIndex: Int8Array;
-  leadHits: number;
+  /**
+   * One degree per note of the phrase, twice over: the statement, then the answer that ends on
+   * the tonic. Four bars of lead is `statement` then `answer` — the repetition is the point.
+   */
+  statement: number[];
+  answer: number[];
   /** Chord tones in the order the arpeggio walks them. */
   arpShape: number[];
   /**
@@ -96,8 +149,12 @@ interface SectionPlan {
   arpIndex: Int8Array;
   /** Notes the pattern plays per bar, so the figure carries on across the bar line. */
   arpHits: number;
+  /** Steps from each lead note to the next: a sparse riff sings, a dense one is staccato. */
+  leadGaps: Int8Array;
   /** The section's melodic figure: a step within the bar, and a degree of the key. */
   motif: { step: number; degree: number }[];
+  /** Where the rolling bass aims on each beat, when the theme has one. */
+  bassContour: number[];
   /** Which optional layer sits this section out, if any. */
   dropped: MusicLayer | null;
   /** Whether chords take their seventh — a section of colour, then a section without. */
@@ -149,7 +206,8 @@ export class Composer {
 
     // Every section opens by pulling the arrangement back, then filling in again.
     const barInSection = bar % BARS_PER_SECTION;
-    const level = barInSection < BREATH_BARS ? intensity - BREATH_INTENSITY_DROP : intensity;
+    const breath = this.theme.breath ?? DEFAULT_BREATH;
+    const level = barInSection < BREATH_BARS ? intensity - breath : intensity;
 
     const chordRoot = this.chordRootAt(bar);
     if (this.plays('pad', level)) this.addPad(bar, stepInBar, chordRoot);
@@ -158,7 +216,7 @@ export class Composer {
     if (this.plays('snare', level)) this.addSnare(stepInBar);
     if (this.plays('hat', level)) this.addHat(stepInBar, level);
     if (this.plays('arp', level)) this.addArp(bar, stepInBar, chordRoot);
-    if (this.plays('lead', level)) this.addLead(bar, stepInBar, chordRoot);
+    if (this.plays('lead', level)) this.addLead(bar, stepInBar);
     if (this.plays('bell', level)) this.addBell(bar, stepInBar);
 
     return this.count;
@@ -176,20 +234,50 @@ export class Composer {
     // An octave above the bass; any lower and the chord fights it for the same few dozen hertz.
     const root = this.rootNear(chordRoot, this.theme.root + PAD_OCTAVE * 12);
     for (const interval of this.chordIntervals(chordRoot, this.plan.seventh)) {
-      this.emit(this.patchFor('pad'), root + interval, duration, 0.85, 0);
+      this.emit('pad', root + interval, duration, 0.85, 0);
     }
   }
 
   private addBass(stepInBar: number, chordRoot: number): void {
     if (this.plan.bass[stepInBar] !== 'x') return;
+    if (this.theme.bassMode === 'riff') {
+      this.addBassRiff(stepInBar, chordRoot);
+      return;
+    }
+
     const isDownbeat = stepInBar === 0;
     // An octave up now and then off the beat: what stops a sixteenth line being one long note.
     const octave = !isDownbeat && this.stepRandom.chance(0.22) ? 12 : 0;
     this.emit(
-      this.patchFor('bass'),
+      'bass',
       this.rootNear(chordRoot, this.theme.root) + octave,
       (isDownbeat ? 1.6 : 0.7) * this.beatDuration,
       isDownbeat ? 1 : 0.72,
+      0,
+    );
+  }
+
+  /**
+   * A rolling bass: sixteenths that keep moving, and the hook rather than the foundation.
+   *
+   * The beat carries the contour's note; between beats the line jumps the octave and steps to a
+   * neighbour, which is what makes sixteen notes a riff instead of one note sixteen times. Read
+   * off the reference module, whose bass is its busiest channel by a factor of two.
+   */
+  private addBassRiff(stepInBar: number, chordRoot: number): void {
+    const beat = Math.floor(stepInBar / STEPS_PER_BEAT);
+    const sub = stepInBar % STEPS_PER_BEAT;
+    const target = this.plan.bassContour[beat % this.plan.bassContour.length];
+
+    let degree = BASS_DEGREES[target];
+    if (sub === 1) degree += this.theme.scale.length;
+    else if (sub === 3) degree = BASS_DEGREES[(target + 1) % BASS_DEGREES.length];
+
+    this.emit(
+      'bass',
+      this.rootNear(chordRoot, this.theme.root) + this.degreeInterval(chordRoot, degree),
+      1.1 * this.stepDuration,
+      sub === 0 ? 1 : this.stepRandom.range(0.72, 0.88),
       0,
     );
   }
@@ -224,7 +312,7 @@ export class Composer {
     const intervals = this.chordIntervals(chordRoot, false);
     const root = this.rootNear(chordRoot, this.theme.root + ARP_OCTAVE * 12);
     this.emit(
-      this.patchFor('arp'),
+      'arp',
       root + intervals[shape % intervals.length],
       this.stepDuration,
       this.stepRandom.range(0.7, 1),
@@ -233,22 +321,27 @@ export class Composer {
   }
 
   /**
-   * The riff. Unlike the bell's motif it is a line, not an ornament: it runs every bar and its
-   * degrees are relative to the chord, so it transposes under the progression.
+   * The tune. A two-bar phrase, stated and then answered, and the same four bars every time it
+   * comes round — a melody is remembered because it repeats, not because it varies.
+   *
+   * Fixed against the key rather than transposed under the chords, so the line stays itself while
+   * the harmony moves beneath it. That is the difference between a melody and an arpeggio.
    */
-  private addLead(bar: number, stepInBar: number, chordRoot: number): void {
-    const noteIndex = this.plan.leadIndex[stepInBar];
+  private addLead(bar: number, stepInBar: number): void {
+    const phraseStep = (bar % 2) * STEPS_PER_BAR + stepInBar;
+    const noteIndex = this.plan.leadIndex[phraseStep];
     if (noteIndex < 0) return;
 
-    const { riff, leadHits } = this.plan;
-    const offset = riff[(bar * leadHits + noteIndex) % riff.length];
-    const root = this.rootNear(chordRoot, this.theme.root + LEAD_OCTAVE * 12);
+    // Bars 0-1 of each four state the phrase, bars 2-3 answer it.
+    const answering = Math.floor(bar / 2) % 2 === 1;
+    const degrees = answering ? this.plan.answer : this.plan.statement;
     this.emit(
-      this.patchFor('lead'),
-      root + this.degreeInterval(chordRoot, offset),
-      1.5 * this.stepDuration,
-      this.stepRandom.range(0.82, 1),
-      this.stepRandom.range(-0.15, 0.15),
+      'lead',
+      this.noteOf(degrees[noteIndex], LEAD_OCTAVE),
+      // Held until just before the next note, so the line is as legato as its rhythm is sparse.
+      0.92 * this.plan.leadGaps[phraseStep] * this.stepDuration,
+      this.stepRandom.range(0.88, 1),
+      this.stepRandom.range(-0.12, 0.12),
     );
   }
 
@@ -258,7 +351,7 @@ export class Composer {
     for (const note of this.plan.motif) {
       if (note.step !== stepInBar) continue;
       this.emit(
-        this.patchFor('bell'),
+        'bell',
         this.noteOf(note.degree, MELODY_OCTAVE),
         2 * this.beatDuration,
         this.stepRandom.range(0.75, 1),
@@ -290,8 +383,9 @@ export class Composer {
       arpShape: this.rollArpShape(random),
       lead,
       leadIndex: countNoteIndexes(lead),
-      leadHits: countHits(lead),
-      riff: this.rollRiff(random),
+      leadGaps: countGaps(lead),
+      ...this.rollMelody(random, lead),
+      bassContour: random.pick(BASS_CONTOURS).slice(),
       motif: this.rollMotif(random),
       dropped: random.chance(0.35) ? random.pick(OPTIONAL_LAYERS) : null,
       seventh: random.chance(0.5),
@@ -305,25 +399,41 @@ export class Composer {
   }
 
   /**
-   * Five to eight degrees, mostly stepping, occasionally leaping to a strong one.
+   * The phrase, as one degree per note of its rhythm.
    *
-   * Its length is deliberately not the number of notes in the bar, so the figure phases across
-   * bars instead of repeating identically — a riff that develops out of one short cell.
+   * Hung off a contour rather than walked. A note on a beat *is* the contour's target, so the
+   * shape is what the ear hears on the beats; a note off the beat steps towards the next target,
+   * so the movement between them leads somewhere instead of milling about. A random walk gives
+   * neither, which is why it sounds like random notes however carefully its steps are weighted.
+   *
+   * The statement ends unresolved on the fifth and the answer ends on the tonic. Otherwise the
+   * two are the *same notes* — repetition is what makes a tune a tune.
    */
-  private rollRiff(random: Random): number[] {
-    const length = 5 + random.int(4);
-    const riff: number[] = [];
-    let degree = 0;
-    for (let i = 0; i < length; i++) {
-      riff.push(degree);
-      degree = random.chance(0.25)
-        ? random.pick(RIFF_ACCENTS)
-        : degree + (random.chance(0.5) ? 1 : -1) * (1 + random.int(2));
-      degree = Math.max(RIFF_LOW, Math.min(RIFF_HIGH, degree));
+  private rollMelody(random: Random, rhythm: string): { statement: number[]; answer: number[] } {
+    const onBeat: boolean[] = [];
+    for (let step = 0; step < rhythm.length; step++) {
+      if (rhythm[step] === 'x') onBeat.push(step % STEPS_PER_BEAT === 0);
     }
-    // Land on the root, so the figure sounds finished rather than cut off.
-    riff[riff.length - 1] = 0;
-    return riff;
+
+    const contour = random.pick(CONTOURS);
+    // Lifted or dropped an octave now and then, so two sections on one contour still differ.
+    const shift = random.chance(0.25) ? (random.chance(0.5) ? 7 : -7) : 0;
+
+    const statement: number[] = [];
+    for (let i = 0; i < onBeat.length; i++) {
+      const index = Math.min(contour.length - 1, Math.floor((i * contour.length) / onBeat.length));
+      const target = contour[index];
+      const next = contour[Math.min(contour.length - 1, index + 1)];
+      // Off the beat, lean towards wherever the line is going next.
+      const lean = next === target ? (random.chance(0.5) ? 1 : -1) : Math.sign(next - target);
+      const degree = (onBeat[i] ? target : target + lean) + shift;
+      statement.push(Math.max(LEAD_LOW, Math.min(LEAD_HIGH, degree)));
+    }
+
+    const answer = statement.slice();
+    statement[statement.length - 1] = 4 + shift;
+    answer[answer.length - 1] = shift;
+    return { statement, answer };
   }
 
   /** The order the arpeggio walks the chord, as indices: up, down, or up with a turn at the top. */
@@ -372,11 +482,6 @@ export class Composer {
     return this.theme.voices?.[layer] ?? DEFAULT_PATCH[layer];
   }
 
-  /** Semitones from a chord's root to the degree `offset` above it, staying in the key. */
-  private degreeInterval(chordRoot: number, offset: number): number {
-    return this.noteOf(chordRoot + offset, 0) - this.noteOf(chordRoot, 0);
-  }
-
   /**
    * A chord root in whichever octave sits nearest `anchor` — the voice leading, and not optional:
    * voiced by degree, i–VII–VI–iv in A minor climbs A2, G3, F3, D3 instead of stepping down.
@@ -388,6 +493,11 @@ export class Composer {
     while (note - anchor > 4) note -= 12;
     while (anchor - note > 7) note += 12;
     return note;
+  }
+
+  /** Semitones from a chord's root up to the degree `offset` above it, staying in the key. */
+  private degreeInterval(chordRoot: number, offset: number): number {
+    return this.noteOf(chordRoot + offset, 0) - this.noteOf(chordRoot, 0);
   }
 
   /** Ascending semitones from a chord's root, read off the scale so it needs no chord quality. */
@@ -418,15 +528,19 @@ export class Composer {
     return open ? 0.17 : 0.045;
   }
 
+  /**
+   * Takes the layer rather than the patch, so which instrument plays it and how loud it sits are
+   * both resolved here — the theme's `gains` are a mix, and a mix belongs in one place.
+   */
   private emit(
-    kind: EventKind, note: number, duration: number, velocity: number, pan: number,
+    layer: MusicLayer, note: number, duration: number, velocity: number, pan: number,
   ): void {
     if (this.count >= this.out.length) return;
     const event = this.out[this.count++];
-    event.kind = kind;
+    event.kind = isDrumLayer(layer) ? layer : this.patchFor(layer);
     event.note = note;
     event.duration = duration;
-    event.velocity = velocity;
+    event.velocity = velocity * (this.theme.gains?.[layer] ?? 1);
     event.pan = pan;
     event.seed = this.stepRandom.next() * 0x7fffffff;
   }
@@ -440,6 +554,18 @@ function countHits(pattern: string): number {
   let hits = 0;
   for (const char of pattern) if (char === 'x') hits++;
   return hits;
+}
+
+/** Steps from each hit to the next one, wrapping at the bar. Zero where nothing plays. */
+function countGaps(pattern: string): Int8Array {
+  const gaps = new Int8Array(pattern.length);
+  for (let step = 0; step < pattern.length; step++) {
+    if (pattern[step] !== 'x') continue;
+    let gap = 1;
+    while (gap < pattern.length && pattern[(step + gap) % pattern.length] !== 'x') gap++;
+    gaps[step] = gap;
+  }
+  return gaps;
 }
 
 /** Each step's index among the pattern's notes, or -1 where it rests. */

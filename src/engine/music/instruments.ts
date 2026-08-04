@@ -25,11 +25,73 @@ export interface Voice {
 /** Oscillators one note may stack. Three detuned saws is already a wide pad. */
 const MAX_UNISON = 3;
 
+/**
+ * Harmonic amplitudes measured off the instruments of a reference tracker module with
+ * `npm run music:analyze -- --sample=N`. A spectrum, not a recording: twenty numbers, from which
+ * `wavetableFor` builds one cycle.
+ *
+ * This is the only way a synth gets near a sampled instrument. A violin is not a filtered saw —
+ * it is saw-like for four harmonics and then falls away far faster, with a bump around the ninth,
+ * and that shape is what the ear recognises.
+ */
+const VIOLIN_HARMONICS = [
+  1, 0.537, 0.436, 0.327, 0.152, 0.147, 0.064, 0.031, 0.088, 0.086, 0.028, 0.035, 0.009, 0.006,
+  0.026, 0.006, 0.005, 0.005,
+];
+
+/** The reference's "Deep Bass2": all fundamental, which is to say a sine. */
+const SUB_HARMONICS = [1, 0.004, 0.01, 0.003, 0.008, 0.002, 0.004];
+
+/** Hollow, with the third, fourth and sixth standing out — the reference's choir. */
+const CHOIR_HARMONICS = [
+  1, 0.088, 0.372, 0.329, 0.041, 0.297, 0.029, 0.192, 0.058, 0.008, 0.009, 0.048, 0.011, 0.001,
+  0.02, 0.114,
+];
+
+/** One cycle, at this resolution. Read with interpolation, so it needs a wrapped extra sample. */
+const TABLE_SIZE = 2048;
+const wavetables = new Map<readonly number[], Float32Array>();
+
+/** One cycle summed from harmonic amplitudes, built once per table and cached. */
+function wavetableFor(harmonics: readonly number[]): Float32Array {
+  const cached = wavetables.get(harmonics);
+  if (cached) return cached;
+
+  const table = new Float32Array(TABLE_SIZE + 1);
+  harmonics.forEach((amplitude, index) => {
+    if (amplitude === 0) return;
+    const harmonic = index + 1;
+    for (let i = 0; i < TABLE_SIZE; i++) {
+      table[i] += amplitude * Math.sin((2 * Math.PI * harmonic * i) / TABLE_SIZE);
+    }
+  });
+
+  let peak = 0;
+  for (let i = 0; i < TABLE_SIZE; i++) peak = Math.max(peak, Math.abs(table[i]));
+  if (peak > 0) for (let i = 0; i < TABLE_SIZE; i++) table[i] /= peak;
+  table[TABLE_SIZE] = table[0];
+
+  wavetables.set(harmonics, table);
+  return table;
+}
+
+function readTable(table: Float32Array, phase: number): number {
+  const position = phase * TABLE_SIZE;
+  const index = position | 0;
+  return table[index] + (table[index + 1] - table[index]) * (position - index);
+}
+
+/** Where `cutoffHz` is quoted from, for patches whose filter tracks the note. */
+const MIDDLE_C_HZ = 261.626;
+
 /** Samples between coefficient updates — see `MusicPlayer`, which renders in these. */
 export const CONTROL_BLOCK = 32;
 
 export interface Patch {
+  /** Ignored when `harmonics` is given. */
   readonly wave: Waveform;
+  /** Harmonic amplitudes to build the oscillator from, instead of a named waveform. */
+  readonly harmonics?: readonly number[];
   /** Oscillators per note, spread across the stereo field and detuned around the pitch. */
   readonly unison: number;
   readonly detuneCents: number;
@@ -47,7 +109,16 @@ export interface Patch {
   readonly hold: number;
   /** 60 dB time of the release tail, in seconds. */
   readonly release: number;
+  /** Pitch wobble depth in cents, and its rate. What makes a held lead note sound played. */
+  readonly vibratoCents?: number;
+  readonly vibratoHz?: number;
+  /** Quoted at middle C when `cutoffTrack` is set, and absolute otherwise. */
   readonly cutoffHz: number;
+  /**
+   * How much the cutoff follows the pitch, 0…1. Without it a patch is bright in the bass and dull
+   * in the treble, which is the opposite of every real instrument.
+   */
+  readonly cutoffTrack?: number;
   /** Octaves the filter opens by at the attack, closing again over `cutoffDecay` seconds. */
   readonly cutoffEnv: number;
   readonly cutoffDecay: number;
@@ -93,6 +164,30 @@ export const PATCHES = {
     gain: 0.17, delaySend: 0.42, reverbSend: 0.5, ducked: false,
   },
 
+  /**
+   * Strings: a section, from the measured spectrum of a violin rather than a filtered saw. Wide
+   * unison, a slow bowed swell, and vibrato — which is most of what separates bowed from held.
+   */
+  strings: {
+    wave: 'saw', harmonics: VIOLIN_HARMONICS,
+    unison: 3, detuneCents: 13, spread: 0.8, sub: 0,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.34, hold: 1, release: 1.4,
+    vibratoCents: 8, vibratoHz: 4.8,
+    // Well above the fundamental and tracking it: the spectrum sets the tone, not the filter.
+    cutoffHz: 3200, cutoffTrack: 1, cutoffEnv: 0.4, cutoffDecay: 1.2, q: 0.7,
+    gain: 0.13, delaySend: 0.08, reverbSend: 0.4, ducked: true,
+  },
+  /** The choir the reference uses for stabs: hollow, and slower still to arrive. */
+  choir: {
+    wave: 'sine', harmonics: CHOIR_HARMONICS,
+    unison: 2, detuneCents: 9, spread: 0.6, sub: 0,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.12, hold: 1, release: 1.1,
+    vibratoCents: 5, vibratoHz: 4.2,
+    cutoffHz: 2600, cutoffTrack: 1, cutoffEnv: 0.3, cutoffDecay: 1, q: 0.7,
+    gain: 0.1, delaySend: 0.1, reverbSend: 0.45, ducked: true,
+  },
   /** Chords as stabs rather than a wash — the pad of something with a backbeat. */
   stab: {
     wave: 'saw', unison: 2, detuneCents: 15, spread: 0.45, sub: 0.1,
@@ -101,21 +196,42 @@ export const PATCHES = {
     cutoffHz: 1150, cutoffEnv: 1.2, cutoffDecay: 0.28, q: 1.5,
     gain: 0.115, delaySend: 0.16, reverbSend: 0.28, ducked: true,
   },
-  /** Short square bass for sixteenth-note lines, where a sub would smear into one note. */
+  /**
+   * The rolling bass, from the reference's own spectrum — which is a sine and almost nothing else.
+   * A square here was the wrong instrument entirely: far too bright, and it fought the drums.
+   *
+   * Short, because sixteenths on one pitch smear into a drone if they overlap.
+   */
   drive: {
-    wave: 'square', unison: 1, detuneCents: 0, spread: 0, sub: 0.45,
+    wave: 'sine', harmonics: SUB_HARMONICS,
+    unison: 1, detuneCents: 0, spread: 0, sub: 0.3,
     fmRatio: 0, fmIndex: 0, fmDecay: 1,
-    attack: 0.003, hold: 0.5, release: 0.085,
-    cutoffHz: 300, cutoffEnv: 1.7, cutoffDecay: 0.06, q: 1.9,
-    gain: 0.4, delaySend: 0, reverbSend: 0.04, ducked: true,
+    attack: 0.004, hold: 0.55, release: 0.07,
+    cutoffHz: 1800, cutoffTrack: 1, cutoffEnv: 0, cutoffDecay: 1, q: 0.7,
+    gain: 0.52, delaySend: 0, reverbSend: 0.03, ducked: true,
   },
-  /** Detuned saws with the filter wide open at the attack — a riff meant to be the hook. */
-  lead: {
-    wave: 'saw', unison: 3, detuneCents: 19, spread: 0.5, sub: 0.15,
+  /**
+   * Reese bass: detuned saws taken right down by the filter, so what is left is the beating
+   * between them over a sub. Sustained, unlike `drive` — it is one note a bar, not sixteen.
+   */
+  reese: {
+    wave: 'saw', unison: 3, detuneCents: 26, spread: 0.15, sub: 0.8,
     fmRatio: 0, fmIndex: 0, fmDecay: 1,
-    attack: 0.006, hold: 0.75, release: 0.2,
-    cutoffHz: 1500, cutoffEnv: 1.5, cutoffDecay: 0.16, q: 2.2,
-    gain: 0.16, delaySend: 0.3, reverbSend: 0.2, ducked: false,
+    attack: 0.02, hold: 0.9, release: 0.3,
+    cutoffHz: 210, cutoffEnv: 0.8, cutoffDecay: 0.5, q: 1.3,
+    gain: 0.42, delaySend: 0, reverbSend: 0.05, ducked: true,
+  },
+  /**
+   * The tune. Detuned saws, and deliberately not a plucked sound: a slow attack, a filter that
+   * only opens a little, and a vibrato — a held note has to sound played rather than triggered.
+   */
+  lead: {
+    wave: 'saw', unison: 3, detuneCents: 16, spread: 0.35, sub: 0.18,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.022, hold: 0.95, release: 0.3,
+    vibratoCents: 11, vibratoHz: 5.2,
+    cutoffHz: 1700, cutoffEnv: 0.8, cutoffDecay: 0.3, q: 1.7,
+    gain: 0.185, delaySend: 0.34, reverbSend: 0.24, ducked: false,
   },
 } as const satisfies Record<string, Patch>;
 
@@ -145,6 +261,13 @@ export class SynthVoice implements Voice {
   private fmIncrement = 0;
   private fmAmount = 0;
   private fmDecayPerBlock = 1;
+  private vibratoPhase = 0;
+  private vibratoIncrement = 0;
+  private vibratoDepth = 0;
+  /** One cycle of the patch's spectrum, or null when it uses a named waveform. */
+  private table: Float32Array | null = null;
+  /** How far this note's pitch moves the cutoff — 1 when the patch does not track. */
+  private cutoffScale = 1;
   private cutoffMod = 0;
   private cutoffDecayPerBlock = 1;
   private gain = 0;
@@ -163,6 +286,8 @@ export class SynthVoice implements Voice {
     this.sampleRate = sampleRate;
     this.unison = Math.min(MAX_UNISON, patch.unison);
     const frequency = midiToHz(note);
+    this.table = patch.harmonics ? wavetableFor(patch.harmonics) : null;
+    this.cutoffScale = (frequency / MIDDLE_C_HZ) ** (patch.cutoffTrack ?? 0);
 
     for (let i = 0; i < this.unison; i++) {
       // Symmetric about the pitch: -1, 0, +1 for three oscillators.
@@ -181,6 +306,11 @@ export class SynthVoice implements Voice {
     this.fmPhase = 0;
     this.fmAmount = patch.fmIndex;
     this.fmDecayPerBlock = decayPerBlock(patch.fmDecay, sampleRate);
+    // Depth as a frequency ratio either side of the pitch, so it can multiply the increments.
+    this.vibratoDepth = centsToRatio(patch.vibratoCents ?? 0) - 1;
+    this.vibratoIncrement = (patch.vibratoHz ?? 0) / sampleRate;
+    // A quarter turn in, so the note starts on its pitch and rises rather than starting flat.
+    this.vibratoPhase = 0;
     this.cutoffMod = patch.cutoffEnv;
     this.cutoffDecayPerBlock = decayPerBlock(patch.cutoffDecay, sampleRate);
 
@@ -207,7 +337,7 @@ export class SynthVoice implements Voice {
 
   render(left: Float32Array, right: Float32Array, count: number, brightness: number): void {
     // Once per block rather than per sample: a `tan` and an `exp`, at 1.5 kHz instead of 48.
-    const cutoff = this.patch.cutoffHz * 2 ** (this.cutoffMod + brightness);
+    const cutoff = this.patch.cutoffHz * this.cutoffScale * 2 ** (this.cutoffMod + brightness);
     this.filterLeft.setCutoff(cutoff, this.patch.q, this.sampleRate);
     this.filterRight.setCutoff(cutoff, this.patch.q, this.sampleRate);
     this.cutoffMod *= this.cutoffDecayPerBlock;
@@ -228,14 +358,20 @@ export class SynthVoice implements Voice {
         modulation = Math.sin(this.fmPhase * Math.PI * 2) * this.fmAmount;
       }
 
+      let bend = 1;
+      if (this.vibratoDepth > 0) {
+        this.vibratoPhase = (this.vibratoPhase + this.vibratoIncrement) % 1;
+        bend = 1 + this.vibratoDepth * Math.sin(this.vibratoPhase * Math.PI * 2);
+      }
+
       let sampleLeft = 0;
       let sampleRight = 0;
       for (let o = 0; o < this.unison; o++) {
-        const increment = this.increments[o];
+        const increment = this.increments[o] * bend;
         this.phases[o] = (this.phases[o] + increment) % 1;
         // Phase modulation, so the offset adds straight to the phase. Only the bell uses it.
         const phase = modulation === 0 ? this.phases[o] : wrapPhase(this.phases[o] + modulation);
-        const value = oscillator(wave, phase, increment);
+        const value = this.table ? readTable(this.table, phase) : oscillator(wave, phase, increment);
         sampleLeft += value * this.gainsLeft[o];
         sampleRight += value * this.gainsRight[o];
       }
@@ -329,13 +465,14 @@ export class SnareVoice implements Voice {
   private sampleRate = 48000;
   private gain = 0;
 
-  private static readonly BODY_HZ = 186;
-  private static readonly NOISE_HZ = 1900;
+  private static readonly BODY_HZ = 190;
+  /** High enough to crack rather than thump — a break has to cut through a sub. */
+  private static readonly NOISE_HZ = 2300;
 
   trigger(velocity: number, seed: number, sampleRate: number): void {
     this.sampleRate = sampleRate;
-    this.amp.trigger(0.001 * sampleRate, 0.004 * sampleRate, 0.135 * sampleRate, velocity);
-    this.bodyAmp.trigger(0.001 * sampleRate, 0, 0.075 * sampleRate, velocity * 0.5);
+    this.amp.trigger(0.001 * sampleRate, 0.003 * sampleRate, 0.115 * sampleRate, velocity);
+    this.bodyAmp.trigger(0.001 * sampleRate, 0, 0.06 * sampleRate, velocity * 0.45);
     this.filter.reset();
     this.noise = new Random(seed);
     this.phase = 0;
