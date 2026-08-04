@@ -2,8 +2,8 @@
  * Renders the music to a wav, so it can be heard without a browser. Also reports how much faster
  * than real time it went, which is what says whether a thread can keep up.
  *
- *   npm run music:render                                    # 90s of ambient/puzzle
- *   npm run music:render -- --soundtrack=industrial
+ *   npm run music:render                                    # 90s of tea/puzzle
+ *   npm run music:render -- --soundtrack=coffee
  *   npm run music:render -- --mood=menu --seconds=45 --seed=7 --out=/tmp/menu.wav
  *   npm run music:render -- --sweep             # turns every control, then changes mood
  *   npm run music:render -- --all               # every soundtrack and mood, one file each
@@ -13,7 +13,7 @@ import {
   DEFAULT_MUSIC_PARAMS, MusicPlayer, type MusicParams,
 } from '../src/engine/music/player.ts';
 import {
-  MOOD_IDS, SOUNDTRACK_IDS, themeOf,
+  DEFAULT_SOUNDTRACK, MOOD_IDS, SOUNDTRACK_IDS, themeOf,
   type MoodId, type SoundtrackId,
 } from '../src/engine/music/themes.ts';
 
@@ -64,11 +64,11 @@ function renderTrack(soundtrack: SoundtrackId, mood: MoodId, out: string): void 
 
   writeFileSync(out, encodeWav(left, right, SAMPLE_RATE));
 
-  const theme = themeOf(soundtrack, mood);
   const peak = Math.max(peakOf(left), peakOf(right));
   console.log(`wrote ${out}`);
   console.log(
-    `  ${soundtrack}/${mood}, ${theme.bpm}bpm, seed ${options.seed}, ${options.seconds}s`,
+    `  ${soundtrack}/${mood}, ${player.bpm.toFixed(0)}bpm, seed ${options.seed},`
+    + ` ${options.seconds}s`,
   );
   console.log(`  peak ${peak.toFixed(3)}, rms ${rmsOf(left).toFixed(3)}`);
   console.log(
@@ -135,7 +135,7 @@ function parseArguments(args: string[]): Options {
   }
   const sweep = flags.has('sweep');
 
-  const soundtrack = flags.get('soundtrack') ?? 'ambient';
+  const soundtrack = flags.get('soundtrack') ?? DEFAULT_SOUNDTRACK;
   if (!SOUNDTRACK_IDS.includes(soundtrack as SoundtrackId)) {
     console.error(`unknown soundtrack "${soundtrack}" — one of: ${SOUNDTRACK_IDS.join(', ')}`);
     process.exit(1);

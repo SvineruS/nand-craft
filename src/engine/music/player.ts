@@ -7,18 +7,30 @@
  */
 import { PingPongDelay, Reverb, softClip } from './dsp.ts';
 import {
-  CONTROL_BLOCK, HatVoice, KickVoice, PATCHES, SnareVoice, SynthVoice, type Voice,
+  CONTROL_BLOCK, HatVoice, KickVoice, PATCHES, SampleVoice, SnareVoice, SynthVoice, type Voice,
 } from './instruments.ts';
-import { Composer, createEventPool, type NoteEvent } from './composer.ts';
+import { isSampleName, sampleFor } from './samples.ts';
+import { Composer } from './composer.ts';
+import { createEventPool, type NoteEvent, type NoteSource } from './notes.ts';
+import { ScorePlayer } from './score.ts';
+import { SCORES } from './scores.ts';
 import type { MusicTheme } from './themes.ts';
 
-/** Tuned voices held at once. A pad chord is four, and chords overlap by design. */
-const SYNTH_VOICES = 24;
+/**
+ * Tuned voices held at once. A pad chord is four and chords overlap by design; a transcribed
+ * module can hold a dozen channels of sustain at once, which is what sets this.
+ */
+const SYNTH_VOICES = 32;
 const KICK_VOICES = 2;
 const SNARE_VOICES = 3;
 const HAT_VOICES = 4;
-/** Notes one sixteenth may start. A pad chord with a seventh plus drums is the busy case. */
-const MAX_EVENTS_PER_STEP = 12;
+/** Recordings sounding at once. The stabs land in threes and ring for most of half a second. */
+const SAMPLE_VOICES = 6;
+/**
+ * Notes one sixteenth may start. A pad chord with a seventh plus drums is the busy case for a
+ * generated theme; a transcribed one can put a note on every channel of the same row.
+ */
+const MAX_EVENTS_PER_STEP = 16;
 
 /** How far the kick pushes the pad and bass down, and how quickly they come back. */
 const DUCK_DEPTH = 0.34;
@@ -60,12 +72,13 @@ export const DEFAULT_MUSIC_PARAMS: MusicParams = {
 
 export class MusicPlayer {
   private theme: MusicTheme;
-  private composer: Composer;
+  private notes: NoteSource;
 
   private synths: SynthVoice[] = [];
   private kicks: KickVoice[] = [];
   private snares: SnareVoice[] = [];
   private hats: HatVoice[] = [];
+  private samples: SampleVoice[] = [];
   private voices: Voice[] = [];
 
   private events: NoteEvent[] = createEventPool(MAX_EVENTS_PER_STEP);
@@ -103,7 +116,7 @@ export class MusicPlayer {
     this.sampleRate = sampleRate;
     this.seed = seed;
     this.theme = theme;
-    this.composer = new Composer(theme, seed);
+    this.notes = noteSourceFor(theme, seed);
     this.delay = new PingPongDelay(sampleRate);
     this.reverb = new Reverb(sampleRate);
     this.duckDecay = Math.exp(-1 / (DUCK_RELEASE_SECONDS * sampleRate));
@@ -114,7 +127,8 @@ export class MusicPlayer {
     for (let i = 0; i < KICK_VOICES; i++) this.kicks.push(new KickVoice());
     for (let i = 0; i < SNARE_VOICES; i++) this.snares.push(new SnareVoice());
     for (let i = 0; i < HAT_VOICES; i++) this.hats.push(new HatVoice());
-    this.voices = [...this.synths, ...this.kicks, ...this.snares, ...this.hats];
+    for (let i = 0; i < SAMPLE_VOICES; i++) this.samples.push(new SampleVoice());
+    this.voices = [...this.synths, ...this.kicks, ...this.snares, ...this.hats, ...this.samples];
 
     this.applyTempo();
   }
@@ -148,6 +162,16 @@ export class MusicPlayer {
     return this.step;
   }
 
+  /** The tempo actually being played — a generated theme states one, a score carries its own. */
+  get bpm(): number {
+    return 60 / this.notes.beatDuration;
+  }
+
+  /** Seconds per sixteenth, before the tempo control multiplies it. */
+  get stepDuration(): number {
+    return this.notes.stepDuration;
+  }
+
   /** Fill both channels with `frames` samples of music. */
   render(left: Float32Array, right: Float32Array, frames: number): void {
     let done = 0;
@@ -173,10 +197,10 @@ export class MusicPlayer {
 
   private startStep(): void {
     // A theme waiting to come in does so here, at the chord boundary it was told to wait for.
-    if (this.pending && this.step % this.composer.stepsPerChord === 0) this.applyPending();
+    if (this.pending && this.step % this.notes.stepsPerChord === 0) this.applyPending();
 
     const intensity = clamp(this.theme.intensity + this.params.energy, 0, 1);
-    const count = this.composer.collect(this.step, intensity, this.events);
+    const count = this.notes.collect(this.step, intensity, this.events);
     for (let i = 0; i < count; i++) this.startEvent(this.events[i]);
     this.step++;
   }
@@ -197,6 +221,13 @@ export class MusicPlayer {
         );
         return;
       default:
+        // A recording or a patch, told apart by name — the two key spaces do not overlap.
+        if (isSampleName(event.kind)) {
+          this.takeSample().trigger(
+            sampleFor(event.kind), event.note, event.velocity, event.pan, this.sampleRate,
+          );
+          return;
+        }
         this.takeSynth().trigger(
           PATCHES[event.kind], event.note, event.duration, event.velocity, event.pan,
           this.sampleRate,
@@ -316,19 +347,22 @@ export class MusicPlayer {
     this.theme = theme;
     this.seed = seed;
     // Allocates mid-render, but only once per screen change, with a queue of audio ahead of it.
-    this.composer = new Composer(theme, seed);
+    this.notes = noteSourceFor(theme, seed);
     this.step = 0;
     this.applyTempo();
 
-    // Only the tuned voices: a hat or kick ringing out belongs to no key.
+    // Only the pitched voices: a hat or kick ringing out belongs to no key.
     for (const voice of this.synths) {
       if (voice.active) voice.releaseNow(SWAP_RELEASE_SECONDS);
+    }
+    for (const voice of this.samples) {
+      if (voice.active) voice.releaseNow(SWAP_RELEASE_SECONDS, this.sampleRate);
     }
   }
 
   private applyTempo(): void {
-    this.samplesPerStep = (this.composer.stepDuration * this.sampleRate) / this.params.tempo;
-    this.delay.setTime((this.composer.beatDuration * DELAY_BEATS) / this.params.tempo);
+    this.samplesPerStep = (this.notes.stepDuration * this.sampleRate) / this.params.tempo;
+    this.delay.setTime((this.notes.beatDuration * DELAY_BEATS) / this.params.tempo);
   }
 
   // -------------------------------------------------------------------------
@@ -356,6 +390,23 @@ export class MusicPlayer {
   private takeHat(): HatVoice {
     return this.hats.find(voice => !voice.active) ?? this.hats[0];
   }
+
+  /** A free voice, or the quietest — the one furthest through its recording. */
+  private takeSample(): SampleVoice {
+    let quietest = this.samples[0];
+    for (const voice of this.samples) {
+      if (!voice.active) return voice;
+      if (voice.level < quietest.level) quietest = voice;
+    }
+    return quietest;
+  }
+}
+
+/** A written theme reads its notes off a score; a generated one makes them up. */
+function noteSourceFor(theme: MusicTheme, seed: number): NoteSource {
+  return theme.kind === 'score'
+    ? new ScorePlayer(theme, SCORES[theme.score])
+    : new Composer(theme, seed);
 }
 
 function clamp(value: number, low: number, high: number): number {

@@ -803,7 +803,12 @@ console.log('sound files OK');
   const { MusicPlayer } = await import('../src/engine/music/player.ts');
   const { MOOD_IDS, SOUNDTRACK_IDS, themeOf } = await import('../src/engine/music/themes.ts');
   type MusicTheme = ReturnType<typeof themeOf>;
-  const { Composer, STEPS_PER_BAR } = await import('../src/engine/music/composer.ts');
+  const { STEPS_PER_BAR } = await import('../src/engine/music/notes.ts');
+  const { SCORES } = await import('../src/engine/music/scores.ts');
+  const { PATCHES } = await import('../src/engine/music/instruments.ts');
+  const { isSampleName } = await import('../src/engine/music/samples.ts');
+  /** The drums, which are voices rather than patches and so are in neither table. */
+  const DRUM_KINDS: string[] = ['kick', 'snare', 'hat'];
 
   const RATE = 48000;
   const SECONDS = 12;
@@ -857,15 +862,37 @@ console.log('sound files OK');
     check(`${label} is in stereo`, difference > 0, `sum |L-R| ${difference.toFixed(2)}`);
 
     // A layer with a threshold but no rhythm never plays, and nothing else here would notice.
-    for (const layer of Object.keys(theme.layers)) {
-      if (layer === 'pad' || layer === 'bell') continue;
-      const patterns = theme.patterns[layer as keyof typeof theme.patterns];
-      check(`${label} gives ${layer} a rhythm`, (patterns?.length ?? 0) > 0);
+    // Only generated themes choose a rhythm; a score's layers are the module's own channels.
+    if (theme.kind === 'generated') {
+      for (const layer of Object.keys(theme.layers)) {
+        if (layer === 'pad' || layer === 'bell') continue;
+        const patterns = theme.patterns[layer as keyof typeof theme.patterns];
+        check(`${label} gives ${layer} a rhythm`, (patterns?.length ?? 0) > 0);
+      }
+      continue;
     }
+
+    // And a score's layers are only reachable if some instrument is actually assigned to them —
+    // a threshold naming a layer nothing plays is a silence nothing else here would catch.
+    const voices = Object.values(SCORES[theme.score].voices);
+    // Every voice names something that exists. `EventKind` is a union of three key spaces told
+    // apart by name alone, so a name in none of them is a silent silence rather than an error.
+    for (const voice of voices) {
+      const known = voice.kind in PATCHES || DRUM_KINDS.includes(voice.kind)
+        || isSampleName(voice.kind);
+      check(`${label} voice "${voice.kind}" names a real instrument`, known);
+    }
+
+    for (const layer of Object.keys(theme.layers)) {
+      check(`${label} has an instrument for ${layer}`, voices.some(voice => voice.layer === layer));
+    }
+    check(`${label} loops a real stretch of the arrangement`,
+      theme.from >= 0 && theme.to > theme.from
+      && theme.to <= SCORES[theme.score].score.orders.length);
   }
 
   // Same seed, same samples — or `music:render` is not rendering what the game plays.
-  const puzzle = themeOf('ambient', 'puzzle');
+  const puzzle = themeOf('tea', 'puzzle');
   const first = renderTheme(puzzle, 7, 4);
   const second = renderTheme(puzzle, 7, 4);
   let identical = true;
@@ -897,7 +924,7 @@ console.log('sound files OK');
       // Across soundtracks, which is the switch with the most to go wrong: different tempo, key,
       // layers and patches all at once.
       if (at >= 16 && at < 16 + BLOCK / RATE) {
-        player.setTheme(themeOf('breaks', 'puzzle'), 3);
+        player.setTheme(themeOf('coffee', 'puzzle'), 3);
       }
 
       const count = Math.min(BLOCK, frames - offset);
@@ -937,12 +964,11 @@ console.log('sound files OK');
   // N bars of samples must be N bars of steps: no drift, and no dependence on the block size.
   for (const { soundtrack, mood, label } of tracks) {
     const theme = themeOf(soundtrack, mood);
-    const composer = new Composer(theme, 1);
     const bars = 8;
     const expected = bars * STEPS_PER_BAR;
-    const frames = Math.round(expected * composer.stepDuration * RATE);
-
     const player = new MusicPlayer(RATE, theme, 1);
+    const frames = Math.round(expected * player.stepDuration * RATE);
+
     const blockLeft = new Float32Array(BLOCK);
     const blockRight = new Float32Array(BLOCK);
     for (let offset = 0; offset < frames; offset += BLOCK) {

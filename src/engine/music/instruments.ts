@@ -1,11 +1,17 @@
 /**
- * Pad, bass, pluck and bell are one signal path and four sets of numbers in `PATCHES`. Kick and
- * hat are separate classes, being different paths rather than another patch.
+ * How a note sounds. Most instruments here are one signal path and a set of numbers in `PATCHES`;
+ * kick, snare and hat are separate classes, being different paths rather than another patch, and
+ * `SampleVoice` is a fourth — a recording played back at the rate the note asks for.
+ *
+ * The patches with a `harmonics` table were built from spectra measured off a real tracker
+ * module's samples with `npm run music:analyze -- --sample=N`. That is the only way a synth gets
+ * near a sampled instrument: a violin is not a filtered saw.
  */
 import {
   Envelope, type Waveform, Random, Svf, centsToRatio, midiToHz, oscillator, panLeftGain,
   panRightGain, softClip,
 } from './dsp.ts';
+import type { LoadedSample } from './samples.ts';
 
 export interface Voice {
   readonly active: boolean;
@@ -41,6 +47,20 @@ const VIOLIN_HARMONICS = [
 
 /** The reference's "Deep Bass2": all fundamental, which is to say a sine. */
 const SUB_HARMONICS = [1, 0.004, 0.01, 0.003, 0.008, 0.002, 0.004];
+
+/**
+ * The reference's "33-HI": a *missing* fundamental. The octave and the twelfth above it are equal
+ * and carry the sound, while the fundamental itself is a tenth of them.
+ *
+ * Measured off a render of that instrument alone rather than off the raw sample, and the two
+ * disagree: read from the sample, its first three harmonics look equal. They are not, and a synth
+ * given the fundamental at full strength plays something an octave too low and far too thick,
+ * because the ear takes its pitch from a series it can no longer hear the bottom of.
+ */
+const HOLLOW_HARMONICS = [0.1, 1, 1, 0.37, 0.14, 0.08, 0.08, 0.19];
+
+/** "TECHN~46": the second harmonic loudest and the odd ones nearly gone — a hollow low stab. */
+const SUBHIT_HARMONICS = [0.587, 1, 0.105, 0.345, 0.02, 0.152, 0.029, 0.029, 0.026, 0.024];
 
 /** Hollow, with the third, fourth and sixth standing out — the reference's choir. */
 const CHOIR_HARMONICS = [
@@ -221,6 +241,41 @@ export const PATCHES = {
     cutoffHz: 210, cutoffEnv: 0.8, cutoffDecay: 0.5, q: 1.3,
     gain: 0.42, delaySend: 0, reverbSend: 0.05, ducked: true,
   },
+  /**
+   * The transcribed piece's hook: a sine, played in sixteenths, high enough to sing.
+   *
+   * Its reference sample is a sine and almost literally nothing else, so there is nothing to
+   * filter and nothing to detune — what carries it is the line, not the timbre. The tiny sub
+   * underneath it and the short release are the whole patch: enough weight not to sound like a
+   * test tone, short enough that consecutive sixteenths stay separate notes.
+   */
+  riff: {
+    wave: 'sine', harmonics: SUB_HARMONICS,
+    unison: 1, detuneCents: 0, spread: 0, sub: 0.14,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.004, hold: 0.86, release: 0.05,
+    cutoffHz: 5000, cutoffTrack: 1, cutoffEnv: 0, cutoffDecay: 1, q: 0.7,
+    gain: 0.34, delaySend: 0.14, reverbSend: 0.12, ducked: false,
+  },
+  /** A stopped-organ tone from a measured spectrum: three equal harmonics and no filter to speak of. */
+  hollow: {
+    wave: 'sine', harmonics: HOLLOW_HARMONICS,
+    unison: 1, detuneCents: 0, spread: 0, sub: 0.2,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.008, hold: 0.9, release: 0.5,
+    cutoffHz: 2600, cutoffTrack: 1, cutoffEnv: 0.3, cutoffDecay: 0.8, q: 0.7,
+    gain: 0.3, delaySend: 0.06, reverbSend: 0.2, ducked: true,
+  },
+  /** The low stab: hollow, short, and felt. */
+  subhit: {
+    wave: 'sine', harmonics: SUBHIT_HARMONICS,
+    unison: 1, detuneCents: 0, spread: 0, sub: 0.55,
+    fmRatio: 0, fmIndex: 0, fmDecay: 1,
+    attack: 0.004, hold: 0.75, release: 0.22,
+    cutoffHz: 1400, cutoffTrack: 1, cutoffEnv: 0.6, cutoffDecay: 0.3, q: 0.9,
+    gain: 0.42, delaySend: 0, reverbSend: 0.06, ducked: true,
+  },
+
   /**
    * The tune. Detuned saws, and deliberately not a plucked sound: a slow attack, a filter that
    * only opens a little, and a vibrato — a held note has to sound played rather than triggered.
@@ -501,6 +556,75 @@ export class SnareVoice implements Voice {
     if (!this.amp.active) this.active = false;
   }
 }
+
+/**
+ * Plays a recording back at whatever rate the note asks for, which is all a tracker ever did.
+ *
+ * No filter and no envelope beyond a release: the recording already contains its own attack and
+ * decay, and shaping it again is how a sampled instrument stops sounding like itself. The only
+ * envelope is a short fade at the end, because cutting a waveform mid-cycle is a click.
+ */
+export class SampleVoice implements Voice {
+  active = false;
+  delaySend = 0.1;
+  reverbSend = 0.28;
+  ducked = true;
+
+  private data: Float32Array = EMPTY_SAMPLE;
+  private position = 0;
+  private step = 0;
+  private gainLeft = 0;
+  private gainRight = 0;
+  private fade = 1;
+  private fadePerSample = 0;
+
+  /** How loud this voice is, for the player to decide which one to steal. */
+  get level(): number {
+    return this.active ? this.fade : 0;
+  }
+
+  trigger(
+    sample: LoadedSample, note: number, velocity: number, pan: number, sampleRate: number,
+  ): void {
+    this.data = sample.data;
+    this.position = 0;
+    // Frames of source per frame of output: the pitch and the resampling are the same number.
+    this.step = (sample.rate / sampleRate) * 2 ** ((note - sample.root) / 12);
+    this.gainLeft = panLeftGain(pan) * velocity;
+    this.gainRight = panRightGain(pan) * velocity;
+    this.fade = 1;
+    this.fadePerSample = 0;
+    this.active = true;
+  }
+
+  /** Fade out over `seconds` rather than stop, for a theme handing over mid-sound. */
+  releaseNow(seconds: number, sampleRate: number): void {
+    this.fadePerSample = 1 / Math.max(1, seconds * sampleRate);
+  }
+
+  // A recording carries its own brightness, so there is no filter for `brightness` to move.
+  render(left: Float32Array, right: Float32Array, count: number, _brightness: number): void {
+    for (let i = 0; i < count; i++) {
+      const low = this.position | 0;
+      if (!this.active || low + 1 >= this.data.length || this.fade <= 0) {
+        left[i] = 0;
+        right[i] = 0;
+        this.active = false;
+        continue;
+      }
+      // Interpolated, because the step is almost never a whole number of frames.
+      const fraction = this.position - low;
+      const value = (this.data[low] + (this.data[low + 1] - this.data[low]) * fraction) * this.fade;
+      left[i] = value * this.gainLeft;
+      right[i] = value * this.gainRight;
+
+      this.position += this.step;
+      this.fade -= this.fadePerSample;
+    }
+  }
+}
+
+const EMPTY_SAMPLE = new Float32Array(1);
 
 /** Hat: noise through a highpass, gone almost as soon as it arrives. */
 export class HatVoice implements Voice {

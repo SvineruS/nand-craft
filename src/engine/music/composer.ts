@@ -6,33 +6,9 @@
  */
 import { Random, hashSeed } from './dsp.ts';
 import type { PatchName } from './instruments.ts';
-import type { MusicLayer, MusicTheme } from './themes.ts';
+import { STEPS_PER_BAR, STEPS_PER_BEAT, type NoteEvent, type NoteSource } from './notes.ts';
+import type { GeneratedTheme, MusicLayer } from './themes.ts';
 
-/** The instrument an event is for: a tuned patch, or one of the drums. */
-export type EventKind = PatchName | 'kick' | 'snare' | 'hat';
-
-/** One note about to start. Mutable and pooled, to allocate nothing while rendering. */
-export interface NoteEvent {
-  kind: EventKind;
-  /** MIDI note. Ignored by the drums. */
-  note: number;
-  /** Seconds the note is written to last, before its release. For a hat, how long it rings. */
-  duration: number;
-  velocity: number;
-  /** -1 left … +1 right. */
-  pan: number;
-  /** Noise seed, so a hat is a different hat each time but the same one on every replay. */
-  seed: number;
-}
-
-export function createEventPool(size: number): NoteEvent[] {
-  return Array.from({ length: size }, () => (
-    { kind: 'pad', note: 60, duration: 1, velocity: 1, pan: 0, seed: 0 } satisfies NoteEvent
-  ));
-}
-
-export const STEPS_PER_BAR = 16;
-const STEPS_PER_BEAT = 4;
 const BEATS_PER_BAR = STEPS_PER_BAR / STEPS_PER_BEAT;
 /** Bars before the arrangement is re-rolled. */
 const BARS_PER_SECTION = 16;
@@ -161,7 +137,7 @@ interface SectionPlan {
   seventh: boolean;
 }
 
-export class Composer {
+export class Composer implements NoteSource {
   private plan: SectionPlan;
   private planIndex = -1;
   /** Reseeded per step, so a step's small decisions do not depend on how it was reached. */
@@ -169,10 +145,10 @@ export class Composer {
 
   private out: NoteEvent[] = [];
   private count = 0;
-  private theme: MusicTheme;
+  private theme: GeneratedTheme;
   private seed: number;
 
-  constructor(theme: MusicTheme, seed: number) {
+  constructor(theme: GeneratedTheme, seed: number) {
     this.theme = theme;
     this.seed = seed;
     this.plan = this.planSection(0);

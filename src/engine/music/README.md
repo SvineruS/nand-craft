@@ -1,11 +1,15 @@
 # Music
 
-A generated soundtrack. No audio files: every sample is computed from a seed and a handful of
-numbers. Three layers, each ignorant of the one above it.
+Three soundtracks, two of which are generated from a handful of numbers and a seed, and one of
+which is a real tracker module played note for note. Each layer is ignorant of the one above it.
 
-    themes.ts      the soundtracks       — key, tempo, chord loops, layers, rhythms
-    composer.ts    which notes, when     — reads a theme, emits NoteEvents
-    instruments.ts how a note sounds     — oscillators, filters, envelopes
+    themes.ts      the soundtracks       — which are generated, which are written down
+    notes.ts       NoteEvent, NoteSource — the seam the player sees
+    composer.ts    which notes, when     — makes them up from a theme and a seed
+    score.ts       which notes, when     — reads them off a transcribed module
+    scores.ts      what a score's instruments are; scores/ is generated data
+    instruments.ts how a note sounds     — oscillators, filters, envelopes, and a sample player
+    samples.ts     the few sounds carried as audio rather than synthesised
     player.ts      the clock and mixer   — notes into samples
     dsp.ts         the primitives
     musicWorker.ts renders off-thread
@@ -18,34 +22,60 @@ A **soundtrack** is one style in three **moods** — `menu`, `map`, `puzzle`. Th
 soundtrack in Settings; the screen picks the mood. `MOOD_BY_VIEW` is exhaustive over `ViewMode`, so
 a new screen cannot be silent by accident (the legacy factory screen borrows `map`).
 
-A theme is a whole style, not just a key and a tempo: it also names **which layers exist** and the
-intensity each needs, **the rhythms** they choose between, and **which patch** plays them.
+| id | shown as | what it is |
+|---|---|---|
+| `tea` | Tea | calm ambient techno — generated |
+| `coffee` | Coffee | breakbeat with strings — generated |
+| `foregone` | Ice | a transcribed tracker module — written down |
 
-| `ambient` | bpm | key | bars/chord | intensity | reverb |
+`MusicTheme` is a union of the two kinds, and they share only what the player needs — `intensity`,
+`reverb` and the per-layer `gains`. Everything else differs, so nothing is a setting on a struct
+that half the soundtracks ignore.
+
+Adding a soundtrack means adding an entry to `SOUNDTRACKS`. No other file needs to change.
+
+### The generated ones
+
+A generated theme is a whole style, not just a key and a tempo: it also names **which layers
+exist** and the intensity each needs, **the rhythms** they choose between, and **which patch**
+plays them.
+
+| `tea` | bpm | key | bars/chord | intensity | reverb |
 |---|---|---|---|---|---|
 | `menu` | 84 | A natural minor | 4 | 0.2 | 0.5 |
 | `map` | 88 | G dorian | 2 | 0.38 | 0.46 |
 | `puzzle` | 92 | A natural minor | 2 | 0.55 | 0.42 |
 
-| `breaks` | bpm | key | bars/chord | intensity | reverb | breath |
+| `coffee` | bpm | key | bars/chord | intensity | reverb | breath |
 |---|---|---|---|---|---|---|
-| `menu` | 168 | B♭ natural minor | 4 | 0.3 | 0.42 | 0.22 |
-| `map` | 170 | B♭ natural minor | 2 | 0.58 | 0.36 | 0.3 |
-| `puzzle` | 172 | B♭ natural minor | 2 | 0.8 | 0.3 | 0.42 |
+| `menu` | 118 | C natural minor | 4 | 0.26 | 0.4 | 0.2 |
+| `map` | 125 | C natural minor | 2 | 0.5 | 0.34 | 0.26 |
+| `puzzle` | 125 | C natural minor | 2 | 0.72 | 0.3 | 0.38 |
 
-`ambient` is pads, bells and a soft kick.
+`tea` is pads, bells and a soft kick.
 
-`breaks` is drum and bass, after the Impulse Tracker music of late-90s shooters — the reference
-being *Foregone Destruction*, whose tempo (~168) and key (B♭ minor, the relative minor of the C♯
-major that key detectors report) it follows. Nothing melodic is copied; the riffs are generated from
-the same tables and a seed as every other soundtrack's.
+`coffee` is breakbeat, after the Impulse Tracker music of late-90s shooters. Its tempo, drum grids
+and the fact that the *bass* is the hook were read off the reference module rather than invented.
+Nothing melodic is copied; the riffs come from the same tables and seed as every other generated
+soundtrack's — which is why it is the same genre and a different tune from `foregone` below.
 
 What makes the genre is the two-step break — kick on the one and on the second half of beat three,
 snare on two and four — a reese under it, long minor pads over the top, and a lead line that sings
-rather than chatters. Its `breath` is much deeper than ambient's: a 16-bar breakdown that strips
-back to pad and sub before the break returns is the shape the genre runs on.
+rather than chatters. Its `breath` is much deeper than `tea`'s: a 16-bar breakdown that strips back
+to pad and sub before the break returns is the shape the genre runs on.
 
-Adding a soundtrack means adding an entry to `SOUNDTRACKS`. No other file needs to change.
+### The written one
+
+`foregone` is *Foregone Destruction*, the Impulse Tracker module in `src/assets/music`, transcribed:
+3850 notes at 168 BPM over 44 orders, four minutes of it. A mood is a **stretch of that one
+arrangement** rather than a different piece — `menu` loops the sparse intro, `map` the middle,
+`puzzle` the whole thing.
+
+The grid lines up for free. A tracker at four rows to the beat *is* sixteenths, so one row is one
+step and nothing has to be resampled in time.
+
+See [the transcription](#transcription) below for how the notes and instruments were derived, and
+why almost none of it could be read off the module at face value.
 
 ## How the notes are chosen
 
@@ -64,12 +94,17 @@ only selects among options written in the source. That is the whole reason it st
 
 Which layers play comes from one number against the theme's own thresholds:
 
-    ambient   pad 0   bell 0.15   bass 0.22   hat 0.4     kick 0.5   arp 0.62
-    breaks    pad 0   bass 0.12   snare 0.3   kick 0.32   hat 0.42   lead 0.55   arp 0.88
+    tea       pad 0   bell 0.15   bass 0.22   hat 0.4     kick 0.5    arp 0.5
+    coffee    pad 0   arp 0.15    kick 0.28   snare 0.34  hat 0.44    bell 0.48
+    foregone  pad 0   lead 0      bass 0.12   bell 0.2    kick 0.3    snare 0.36  hat 0.45  arp 0.6
 
-A layer the theme does not list never plays — `ambient` has no snare or lead, `breaks` no bell. A
-threshold set above every mood's own intensity, like `breaks`'s arp, is a layer that only appears
-when the game turns `energy` up. The first bars of each section subtract the theme's `breath`, so
+A layer the theme does not list never plays — `tea` has no snare or lead. A threshold set above
+every mood's own intensity is a layer that only appears when the game turns `energy` up.
+
+`foregone` uses the same gate, with each of the module's instruments assigned a layer: its seven
+percussion samples are all `hat`, its two kicks `kick`, and the sine that carries the hook `lead` at
+threshold 0 — so turning the energy down strips a written piece back in the same order it strips a
+generated one, and the hook is the last thing to go. The first bars of each section subtract the theme's `breath`, so
 the arrangement drops and rebuilds every 16 bars.
 
 ### Voice leading is not optional
@@ -90,12 +125,80 @@ Lead notes are held until just before the next one in the pattern, so how legato
 out of how sparse its rhythm is — no per-theme note length to set. A section may drop the bell, hat
 or arp, but never the lead: where a soundtrack has one it is the hook.
 
+## Transcription
+
+`foregone`'s notes are generated data, produced offline and committed. Nothing reads the 2 MB
+`.umx` at run time.
+
+    src/assets/music/*.umx
+       ├── npm run music:analyze     reports only — tempo, arrangement, spectra, sounding pitch
+       └── npm run music:transcribe  → scores/foregone.ts        3850 notes, 74 kB
+                                     → scores/foregoneSamples.ts three sounds, 106 kB
+
+`scores/` is the module's notes and nothing else. `scores.ts` is the *reading* of them — which
+patch plays each instrument, in which register, how loud. The two are apart on purpose: a mapping
+decision changes one file, re-reading the module changes the other.
+
+### Almost nothing can be taken at face value
+
+Every number in `scores.ts` was measured, because the obvious reading is wrong in four separate
+ways — and each one on its own is enough to make it a different piece of music.
+
+**The header tempo is a lie.** It says 125 BPM. The module sets `A05`/`T140` on its first row and
+runs at 168, so reading the header puts the whole thing 35% slow.
+
+**A note is a rate, not a pitch.** A tracker plays a sample faster to raise it, so what you hear
+depends on the sample's own tone. The hook is written around D♯7 and sounds around G4 — nineteen
+semitones down. The low tones are written at F-5 and sound three octaves lower. Read literally,
+the parts land in the wrong registers relative to each other and the key comes out a fifth wrong.
+Each `transpose` was measured by rendering the module with every other channel muted and reading
+the pitches that actually came out.
+
+**A note does not last until the next note.** It lasts until the sample runs out, and the sample
+runs out sooner the higher it is played: a 2.35-second sample written at G-6 is over in 0.39. The
+transcriber caps every one-shot note by its own length at its own pitch. Without it, stabs ring for
+seconds after the original has gone quiet.
+
+**A sample's spectrum can lie too.** Read off the raw data, `33-HI`'s first three harmonics look
+equal. Rendered alone, its fundamental is a *tenth* of the two above it — a missing fundamental,
+which a synth given the full one plays an octave too low and far too thick.
+
+### Synthesised, except three
+
+19 of the 22 instruments are synth patches built from measured spectra. Three are the module's
+actual audio, at 8-bit/11 kHz, because no patch could stand in for them: they are *chords*,
+recorded whole, so there is no single tone to match. Given the one note the pattern writes, an
+oscillator plays a bare note where the original plays a triad — heard as the wrong chord rather
+than a plainer one.
+
+They are stored well below the 22 kHz they were recorded at, and deliberately: written at G-6 they
+play six times too fast, so everything audible in the result comes from below 3.5 kHz in the source.
+
+`EventKind` is a union of three key spaces — patch names, drum names and sample names — told apart
+by name alone. `check:invariants` asserts every voice names something in exactly one of them, since
+a name in none would be a silent silence rather than an error.
+
+### What is dropped
+
+Sample offsets, retriggers, portamento (1353 notes carry a slide-to-note) and volume slides (3663
+of them), which the patches' own envelopes stand in for. The nine-pitch kick plays at one pitch.
+
+### How close it is
+
+`openmpt123` renders the real module; `npm run music:render` renders this one; comparing
+semitone-binned spectra window by window gives a number rather than an opinion. Currently **0.79**
+mean cosine over the full four minutes, with the pitch-class profiles nearly identical.
+
 ## Instruments
 
 The tuned patches are one voice class and seven sets of numbers; kick, snare and hat are separate,
 being different signal paths rather than another patch.
 
 - **pad** — 3 saws detuned 11 cents, 1.1 s attack, 2.8 s release, filtered at 780 Hz
+- **riff** — a sine and a whisper of sub: the transcribed piece's hook, which has no timbre to
+  speak of because the sample it came from is a sine and almost nothing else
+- **hollow** — a missing fundamental, from a measured spectrum: the octave and twelfth carry it
+- **subhit** — a low stab, second harmonic loudest and the odd ones nearly gone
 - **bass** — triangle plus a sine an octave down, mostly sub
 - **pluck** — short filtered square, heavily into the delay
 - **bell** — sine phase-modulated at ratio 3.5, clang decaying in 0.35 s
@@ -108,7 +211,10 @@ being different signal paths rather than another patch.
 - **snare** — a band of noise for the crack plus a fast sine for the body; noise alone is a hiss
 - **hat** — noise through a highpass at 7–8.6 kHz
 
-24 tuned voices, 2 kicks, 3 snares, 4 hats; the quietest is stolen when they run out. All mix into
+32 tuned voices, 2 kicks, 3 snares, 4 hats, 6 sample players; the quietest is stolen when they run
+out. A sample player is a recording read back at whatever rate the note asks for, with no filter
+and no envelope but a release — the recording already has its own attack and decay, and shaping it
+again is how a sampled instrument stops sounding like itself. All mix into
 a dry bus plus two sends: a ping-pong delay spaced to a dotted eighth (pulling against the beat)
 and a Freeverb. The kick ducks pad and bass by 34%, which is what leaves room for it. Master gain
 0.62, then `tanh`.
@@ -156,7 +262,7 @@ following game state; wrong for a sound answering a click — that is what `sfx.
 
 ## Tools
 
-    npm run music:render                          # 90s of ambient/puzzle to a wav
+    npm run music:render                          # 90s of tea/puzzle to a wav
     npm run music:render -- --all                 # every soundtrack and mood, one file each
     npm run music:render -- --soundtrack=industrial --sweep
     npm run music:render -- --mood=menu --seconds=45 --seed=7 --out=/tmp/menu.wav
